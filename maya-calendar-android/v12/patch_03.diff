@@ -1,0 +1,139 @@
+           if (resultCode == RESULT_OK && data != null && data.getData() != null) {
++                readAndImportJson(data.getData());
++            }
++            return;
++        }
++
+         if (requestCode == CREATE_JSON_REQUEST) {
+             if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingJson != null) {
+                 Uri uri = data.getData();
+@@ -147,22 +197,51 @@
+         }
+     }
+ 
+-    private void exportJson(String json, String filename) {
+-        final String safeFilename = (filename == null || filename.trim().isEmpty())
+-                ? "праздники_календаря.json"
++    private void startJsonImport() {
++        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
++        intent.addCategory(Intent.CATEGORY_OPENABLE);
++        intent.setType("*/*");
++        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
++                "application/json", "text/json", "text/plain", "application/octet-stream"
++        });
++        try {
++            startActivityForResult(intent, OPEN_JSON_REQUEST);
++        } catch (ActivityNotFoundException e) {
++            Toast.makeText(this, "Не найдено приложение для выбора JSON-файла", Toast.LENGTH_LONG).show();
++        }
++    }
++
++    private void readAndImportJson(Uri uri) {
++        try (InputStream in = getContentResolver().openInputStream(uri);
++             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
++            if (in == null) throw new IllegalStateException("Не удалось открыть файл");
++            byte[] block = new byte[8192];
++            int read;
++            while ((read = in.read(block)) != -1) {
++                buffer.write(block, 0, read);
++            }
++            String json = buffer.toString(StandardCharsets.UTF_8.name());
++            String quoted = JSONObject.quote(json);
++            webView.evaluateJavascript("window.applyImportedEventsJson(" + quoted + ")", null);
++        } catch (Exception e) {
++            Toast.makeText(this, "Ошибка загрузки событий: " + e.getMessage(), Toast.LENGTH_LONG).show();
++        }
++    }
++
++    private void startJsonExport(String json, String filename) {
++        String safeName = (filename == null || filename.trim().isEmpty())
++                ? "maya_calendar_events.json"
+                 : filename;
+ 
+-        // Android 10+: save directly into Downloads/MayaCalendar without a picker.
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+-            Uri uri = null;
+             try {
+                 ContentValues values = new ContentValues();
+-                values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeFilename);
+-                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+-                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MayaCalendar");
+-                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
++                values.put(MediaStore.Downloads.DISPLAY_NAME, safeName);
++                values.put(MediaStore.Downloads.MIME_TYPE, "application/json");
++                values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MayaCalendar");
++                values.put(MediaStore.Downloads.IS_PENDING, 1);
+ 
+-                uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
++                Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                 if (uri == null) throw new IllegalStateException("Не удалось создать файл");
+ 
+                 try (OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+@@ -171,27 +250,18 @@
+                     out.flush();
+                 }
+ 
+-                ContentValues ready = new ContentValues();
+-                ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
+-                getContentResolver().update(uri, ready, null, null);
+-                Toast.makeText(this, "События сохранены: Загрузки/MayaCalendar/" + safeFilename, Toast.LENGTH_LONG).show();
++                values.clear();
++                values.put(MediaStore.Downloads.IS_PENDING, 0);
++                getContentResolver().update(uri, values, null, null);
++                Toast.makeText(this, "События сохранены в Загрузки/MayaCalendar", Toast.LENGTH_LONG).show();
+                 return;
+             } catch (Exception e) {
+-                if (uri != null) {
+-                    try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { }
+-                }
+-                Toast.makeText(this, "Прямое сохранение не удалось, открою выбор файла", Toast.LENGTH_SHORT).show();
++                Toast.makeText(this, "Прямое сохранение не удалось, откроется выбор места", Toast.LENGTH_SHORT).show();
+             }
+         }
+ 
+-        // Android 6-9 or fallback: let the user select a location.
+-        startJsonExportPicker(json, safeFilename);
+-    }
+-
+-    private void startJsonExportPicker(String json, String filename) {
+         pendingJson = json;
+-        pendingJsonFilename = filename;
+-
++        pendingJsonFilename = safeName;
+         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+         intent.addCategory(Intent.CATEGORY_OPENABLE);
+         intent.setType("application/json");
+@@ -218,16 +288,13 @@
+         }
+ 
+         @JavascriptInterface
+-        public void saveEventsJson(String json, String filename) {
+-            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(
+-                    json,
+-                    (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename
+-            ));
++        public void exportJson(String json, String filename) {
++            activity.runOnUiThread(() -> startJsonExport(json, filename));
+         }
+ 
+         @JavascriptInterface
+-        public void exportJson(String json, String filename) {
+-            activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename));
++        public void importJson() {
++            activity.runOnUiThread(MainActivity.this::startJsonImport);
+         }
+ 
+         @JavascriptInterface
+--- maya-calendar-android/project/app/build.gradle
++++ maya-calendar-android/project/app/build.gradle
+@@ -10,8 +10,8 @@
+         applicationId 'ru.ivwitt.mayacalendar'
+         minSdk 23
+         targetSdk 35
+-        versionCode 2
+-        versionName '1.1.0'
++        versionCode 3
++        versionName '1.2.0'
+     }
+ 
+     buildTypes {
