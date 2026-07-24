@@ -15,11 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore and verify final HTML
+      - name: Restore and verify updated HTML
         run: |
           mkdir -p maya-calendar-android/project/app/src/main/assets
-          cat maya-calendar-android/v2/00.b64 maya-calendar-android/v2/01.b64 maya-calendar-android/v2/02.b64 maya-calendar-android/v2/03.b64 maya-calendar-android/v2/04.b64 maya-calendar-android/v2/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
-          echo "c337a8c7d5e084c956dd6d5626d88b4b9a2c5f4f11986869c21e2b05aae0c9c6  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+          cat maya-calendar-android/v4/00.b64 maya-calendar-android/v4/01.b64 maya-calendar-android/v4/02.b64 maya-calendar-android/v4/03.b64 maya-calendar-android/v4/04.b64 maya-calendar-android/v4/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
+          echo "a5b01698abe380e339525e4d5379022c32bb08605c32a5e831f430bd0f6495b6  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -45,13 +45,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p /tmp/apk
-          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar.apk
-          sha256sum /tmp/apk/MayaCalendar.apk
+          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar-v1.1.apk
+          sha256sum /tmp/apk/MayaCalendar-v1.1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MayaCalendar-APK
-          path: /tmp/apk/MayaCalendar.apk
+          name: MayaCalendar-v1.1-APK
+          path: /tmp/apk/MayaCalendar-v1.1.apk
           if-no-files-found: error
           retention-days: 30
