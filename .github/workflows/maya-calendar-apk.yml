@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Diagnose HTML chunks
-        run: |
-          sha256sum maya-calendar-android/index-parts/*.b64
-          exit 1
+        run: sha256sum maya-calendar-android/index-parts/*.b64 > chunk-hashes.txt
+      - name: Upload hashes
+        uses: actions/upload-artifact@v4
+        with:
+          name: chunk-hashes
+          path: chunk-hashes.txt
