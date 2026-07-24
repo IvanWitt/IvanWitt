@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/maya-calendar-apk
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
