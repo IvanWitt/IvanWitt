@@ -1,0 +1,60 @@
+name: Build Maya Calendar v1.2 branch
+
+on:
+  push:
+    branches:
+      - agent/maya-calendar-apk
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore verified v1.1 HTML
+        run: |
+          mkdir -p maya-calendar-android/project/app/src/main/assets
+          cat maya-calendar-android/v4/00.b64 maya-calendar-android/v4/01.b64 maya-calendar-android/v4/02.b64 maya-calendar-android/v4/03.b64 maya-calendar-android/v4/04.b64 maya-calendar-android/v4/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
+          echo "a5b01698abe380e339525e4d5379022c32bb08605c32a5e831f430bd0f6495b6  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+      - name: Apply and verify v1.2 patch
+        run: |
+          cat maya-calendar-android/v12/patch_00.diff maya-calendar-android/v12/patch_01.diff maya-calendar-android/v12/patch_02.diff maya-calendar-android/v12/patch_03.diff > /tmp/v12.patch
+          echo "ef1a006b9dd63d8e0e2376b14e13c3a51ee8a7b15feefb6df23612f7fef3cefe  /tmp/v12.patch" | sha256sum -c -
+          patch -p0 < /tmp/v12.patch
+          echo "953262d456a6c31f426db4c1384056c62f3c93245044de207b95eeaf18a9ad24  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+      - name: Restore and verify splash image
+        run: |
+          mkdir -p maya-calendar-android/project/app/src/main/res/drawable
+          tr -d '\n\r ' < maya-calendar-android/v12/splash_small.jpg.b64 | base64 -d > maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg
+          echo "6514758df55de2f963c5363ba6de633252a19ef24238a6faa2b1ea3563682ea8  maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg" | sha256sum -c -
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build debug APK
+        working-directory: maya-calendar-android/project
+        run: gradle --no-daemon assembleDebug
+      - name: Prepare APK
+        run: |
+          mkdir -p /tmp/apk
+          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar-v1.2.apk
+          sha256sum /tmp/apk/MayaCalendar-v1.2.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2-APK
+          path: /tmp/apk/MayaCalendar-v1.2.apk
+          if-no-files-found: error
+          retention-days: 30
