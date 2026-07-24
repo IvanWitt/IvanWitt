@@ -15,23 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore and verify HTML
+      - name: Restore and verify final HTML
         run: |
           mkdir -p maya-calendar-android/project/app/src/main/assets
-          cat \
-            maya-calendar-android/index-parts/00.b64 \
-            maya-calendar-android/index-parts/01.b64 \
-            maya-calendar-android/index-parts/02.b64 \
-            maya-calendar-android/index-parts/03.b64 \
-            maya-calendar-android/index-parts/04.b64 \
-            maya-calendar-android/index-parts/05a.b64 \
-            maya-calendar-android/index-parts/05b.b64 \
-            maya-calendar-android/index-parts/06.b64 \
-            maya-calendar-android/index-parts/07a.b64 \
-            maya-calendar-android/index-parts/07b.b64 \
-            maya-calendar-android/index-parts/08.b64 \
-            maya-calendar-android/index-parts/09.b64 \
-            | tr -d '\n\r ' | base64 -d > maya-calendar-android/project/app/src/main/assets/index.html
+          cat maya-calendar-android/v2/00.b64 maya-calendar-android/v2/01.b64 maya-calendar-android/v2/02.b64 maya-calendar-android/v2/03.b64 maya-calendar-android/v2/04.b64 maya-calendar-android/v2/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
           echo "c337a8c7d5e084c956dd6d5626d88b4b9a2c5f4f11986869c21e2b05aae0c9c6  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
 
       - name: Set up Java 17
