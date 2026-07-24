@@ -3,12 +3,18 @@ package ru.ivwitt.mayacalendar;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
+import android.provider.MediaStore;
+import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -34,8 +40,24 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        getWindow().setStatusBarColor(Color.rgb(23, 54, 93));
+        getWindow().setNavigationBarColor(Color.rgb(23, 54, 93));
+
         webView = new WebView(this);
         setContentView(webView);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webView.setOnApplyWindowInsetsListener((view, insets) -> {
+                view.setPadding(
+                        0,
+                        insets.getSystemWindowInsetTop(),
+                        0,
+                        insets.getSystemWindowInsetBottom()
+                );
+                return insets;
+            });
+            webView.requestApplyInsets();
+        }
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -123,9 +145,48 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void startJsonExport(String json, String filename) {
+    private void exportJson(String json, String filename) {
+        final String safeFilename = (filename == null || filename.trim().isEmpty())
+                ? "праздники_календаря.json"
+                : filename;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Uri uri = null;
+            try {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeFilename);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MayaCalendar");
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+
+                uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new IllegalStateException("Не удалось создать файл");
+
+                try (OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+                    if (out == null) throw new IllegalStateException("Не удалось открыть файл");
+                    out.write(json.getBytes(StandardCharsets.UTF_8));
+                    out.flush();
+                }
+
+                ContentValues ready = new ContentValues();
+                ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                getContentResolver().update(uri, ready, null, null);
+                Toast.makeText(this, "События сохранены: Загрузки/MayaCalendar/" + safeFilename, Toast.LENGTH_LONG).show();
+                return;
+            } catch (Exception e) {
+                if (uri != null) {
+                    try { getContentResolver().delete(uri, null, null); } catch (Exception ignored) { }
+                }
+                Toast.makeText(this, "Прямое сохранение не удалось, открою выбор файла", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        startJsonExportPicker(json, safeFilename);
+    }
+
+    private void startJsonExportPicker(String json, String filename) {
         pendingJson = json;
-        pendingJsonFilename = (filename == null || filename.trim().isEmpty()) ? "праздники_календаря.json" : filename;
+        pendingJsonFilename = filename;
 
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -153,8 +214,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void saveEventsJson(String json, String filename) {
+            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(
+                    json,
+                    (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename
+            ));
+        }
+
+        @JavascriptInterface
         public void exportJson(String json, String filename) {
-            activity.runOnUiThread(() -> startJsonExport(json, filename));
+            activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename));
         }
 
         @JavascriptInterface
