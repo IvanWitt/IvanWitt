@@ -49,7 +49,8 @@ data class SkyScheduleCache(
         if (!matches(settings, zone)) return false
         if (nowMillis > validUntilMillis) return false
         val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
-        return days.any { it.date == today } && days.any { it.date == today.plusDays(2) }
+        // A next-day row is required because the Moon can rise before midnight and set after it.
+        return days.any { it.date == today } && days.any { it.date == today.plusDays(1) }
     }
 }
 
@@ -158,9 +159,10 @@ object UsnoDataClient {
     ): SkyScheduleCache {
         val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
 
-        // Yesterday is included so a Moon interval that started before midnight can be reconstructed.
-        // Through +3 days is included so the cache can remain useful for a full 72 hours after refresh.
-        val schedules = (-1L..3L).map { delta ->
+        // Yesterday reconstructs a Moon interval that began before midnight.
+        // Through +4 days keeps a next-day row available for the full 72-hour cache lifetime,
+        // including a lunar set that occurs after midnight near the end of that period.
+        val schedules = (-1L..4L).map { delta ->
             fetchDay(settings, zone, today.plusDays(delta))
         }
 
