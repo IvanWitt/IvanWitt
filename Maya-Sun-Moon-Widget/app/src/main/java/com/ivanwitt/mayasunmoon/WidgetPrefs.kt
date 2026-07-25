@@ -5,7 +5,7 @@ import android.graphics.Color
 
 enum class CenterMode {
     ARC_DEGREES,
-    MONTH_VISIBLE_HOURS,
+    VISIBLE_HOURS,
     CLOCK_12H
 }
 
@@ -17,7 +17,10 @@ data class WidgetSettings(
     val longitude: Double,
     val elevationMeters: Double,
     val locationUpdatedAt: Long,
-    val hasLocationFix: Boolean
+    val hasLocationFix: Boolean,
+    val showLocationName: Boolean,
+    val cityName: String,
+    val countryName: String
 )
 
 object WidgetPrefs {
@@ -30,16 +33,24 @@ object WidgetPrefs {
     private const val KEY_ELEV = "elevation"
     private const val KEY_LOCATION_UPDATED = "location_updated"
     private const val KEY_HAS_FIX = "has_location_fix"
+    private const val KEY_SHOW_LOCATION_NAME = "show_location_name"
+    private const val KEY_CITY_NAME = "city_name_en"
+    private const val KEY_COUNTRY_NAME = "country_name_en"
 
-    // Moscow is a safe visual fallback until the user explicitly refreshes location.
+    // Moscow remains only as a visual fallback until an explicit location fix is saved.
     private const val DEFAULT_LAT = 55.7558
     private const val DEFAULT_LON = 37.6173
 
     fun load(context: Context): WidgetSettings {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val mode = runCatching {
-            CenterMode.valueOf(p.getString(KEY_MODE, CenterMode.MONTH_VISIBLE_HOURS.name)!!)
-        }.getOrDefault(CenterMode.MONTH_VISIBLE_HOURS)
+        val rawMode = p.getString(KEY_MODE, CenterMode.VISIBLE_HOURS.name)
+        val mode = when (rawMode) {
+            // Migration from v0.1: the old month/15th-day mode is replaced by the
+            // actual rise-to-set visibility interval requested for v0.2.
+            "MONTH_VISIBLE_HOURS" -> CenterMode.VISIBLE_HOURS
+            else -> runCatching { CenterMode.valueOf(rawMode ?: CenterMode.VISIBLE_HOURS.name) }
+                .getOrDefault(CenterMode.VISIBLE_HOURS)
+        }
 
         return WidgetSettings(
             centerMode = mode,
@@ -49,16 +60,26 @@ object WidgetPrefs {
             longitude = Double.fromBits(p.getLong(KEY_LON, DEFAULT_LON.toBits())),
             elevationMeters = Double.fromBits(p.getLong(KEY_ELEV, 0.0.toBits())),
             locationUpdatedAt = p.getLong(KEY_LOCATION_UPDATED, 0L),
-            hasLocationFix = p.getBoolean(KEY_HAS_FIX, false)
+            hasLocationFix = p.getBoolean(KEY_HAS_FIX, false),
+            showLocationName = p.getBoolean(KEY_SHOW_LOCATION_NAME, false),
+            cityName = p.getString(KEY_CITY_NAME, "") ?: "",
+            countryName = p.getString(KEY_COUNTRY_NAME, "") ?: ""
         )
     }
 
-    fun saveDisplay(context: Context, mode: CenterMode, correlation: Int, color: Int) {
+    fun saveDisplay(
+        context: Context,
+        mode: CenterMode,
+        correlation: Int,
+        color: Int,
+        showLocationName: Boolean
+    ) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_MODE, mode.name)
             .putInt(KEY_CORRELATION, correlation)
             .putInt(KEY_COLOR, color)
+            .putBoolean(KEY_SHOW_LOCATION_NAME, showLocationName)
             .apply()
     }
 
@@ -70,6 +91,17 @@ object WidgetPrefs {
             .putLong(KEY_ELEV, elevationMeters.toBits())
             .putLong(KEY_LOCATION_UPDATED, System.currentTimeMillis())
             .putBoolean(KEY_HAS_FIX, true)
+            // Do not display a place name belonging to the previous coordinates.
+            .putString(KEY_CITY_NAME, "")
+            .putString(KEY_COUNTRY_NAME, "")
+            .apply()
+    }
+
+    fun saveLocationNames(context: Context, cityName: String, countryName: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_CITY_NAME, cityName)
+            .putString(KEY_COUNTRY_NAME, countryName)
             .apply()
     }
 }
