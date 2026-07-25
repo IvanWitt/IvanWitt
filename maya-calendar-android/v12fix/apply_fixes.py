@@ -17,6 +17,8 @@ s=s.replace('    function applyImportedEventsJson(text){\n','    function import
 s=s.replace('      const count=applyImportedEventsJson(text);\n','      const count=importEventsJsonText(text);\n')
 s=s.replace('    window.applyImportedEventsJson=function(text){\n','    window.receiveImportedEventsJson=function(text){\n')
 s=s.replace('      applyImportedEventsJson(text);\n','      importEventsJsonText(text);\n')
+s=s.replace('        return true;\n      } catch(err){','        return;\n      } catch(err){')
+s=s.replace('        return false;\n      }\n    };','        return;\n      }\n    };')
 s=s.replace('      const parsed=JSON.parse(text);\n',"      const cleanText=String(text ?? '').replace(/^\\uFEFF/, '').trim();\n      if(!cleanText) throw new Error('Файл пуст');\n      const parsed=JSON.parse(cleanText);\n")
 p.write_text(s,'utf-8')
 
@@ -101,7 +103,9 @@ repl='''    private void dismissSplashWhenReady() {
                 .alpha(0f)
                 .setDuration(350)
                 .withEndAction(() -> {
-                    if (splashLayer.getParent() == rootView) rootView.removeView(splashLayer);
+                    if (splashLayer.getParent() == rootView) {
+                        rootView.removeView(splashLayer);
+                    }
                     splashView = null;
                 }).start(), 900);
     }
