@@ -23,7 +23,7 @@ jobs:
 
       - name: Apply and verify v1.2 patch
         run: |
-          cat maya-calendar-android/v12/patch_00.diff maya-calendar-android/v12/patch_01.diff maya-calendar-android/v12/patch_02.diff maya-calendar-android/v12/patch_03.diff > /tmp/v12.patch
+          cat maya-calendar-android/v12/patch64/00.b64 maya-calendar-android/v12/patch64/01.b64 maya-calendar-android/v12/patch64/02.b64 maya-calendar-android/v12/patch64/03.b64 maya-calendar-android/v12/patch64/04.b64 maya-calendar-android/v12/patch64/05.b64 maya-calendar-android/v12/patch64/06.b64 | tr -d '\n\r ' | base64 -d > /tmp/v12.patch
           echo "ef1a006b9dd63d8e0e2376b14e13c3a51ee8a7b15feefb6df23612f7fef3cefe  /tmp/v12.patch" | sha256sum -c -
           patch -p0 < /tmp/v12.patch
           echo "953262d456a6c31f426db4c1384056c62f3c93245044de207b95eeaf18a9ad24  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
