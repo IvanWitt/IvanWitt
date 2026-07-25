@@ -310,64 +310,38 @@
     }
     .gear-position {
       min-width:160px;
-      min-height:40px;
-      display:grid;
-      place-items:center;
-      border:1px solid #b7c5d3;
+      text-align:center;
+      padding:10px 12px;
+      border:1px solid var(--line);
       border-radius:9px;
-      background:#f7f9fb;
-      font-weight:850;
-      color:var(--blue-900);
-      padding:7px 12px;
+      background:#f8fafc;
+      font-weight:800;
     }
     .gear-stage {
       position:relative;
-      width:100%;
-      aspect-ratio:1060 / 660;
-      min-height:420px;
-      border:1px solid #cbd6e1;
-      border-radius:18px;
+      min-height:620px;
+      border:1px solid var(--line);
+      border-radius:16px;
       overflow:hidden;
       background:
-        radial-gradient(circle at 30% 45%,rgba(237,173,98,.19),transparent 31%),
-        radial-gradient(circle at 72% 46%,rgba(86,145,154,.19),transparent 34%),
-        linear-gradient(180deg,#f8fbfd,#edf3f7);
-      box-shadow:inset 0 0 38px rgba(31,78,120,.08);
-      outline:none;
+        radial-gradient(circle at 50% 45%,rgba(255,255,255,.95),rgba(232,239,245,.95) 55%,#d8e3ec 100%);
+      touch-action:none;
+      user-select:none;
     }
-    .gear-stage:focus-visible { box-shadow:0 0 0 4px rgba(91,155,213,.28),inset 0 0 38px rgba(31,78,120,.08); }
-    .gear-svg { width:100%; height:100%; display:block; touch-action:none; user-select:none; }
-    .gear-rotor { transform-box:view-box; will-change:transform; }
-    .gear-body.tzolkin-body { fill:url(#tzGearGradient); stroke:#713c1e; stroke-width:4; }
-    .gear-body.haab-body { fill:url(#haabGearGradient); stroke:#244e55; stroke-width:4; }
-    .gear-inner-ring { fill:none; stroke:rgba(255,255,255,.70); stroke-width:4; }
-    .gear-middle-ring { fill:none; stroke:rgba(28,48,64,.30); stroke-width:2; }
-    .gear-tick { stroke:rgba(23,54,93,.44); stroke-width:1; }
-    .gear-tick.major { stroke:#17365d; stroke-width:2.4; }
-    .gear-month-boundary { stroke:#17365d; stroke-width:2; opacity:.62; }
-    .gear-ring-label {
-      fill:#17365d;
-      font-size:11px;
-      font-weight:850;
-      text-anchor:middle;
-      dominant-baseline:middle;
-      paint-order:stroke;
-      stroke:rgba(255,255,255,.88);
-      stroke-width:3px;
-      stroke-linejoin:round;
-    }
-    .gear-ring-label.haab-label { font-size:10px; }
-    .gear-hub { fill:rgba(255,255,255,.94); stroke:#17365d; stroke-width:5; filter:url(#gearShadow); }
-    .gear-hub-title { fill:#17365d; font-size:25px; font-weight:900; text-anchor:middle; }
-    .gear-hub-main { fill:#1f2937; font-size:24px; font-weight:900; text-anchor:middle; }
-    .gear-hub-sub { fill:#667085; font-size:15px; font-weight:750; text-anchor:middle; }
-    .gear-pointer { fill:#9c0006; stroke:#fff; stroke-width:3; filter:url(#gearShadow); }
-    .gear-contact { fill:#fff2cc; stroke:#9c0006; stroke-width:4; filter:url(#gearShadow); }
-    .gear-hit { fill:transparent; cursor:grab; pointer-events:all; }
-    .gear-hit:active { cursor:grabbing; }
+    .gear-svg { width:100%; height:100%; min-height:620px; display:block; }
+    .gear-wheel { cursor:grab; transform-box:fill-box; transform-origin:center; }
+    .gear-wheel:active { cursor:grabbing; }
+    .gear-tooth { fill:#e7eef4; stroke:#335b80; stroke-width:1; }
+    .gear-inner { fill:white; stroke:#17365d; stroke-width:3; }
+    .gear-ring-label { font-size:12px; font-weight:700; fill:#335b80; pointer-events:none; }
+    .gear-index-mark { stroke:#c00000; stroke-width:5; }
+    .gear-hub { fill:#17365d; }
+    .gear-hub-title { fill:white; font-size:48px; font-weight:900; text-anchor:middle; dominant-baseline:middle; }
+    .gear-hub-main { fill:#17365d; font-size:42px; font-weight:900; text-anchor:middle; }
+    .gear-hub-sub { fill:#335b80; font-size:26px; font-weight:800; text-anchor:middle; }
     .gear-junction-card {
       position:absolute;
-      left:47.0%;
+      left:47%;
       top:50%;
       transform:translate(-50%,-50%);
       width:min(210px,24%);
@@ -384,119 +358,88 @@
     .gear-junction-card small { display:block; color:#7f0000; font-weight:850; letter-spacing:.02em; }
     .gear-junction-card strong { display:block; margin:3px 0; color:#17365d; font-size:clamp(14px,1.7vw,21px); line-height:1.15; }
     .gear-junction-card span { display:block; color:#667085; font-size:12px; font-weight:700; }
-    .gear-help {
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:10px;
-      margin-top:13px;
-    }
-    .gear-help div {
-      border:1px solid var(--line);
-      border-radius:10px;
-      background:#f8fafc;
-      padding:10px 12px;
-      font-size:13px;
-    }
-    .gear-help strong { color:var(--blue-900); }
+    .gear-help { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:13px; }
+    .gear-help div { border:1px solid var(--line); border-radius:10px; background:#f8fafc; padding:10px 12px; font-size:13px; }
 
-    footer { text-align:center; color:var(--muted); font-size:12px; padding:12px; }
+    .event-toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:800; width:min(90%,480px); background:#23443f; color:#fff; padding:14px 16px; border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.28); display:none; font-weight:700; text-align:center; }
+    .event-toast.show { display:block; animation:toastIn .15s ease-out; }
+    @keyframes toastIn { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
+
+    .about-card { border:1px solid var(--line); border-radius:14px; background:#fff; padding:16px; }
+    .about-card p { margin:0 0 12px; color:#4b5350; line-height:1.55; }
+    .about-meta { margin-top:14px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .about-meta div { border:1px solid #d7dbd2; border-radius:10px; padding:10px 12px; background:#f8f7f2; }
+    .about-meta span { display:block; color:#6e756f; font-size:12px; margin-bottom:2px; }
+    .about-meta strong,.about-meta a { font-weight:800; color:#23443f; text-decoration:none; }
+
+    .appbar {
+      position:sticky;
+      top:0;
+      z-index:500;
+      height:64px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:8px 14px;
+      background:#23443f;
+      color:white;
+      box-shadow:0 4px 14px rgba(0,0,0,.18);
+    }
+    .menu-button {
+      width:48px;
+      height:48px;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(255,255,255,.3);
+      border-radius:14px;
+      background:rgba(255,255,255,.08);
+      color:white;
+      font-size:27px;
+      line-height:1;
+      cursor:pointer;
+    }
+    .appbar-title { font-weight:850; font-size:19px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .popup-menu {
+      position:fixed;
+      top:72px;
+      left:12px;
+      z-index:650;
+      width:min(310px,calc(100vw - 24px));
+      padding:9px;
+      border:1px solid #c9d0c9;
+      border-radius:14px;
+      background:rgba(255,255,255,.985);
+      box-shadow:0 20px 55px rgba(0,0,0,.28);
+      opacity:0;
+      transform:translateY(-8px) scale(.98);
+      pointer-events:none;
+      transition:.14s ease;
+    }
+    .popup-menu.open { opacity:1; transform:none; pointer-events:auto; }
+    .popup-menu button { width:100%; border:0; background:transparent; text-align:left; padding:12px 13px; border-radius:9px; color:#24302a; font-weight:760; cursor:pointer; }
+    .popup-menu button:hover,.popup-menu button.active { background:#e9efea; color:#204f45; }
+    .menu-backdrop { position:fixed; inset:0; z-index:620; background:rgba(0,0,0,.14); }
+    .menu-backdrop[hidden] { display:none; }
+    .app-page { display:none; }
+    .app-page.active { display:block; }
 
     @media (max-width:1150px) {
       .haab-grid { grid-template-columns:repeat(2,minmax(240px,1fr)); }
       .custom-grid { grid-template-columns:1fr; }
       .ref-grid { grid-template-columns:1fr; }
     }
-    @media (max-width:760px) {
-      main { padding:15px 9px 45px; }
-      .topbar-inner { padding:8px 9px; }
-      .brand { display:none; }
-      .hero { padding:19px; border-radius:15px; }
-      .section-body { padding:11px; }
-      .summary-grid { grid-template-columns:1fr; }
-      .summary-grid > div { border-right:0; }
-      .summary-grid .hdr { display:none; }
-      .summary-grid .label { border-bottom:0; }
-      .summary-grid .value { border-bottom:0; }
-      .haab-grid { grid-template-columns:1fr; }
-      .custom-grid { grid-template-columns:1fr; }
-      .custom-month { overflow:auto; }
-      .custom-month table { min-width:0; width:100%; }
-      .gear-stage { min-height:300px; aspect-ratio:1060 / 660; overflow:hidden; }
-      .gear-svg { min-width:0; }
-      .gear-ring-label { display:none; }
-      .gear-hub-title { font-size:40px; }
-      .gear-hub-main { font-size:36px; }
-      .gear-hub-sub { font-size:24px; }
-      .gear-junction-card { position:absolute; left:47%; top:50%; width:130px; min-width:0; padding:6px 7px; border-width:2px; border-radius:10px; }
-      .gear-junction-card small { font-size:8px; }
-      .gear-junction-card strong { font-size:11px; }
-      .gear-junction-card span { font-size:8px; }
-      .gear-help { grid-template-columns:1fr; }
-    }
-
-
-    /* Navigation between independent app pages. */
-    .appbar {
-      position:sticky; top:0; z-index:300; min-height:58px; height:calc(58px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; gap:12px;
-      box-sizing:border-box; padding:env(safe-area-inset-top, 0px) 14px 0; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
-    }
-    .menu-button {
-      width:42px; height:42px; flex:0 0 42px; border:1px solid rgba(255,255,255,.28); border-radius:12px;
-      background:rgba(255,255,255,.12); color:#fff; font-size:25px; line-height:1; cursor:pointer; -webkit-tap-highlight-color:transparent;
-    }
-    .appbar-title { font-weight:850; font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .popup-menu {
-      position:fixed; z-index:420; top:calc(66px + env(safe-area-inset-top, 0px)); left:12px; width:min(360px,calc(100vw - 24px)); display:none;
-      padding:8px; border:1px solid #d7cfbf; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(55,45,31,.25);
-    }
-    .popup-menu.open { display:grid; gap:4px; }
-    .popup-menu button {
-      width:100%; min-height:46px; border:0; border-radius:11px; background:transparent; color:#24364a; text-align:left;
-      padding:11px 13px; font:inherit; font-weight:780; cursor:pointer; -webkit-tap-highlight-color:transparent;
-    }
-    .popup-menu button:hover,.popup-menu button.active { background:#efe9dc; color:#315b52; }
-    .menu-backdrop { position:fixed; z-index:410; inset:0; background:rgba(10,24,40,.30); }
-    .app-page { display:none; margin-top:14px; }
-    .app-page.active { display:block; animation:pageIn .16s ease-out; }
-    @keyframes pageIn { from { opacity:.35; transform:translateY(5px); } to { opacity:1; transform:none; } }
-    .file-status { min-height:20px; margin:-3px 0 12px; color:#375623; font-size:13px; font-weight:700; }
-    #customGrid .custom-day.has-event,#customGrid .outside-time.has-event { cursor:pointer; }
-    #customGrid .custom-day.has-event:active,#customGrid .outside-time.has-event:active { transform:scale(.97); }
-    .event-modal[hidden] { display:none; }
-    .event-modal { position:fixed; z-index:600; inset:0; display:flex; align-items:center; justify-content:center; padding:22px; }
-    .event-modal-backdrop { position:absolute; inset:0; background:rgba(8,20,34,.52); }
-    .event-modal-card {
-      position:relative; z-index:1; width:min(440px,100%); background:#fff; border-radius:18px; padding:22px 20px 20px;
-      box-shadow:0 22px 60px rgba(0,0,0,.30); border:1px solid #d8e0e8;
-    }
-    .event-modal-close { position:absolute; top:8px; right:10px; width:38px; height:38px; border:0; border-radius:50%; background:#eef3f7; font-size:25px; cursor:pointer; }
-    .event-modal-day { color:#667085; font-size:13px; font-weight:800; margin-right:40px; }
-    .event-modal-card h3 { margin:7px 36px 8px 0; color:#17365d; font-size:20px; }
-    .event-modal-card p { margin:0; font-size:16px; white-space:pre-wrap; }
-
-
-    /* Сдержанная стилизация в духе камня, нефрита и тёплой охры. */
-    section { border-color:#d7cfbf; }
-    .section-head { border-bottom:2px solid rgba(167,131,69,.32); }
-    .menu-button { border-color:rgba(214,191,143,.55); }
-    .custom-day.weekend { background:#f0efeb; }
-    .custom-month th.weekend-head { background:#678171; }
-    .about-card { max-width:760px; margin:0 auto; }
-    .about-card p { margin:0 0 16px; }
-    .about-meta {
-      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
-      margin-top:20px; padding-top:16px; border-top:1px solid var(--line);
-    }
-    .about-meta div {
-      display:grid; gap:3px; padding:11px 12px; border:1px solid var(--line);
-      border-radius:10px; background:#f7f3ea;
-    }
-    .about-meta span { font-size:12px; color:var(--muted); font-weight:700; }
-    .about-meta a { color:var(--blue-800); font-weight:800; text-decoration:none; }
 
     @media (max-width:760px) {
-      .custom-grid { grid-template-columns:1fr; gap:12px; }
-      .custom-month { overflow:hidden; width:100%; }
+      main { padding:16px 10px 48px; }
+      .appbar { min-height:64px; height:64px; padding:8px 10px; }
+      .menu-button { width:44px; height:44px; }
+      .hero { padding:20px; border-radius:16px 16px 0 0; }
+      .section-head { padding:18px 20px; }
+      .section-head h2 { font-size:24px; }
+      .section-body { padding:14px; }
+      .summary-grid,.haab-grid,.about-grid { grid-template-columns:1fr; }
+      .custom-grid { grid-template-columns:1fr; gap:11px; }
+      .custom-month { overflow:hidden; }
       .custom-month table { min-width:0 !important; width:100%; table-layout:fixed; }
       .custom-month th,.custom-month td { padding:6px 1px; font-size:12px; }
       .custom-month th:first-child,.week-label { width:58px !important; }
@@ -644,54 +587,225 @@
     .calendar-detail-description > div { min-height:32px; margin-top:7px; color:#665947; }
 
     @media (max-width:760px) {
-      .app-page { margin-top:8px; }
+      .compact-head { padding:9px 12px; }
+      .compact-head h2 { font-size:17px; }
       .home-body { padding:8px; }
       .home-controls { grid-template-columns:100px minmax(0,1fr); gap:6px; }
       .home-actions { grid-column:1 / -1; justify-content:flex-end; margin-top:-1px; }
       .home-actions .btn { min-height:32px; padding:5px 10px; }
-      .date-basis-note { font-size:9px; }
+      .date-basis-note { font-size:9px; max-width:none; }
       .home-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
       .home-value-card,.home-value-card.wide { grid-column:span 1; padding:7px 8px; }
       .home-value-card span { font-size:9px; }
       .home-value-card strong { font-size:13px; }
-      .tzolkin-section-body { padding:7px!important; }
-      .tz-toolbar { font-size:9px; align-items:flex-start; }
+      .tz-toolbar { align-items:flex-start; }
+      .tz-toolbar span { font-size:9px; line-height:1.15; }
       .tz-seal-head { width:58px!important; min-width:58px; }
       .tz-seal-wrap svg { width:27px; height:27px; }
       .tz-seal-wrap b { font-size:7px; }
-      .tz-cell { height:39px!important; }
-      .haab-section-body { padding:8px!important; }
+      .tz-cell { height:47px!important; }
+      .tz-cell .kin-name { font-size:clamp(5.1px,1.55vw,8px); }
+      .tz-cell .kin-number { font-size:clamp(4.6px,1.25vw,7px); }
       .haab-grid { grid-template-columns:1fr!important; }
       .haab-days { grid-template-columns:repeat(5,1fr)!important; }
-      .haab-day { min-height:48px!important; }
+      .haab-day { min-height:49px!important; }
+      .calendar-detail-card { width:min(94vw,470px); padding:18px 13px 13px; }
       .calendar-detail-preview { grid-template-columns:96px minmax(0,1fr); gap:10px; }
       .calendar-detail-glyph { min-height:104px; }
       .calendar-detail-glyph svg { width:82px; height:82px; }
       .calendar-detail-tile .big-name { font-size:19px; }
     }
 
+    /* Startup splash overlay */
+    #startupSplash { position: fixed; inset: 0; z-index: 999999; background: #101614; opacity: 1; visibility: visible; transition: opacity .55s ease, visibility .55s ease; overflow: hidden; }
+    #startupSplash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #startupSplash .startup-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; user-select: none; -webkit-user-drag: none; }
+    #startupSplash .startup-shade { position:absolute; inset:0; background: linear-gradient(180deg, rgba(12,12,10,.12) 0%, rgba(10,10,10,.04) 38%, rgba(0,0,0,.16) 100%); }
+    #startupSplash .startup-hourglass-wrap { position: absolute; left: 50%; top: 70.5%; transform: translate(-50%, -50%); width: clamp(88px, 18vw, 134px); aspect-ratio: 3 / 5; display:flex; align-items:center; justify-content:center; filter: drop-shadow(0 8px 22px rgba(0,0,0,.45)); animation: hgFloat 1.8s ease-in-out infinite; }
+    #startupSplash .startup-title { position: absolute; left: 0; right: 0; bottom: max(18px, env(safe-area-inset-bottom)); text-align: center; padding: 0 20px; color: #f7e0a2; font-weight: 800; letter-spacing: .4px; font-size: clamp(20px, 4.8vw, 30px); text-shadow: 0 2px 14px rgba(0,0,0,.55), 0 0 6px rgba(93,58,13,.28); }
+    #startupSplash .startup-subtitle { display:block; font-size: clamp(11px, 2.7vw, 15px); opacity: .86; color: #efe5c7; font-weight: 600; margin-top: 4px; letter-spacing: .3px; }
+    #startupSplash svg { width: 100%; height: 100%; overflow: visible; }
+    #startupSplash .hg-frame { fill: url(#hgBronze); stroke: #5c3818; stroke-width: 6; }
+    #startupSplash .hg-cap { fill: url(#hgGold); stroke: #6d431c; stroke-width: 5; }
+    #startupSplash .hg-glass { fill: rgba(255,244,219,.16); stroke: rgba(255,240,198,.72); stroke-width: 3.3; }
+    #startupSplash .hg-sand-top { transform-box: fill-box; transform-origin: center top; animation: sandTop 1.8s linear infinite; fill: url(#hgSand); }
+    #startupSplash .hg-sand-bottom { transform-box: fill-box; transform-origin: center bottom; animation: sandBottom 1.8s linear infinite; fill: url(#hgSand); }
+    #startupSplash .hg-stream { animation: sandStream 1.8s linear infinite; transform-origin: center center; }
+    #startupSplash .hg-glow { animation: hgGlow 1.8s ease-in-out infinite; }
+    @keyframes sandTop { 0% { transform: scaleY(1);} 85% { transform: scaleY(.12);} 100% { transform: scaleY(1);} }
+    @keyframes sandBottom { 0% { transform: scaleY(.18);} 85% { transform: scaleY(1);} 100% { transform: scaleY(.18);} }
+    @keyframes sandStream { 0%,10% { opacity:1; transform: scaleY(1);} 88%,100% { opacity:0; transform: scaleY(.2);} }
+    @keyframes hgFloat { 0%,100% { transform: translate(-50%, -50%) translateY(0);} 50% { transform: translate(-50%, -50%) translateY(-5px);} }
+    @keyframes hgGlow { 0%,100% { opacity:.72;} 50% { opacity:1; } }
+
+    /* v1.2.4 — polished Home + stone glyphs from supplied references */
+    #summary .compact-head{
+      min-height:58px;
+      padding:13px 18px;
+      background:linear-gradient(135deg,#294f46 0%,#315f52 62%,#70552f 100%);
+      border-bottom:2px solid #b79353;
+    }
+    #summary .compact-head h2{font-size:23px;letter-spacing:.1px}
+    #summary .compact-head .section-note{font-size:15px;font-weight:750;color:#f3e7ca}
+    #summary .home-body{padding:16px 14px 17px;background:linear-gradient(180deg,#fffdf7 0%,#f1e8d8 100%)}
+    #summary .home-controls{
+      display:grid;
+      grid-template-columns:minmax(120px,.62fr) minmax(220px,1.38fr);
+      gap:12px 14px;
+      align-items:start;
+      margin-bottom:15px;
+    }
+    #summary .home-controls .field label{font-size:13px;color:#675e50}
+    #summary .home-controls input{min-height:48px;padding:9px 11px;font-size:20px;border-color:#c7b48d;border-radius:12px}
+    #summary .home-correlation #correlation{font-weight:900}
+    #summary .date-basis-note{
+      display:block;
+      max-width:none;
+      margin-top:8px;
+      padding:8px 10px;
+      color:#51483c;
+      font-size:13px;
+      line-height:1.28;
+      font-weight:750;
+      background:#eee3ca;
+      border-left:4px solid #aa8143;
+      border-radius:8px;
+    }
+    #summary .home-actions{
+      grid-column:1/-1;
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:0;
+    }
+    #summary .home-actions .btn{min-height:42px;padding:9px 18px;font-size:15px}
+    #summary .home-summary{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    #summary .home-value-card{
+      min-height:79px;
+      padding:12px 13px;
+      border:1px solid #c6b083;
+      border-radius:14px;
+      background:linear-gradient(145deg,#fffdf7 0%,#ecdfc5 100%);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.45),0 4px 10px rgba(75,52,24,.09);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    #summary .home-value-card.wide{grid-column:1/-1}
+    #summary .home-value-card span{font-size:11.5px;color:#6e5f49;margin-bottom:6px}
+    #summary .home-value-card strong{font-size:18px;line-height:1.15;color:#293a32}
+    #summary .home-value-card em{font-size:12px;color:#906527;margin-top:5px}
+    #summary #summaryGrid::after{
+      content:"";
+      grid-column:1/-1;
+      height:1px;
+      background:linear-gradient(90deg,transparent,#b79051,transparent);
+      opacity:.45;
+      margin-top:2px;
+    }
+
+    .stone-glyph{
+      display:block;
+      object-fit:contain;
+      border:0;
+      background:transparent;
+      filter:drop-shadow(0 1px 1px rgba(66,43,21,.25));
+    }
+    .tz-seal-head{width:78px!important;min-width:78px}
+    .tz-seal-wrap{gap:1px;line-height:1}
+    .tz-seal-wrap .stone-seal-glyph{width:43px;height:43px}
+    .tz-seal-wrap b{font-size:7.5px;line-height:1.05;white-space:nowrap;color:#2e251c}
+    .tz-seal-wrap small{display:block;font-size:6.5px;line-height:1.05;color:#5f4930;font-weight:800;white-space:nowrap}
+
+    .calendar-detail-glyph .stone-glyph{
+      width:108px!important;
+      height:108px!important;
+      max-width:100%;
+      margin:auto;
+    }
+    .calendar-detail-glyph{
+      background:linear-gradient(145deg,#d7bd88,#b69051)!important;
+      border-color:#6f4e28!important;
+    }
+    .calendar-detail-tile .big-local{
+      display:block;
+      margin-top:3px;
+      font-size:15px;
+      line-height:1.05;
+      font-weight:800;
+      opacity:.92;
+    }
+    .calendar-detail-tile.tz-west .big-kin{color:#f5e5bd!important}
+    .calendar-detail-tile.tz-west .big-local{color:#f5e5bd!important}
+
+    .compact-legend{
+      justify-content:center!important;
+      align-items:center;
+      gap:9px!important;
+      margin-top:12px!important;
+      text-align:center;
+    }
+    .compact-legend .legend-item{
+      min-width:78px;
+      padding:8px 10px!important;
+      font-size:16px!important;
+      line-height:1!important;
+      text-align:center;
+      border-radius:10px;
+    }
+
+    .haab-month h3{
+      min-height:76px;
+      justify-content:flex-start!important;
+      padding:8px 10px!important;
+    }
+    .haab-month h3 .stone-haab-glyph{
+      flex:0 0 52px;
+      width:52px;
+      height:52px;
+    }
+    .haab-title-text{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      line-height:1.05;
+      text-align:left;
+    }
+    .haab-title-text b{font-size:15px;color:#f9e7bd}
+    .haab-title-text small{margin-top:5px;font-size:12px;color:#e8d5a8;font-weight:800}
   </style>
 </head>
 <body>
-
   <div id="startupSplash" aria-hidden="true">
     <img class="startup-image" src="splash_start.png" alt="Заставка Календаря Майя">
+    <div class="startup-shade"></div>
     <div class="startup-hourglass-wrap" aria-hidden="true">
-      <svg viewBox="0 0 210 350">
+      <svg viewBox="0 0 210 350" role="img" aria-label="Песочные часы">
         <defs>
-          <linearGradient id="hgBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8ca7d"/><stop offset="28%" stop-color="#b27c39"/><stop offset="58%" stop-color="#825020"/><stop offset="100%" stop-color="#d9b46b"/></linearGradient>
-          <linearGradient id="hgGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5df9c"/><stop offset="100%" stop-color="#956426"/></linearGradient>
-          <linearGradient id="hgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe9ac"/><stop offset="100%" stop-color="#d7a64c"/></linearGradient>
-          <radialGradient id="hgGlowGrad"><stop offset="0%" stop-color="#ffdf8c" stop-opacity=".55"/><stop offset="100%" stop-color="#ffdf8c" stop-opacity="0"/></radialGradient>
+          <linearGradient id="hgBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e7c67b"/><stop offset="25%" stop-color="#b88743"/><stop offset="55%" stop-color="#8f5a2a"/><stop offset="100%" stop-color="#dcb970"/></linearGradient>
+          <linearGradient id="hgGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5df9c"/><stop offset="100%" stop-color="#9b6d2c"/></linearGradient>
+          <linearGradient id="hgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe6a8"/><stop offset="100%" stop-color="#d7a851"/></linearGradient>
+          <radialGradient id="hgGlowGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffdf8c" stop-opacity="0.62"/><stop offset="100%" stop-color="#ffdf8c" stop-opacity="0"/></radialGradient>
         </defs>
-        <ellipse class="hg-glow" cx="105" cy="175" rx="88" ry="145" fill="url(#hgGlowGrad)"/>
-        <rect class="hg-cap" x="34" y="18" rx="12" width="142" height="24"/><rect class="hg-cap" x="34" y="308" rx="12" width="142" height="24"/>
-        <rect class="hg-frame" x="44" y="32" rx="11" width="20" height="286"/><rect class="hg-frame" x="146" y="32" rx="11" width="20" height="286"/>
-        <path class="hg-glass" d="M76 66 L134 66 C129 95 116 122 105 148 C94 122 81 95 76 66 Z"/><path class="hg-glass" d="M76 284 L134 284 C129 255 116 228 105 202 C94 228 81 255 76 284 Z"/>
-        <path class="hg-sand-top" d="M84 84 L126 84 C123 102 115 118 105 132 C95 118 87 102 84 84 Z"/>
-        <path class="hg-stream" d="M102 148 C102 140 108 140 108 148 L109 198 C109 205 101 205 101 198 Z" fill="url(#hgSand)"/>
-        <path class="hg-sand-bottom" d="M92 268 C96 252 101 236 105 226 C109 236 114 252 118 268 C110 272 99 272 92 268 Z"/>
-        <circle cx="105" cy="175" r="6" fill="#8d5c24" stroke="#4e2e13" stroke-width="2"/><circle cx="105" cy="175" r="3" fill="#f3d890"/>
+        <ellipse class="hg-glow" cx="105" cy="175" rx="88" ry="145" fill="url(#hgGlowGrad)" opacity="0.88"></ellipse>
+        <rect class="hg-cap" x="34" y="18" rx="12" ry="12" width="142" height="24"></rect>
+        <rect class="hg-cap" x="34" y="308" rx="12" ry="12" width="142" height="24"></rect>
+        <rect class="hg-frame" x="44" y="32" rx="11" ry="11" width="20" height="286"></rect>
+        <rect class="hg-frame" x="146" y="32" rx="11" ry="11" width="20" height="286"></rect>
+        <path class="hg-frame" d="M62 53 L148 53 C144 90 126 127 105 158 C84 127 66 90 62 53 Z"></path>
+        <path class="hg-frame" d="M62 297 L148 297 C144 260 126 223 105 192 C84 223 66 260 62 297 Z"></path>
+        <path class="hg-glass" d="M76 66 L134 66 C129 95 116 122 105 148 C94 122 81 95 76 66 Z"></path>
+        <path class="hg-glass" d="M76 284 L134 284 C129 255 116 228 105 202 C94 228 81 255 76 284 Z"></path>
+        <path class="hg-sand-top" d="M84 84 L126 84 C123 102 115 118 105 132 C95 118 87 102 84 84 Z"></path>
+        <path class="hg-stream" d="M102 148 C102 140 108 140 108 148 L109 198 C109 205 101 205 101 198 Z" fill="url(#hgSand)"></path>
+        <path class="hg-sand-bottom" d="M92 268 C96 252 101 236 105 226 C109 236 114 252 118 268 C110 272 99 272 92 268 Z"></path>
+        <circle cx="105" cy="175" r="6" fill="#8d5c24" stroke="#5c3818" stroke-width="2"></circle>
+        <circle cx="105" cy="175" r="3.2" fill="#f3d890"></circle>
       </svg>
     </div>
     <div class="startup-title">Календарь Майя v1.2</div>
@@ -743,8 +857,7 @@
           <div class="home-value-card"><span>Цолькин</span><strong id="sTzolkin"></strong><em id="sKinLine"></em></div>
           <div class="home-value-card"><span>Хааб</span><strong id="sHaab"></strong></div>
           <div class="home-value-card wide"><span>Цолькин + Хааб</span><strong id="sRound"></strong></div>
-          <div class="home-value-card"><span>Длинный счёт</span><strong id="sLongCount"></strong></div>
-          <div class="home-value-card"><span>Корреляция</span><strong id="sCorrelation"></strong></div>
+          <div class="home-value-card wide"><span>Длинный счёт</span><strong id="sLongCount"></strong></div>
           <span id="sKin" hidden></span>
         </div>
       </div>
@@ -876,84 +989,38 @@
       </div>
       <div class="section-body">
         <div class="gear-controls">
-          <button class="btn secondary" id="gearMinus20" type="button">−20 дней</button>
-          <button class="btn secondary" id="gearMinus1" type="button">−1 день</button>
-          <button class="btn secondary" id="gearPlus1" type="button">+1 день</button>
-          <button class="btn secondary" id="gearPlus20" type="button">+20 дней</button>
-          <button class="btn" id="gearPlay" type="button">▶ Крутить</button>
-          <div class="field">
-            <label for="gearSpeed">Шаг автопрокрутки</label>
-            <select id="gearSpeed">
-              <option value="1">1 день</option>
-              <option value="5">5 дней</option>
-              <option value="20">20 дней</option>
-            </select>
-          </div>
+          <button class="btn secondary" id="gearMinus20" type="button">−20</button>
+          <button class="btn secondary" id="gearMinus1" type="button">−1</button>
+          <button class="btn" id="gearPlay" type="button">▶ Авто</button>
+          <button class="btn secondary" id="gearPlus1" type="button">+1</button>
+          <button class="btn secondary" id="gearPlus20" type="button">+20</button>
+          <button class="btn secondary" id="gearToday" type="button">Сегодня</button>
           <div class="field grow">
-            <label for="calendarRoundSlider">Позиция в календарном круге из 18 980 дней</label>
-            <input id="calendarRoundSlider" type="range" min="0" max="18979" step="1" value="0">
+            <label for="gearSlider">Положение внутри 18 980-дневного календарного круга</label>
+            <input id="gearSlider" type="range" min="0" max="18979" value="0">
           </div>
-          <div class="gear-position" id="calendarRoundPosition">День 1 / 18 980</div>
+          <div class="gear-position" id="gearPosition">День 1 / 18 980</div>
         </div>
-
-        <div class="gear-stage" id="gearStage" tabindex="0" aria-label="Интерактивные шестерёнки календарей. Используйте стрелки влево и вправо для перемещения по дням.">
-          <svg class="gear-svg" id="gearSvg" viewBox="0 0 1060 660" role="img" aria-labelledby="gearTitle gearDescription">
-            <title id="gearTitle">Взаимодействие календарей Цолькин и Хааб</title>
-            <desc id="gearDescription">Колесо Цолькина имеет 260 делений, колесо Хааба — 365. Они вращаются в противоположных направлениях, а в точке сцепления показана общая дата.</desc>
-            <defs>
-              <radialGradient id="tzGearGradient" cx="35%" cy="30%" r="75%">
-                <stop offset="0" stop-color="#f8d6a5"/>
-                <stop offset=".56" stop-color="#d58a4f"/>
-                <stop offset="1" stop-color="#a85d31"/>
-              </radialGradient>
-              <radialGradient id="haabGearGradient" cx="35%" cy="30%" r="75%">
-                <stop offset="0" stop-color="#d8eef0"/>
-                <stop offset=".58" stop-color="#74aab0"/>
-                <stop offset="1" stop-color="#3f7078"/>
-              </radialGradient>
-              <filter id="gearShadow" x="-30%" y="-30%" width="160%" height="160%">
-                <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity=".25"/>
-              </filter>
-            </defs>
-
-            <g id="tzGearRotor" class="gear-rotor"></g>
-            <g id="haabGearRotor" class="gear-rotor"></g>
-
-            <polygon class="gear-pointer" points="485,317 513,330 485,343" aria-hidden="true"></polygon>
-            <polygon class="gear-pointer" points="511,317 483,330 511,343" aria-hidden="true"></polygon>
-            <circle class="gear-contact" cx="498" cy="330" r="11" aria-hidden="true"></circle>
-
-            <circle class="gear-hub" cx="320" cy="330" r="91"></circle>
-            <text class="gear-hub-title" x="320" y="285">ЦОЛЬКИН</text>
-            <text class="gear-hub-main" id="gearTzolkinValue" x="320" y="329"></text>
-            <text class="gear-hub-sub" id="gearKinValue" x="320" y="359"></text>
-            <text class="gear-hub-sub" x="320" y="386">260 дней · 52 зубца</text>
-
-            <circle class="gear-hub" cx="748" cy="330" r="104"></circle>
-            <text class="gear-hub-title" x="748" y="278">ХААБ</text>
-            <text class="gear-hub-main" id="gearHaabValue" x="748" y="326"></text>
-            <text class="gear-hub-sub" id="gearHaabOrdinal" x="748" y="356"></text>
-            <text class="gear-hub-sub" x="748" y="386">365 дней · 73 зубца</text>
-
-            <circle class="gear-hit" data-wheel="tzolkin" cx="320" cy="330" r="207" tabindex="-1"></circle>
-            <circle class="gear-hit" data-wheel="haab" cx="748" cy="330" r="278" tabindex="-1"></circle>
+        <div class="gear-stage" id="gearStage">
+          <svg class="gear-svg" id="gearSvg" viewBox="0 0 1060 660" aria-label="Интерактивные шестерёнки Цолькин и Хааб">
+            <g id="tzGear" class="gear-wheel"></g>
+            <g id="haabGear" class="gear-wheel"></g>
           </svg>
-
-          <div class="gear-junction-card" aria-live="polite">
+          <div class="gear-junction-card">
             <small>СТЫК КАЛЕНДАРЕЙ</small>
-            <strong id="gearJunctionValue"></strong>
-            <span id="gearJunctionDate"></span>
+            <strong id="gearJunctionMain">—</strong>
+            <span id="gearJunctionSub">—</span>
           </div>
         </div>
-
         <div class="gear-help">
-          <div><strong>Цолькин:</strong> полный оборот равен 260 суткам. 52 видимых зубца соответствуют группам по 5 дней.</div>
-          <div><strong>Хааб:</strong> полный оборот равен 365 суткам. 73 зубца также соответствуют группам по 5 дней.</div>
-          <div><strong>Общий цикл:</strong> исходная комбинация Цолькин + Хааб повторяется через 18 980 суток, или 52 года Хааба.</div>
+          <div><strong>Цолькин:</strong> 260 положений. Перетаскивайте левое колесо.</div>
+          <div><strong>Хааб:</strong> 365 положений. Перетаскивайте правое колесо.</div>
+          <div><strong>Общий цикл:</strong> через 18 980 дней комбинация Цолькин + Хааб повторяется.</div>
         </div>
       </div>
     </section>
 
+    <div class="event-toast" id="customEventToast" role="status" aria-live="polite"></div>
 
     <div class="calendar-detail-modal" id="calendarDetailModal" hidden>
       <div class="calendar-detail-backdrop" data-close-calendar-detail></div>
@@ -970,16 +1037,6 @@
       </div>
     </div>
 
-    <div class="event-modal" id="eventModal" hidden>
-      <div class="event-modal-backdrop" data-close-event-modal></div>
-      <div class="event-modal-card" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
-        <button class="event-modal-close" type="button" data-close-event-modal aria-label="Закрыть">×</button>
-        <div class="event-modal-day" id="eventModalDay"></div>
-        <h3 id="eventModalTitle">Событие</h3>
-        <p id="eventModalText"></p>
-      </div>
-    </div>
-
   </main>
 
   <script>
@@ -989,8 +1046,12 @@
     const STORAGE_KEY = 'maya-calendar-events-v1';
 
     const dayNames = [
-      'Imix','Ik’','Ak’bal','K’an','Chikchan','Kimi','Manik’','Lamat','Muluk','Ok',
-      'Chuwen','Eb’','B’en','Ix','Men','Kib’','Kab’an','Etz’nab’','Kawak','Ajaw'
+      'Imix’','Ik’','Ak’b’al','K’an','Chikchan','Kimi','Manik’','Lamat','Muluk','Ok',
+      'Chuwen','Eb’','B’en','Ix','Men','K’ib’','Kab’an','Etz’nab’','Kawak','Ajaw'
+    ];
+    const dayNamesRu = [
+      'Имиш','Ик','Акбаль','Кан','Чикчан','Кими','Маник','Ламат','Мулук','Ок',
+      'Чувен','Эб','Бен','Иш','Мен','Киб','Кабан','Эцнаб','Кавак','Ахав'
     ];
     const dayMeanings = [
       'водяное чудовище / начало','ветер / дыхание','ночь / рассвет','кукуруза / зрелость','змей',
@@ -1002,9 +1063,16 @@
     const directionClasses = ['tz-east','tz-north','tz-west','tz-south'];
     const directionColorNames = ['Красный','Белый','Чёрный/синий','Жёлтый'];
 
+    const tzolkinSealImages = ["data:image/webp;base64,UklGRhADAABXRUJQVlA4IAQDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA","data:image/webp;base64,UklGRg4DAABXRUJQVlA4IAIDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA","data:image/webp;base64,UklGRg4DAABXRUJQVlA4IAIDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA","data:image/webp;base64,UklGRg4DAABXRUJQVlA4IAIDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA","data:image/webp;base64,UklGRg4DAABXRUJQVlA4IAIDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA"];
+    const haabMonthImages = ["data:image/webp;base64,UklGRhADAABXRUJQVlA4IAQDAABQFAGdASqQAJAAPlk2l0ikIiIiIhLISIANiWlu4J9kvdl81Qb0NvwgXQqDsvhGv1e/8V/7wH3BPAt/8DPAtQDd/2z5H/zj32rMbPyf3d3NAp+2X/0f/MOgd3//7/NRmFxQbmn/gV2G/8uXi3/xd/YX/x+6I79h/bf4z/It+O//5++M/yP/Jv/j/R//V/4P7n/7f3H+R+e/7J+3P7Y/7f/4Pln/3f/2Pov/Z/+f5H+X/+/B/fX3H+0HfT/+V+J/g3/0//d4D/Bf5n/W/6B+1/2f/D/6v77/TP7P/h/7X/6vyv+1/7f6z/0v/v+g/4H/3v/e/9n+u/5j/e/4v9oP8v/1f7T/7P77/z/0H+9/8P+N/8f5v+v/2v/b+W/3P+1/5f8j+3/5P+G/4v+v/zP7f/T/5v+f/8H/0f9H+H/5v+D/0f9H+F/5v+D/1f9H+J/5v+D/2f9H+N/5v+D/3f9H+P/5v+D/4f9H+R/5v+D/5f9H+T/5v+D/6f9H+V/5v+D/7f9H+X/5v+D/8f9H+Z/5v+D/9f9H+b/5v+D/+f9H+d/5v+D/+v9H+f/5v+D//P9H+h/5v+D//f9H+j/5v+D//v9H+l/5v+D///9H+n/5v+D///v9H+p/5v+D////9H+r/5v+D////v9H+t/5v+D/////9H+v/5v+D/////v9H+x/5v+D//////9H+z/5v+D//////v9H+1/5v+D///////9H+3/5v+D///////v9H+5/5v+D////////9H+7/5v+D////////v9H+9/5v+D/////////9H+//5v+D/////////v9IAB4u/i7+Z/Mf+b+Dv5n/0fwP/9v/2f6H/0f8P/tv/uf4H/0f9P/uv/wP/0f+P/0v/wP/0f/P/2v/wP/0gAP/9gAA"];
+
     const haabMonths = [
-      'Pop','Wo','Sip','Sotz’','Sek','Xul','Yaxk’in','Mol','Ch’en','Yax','Sak','Keh',
+      'Pop','Wo’','Sip','Sotz’','Sek','Xul','Yaxk’in','Mol','Ch’en','Yax','Sak’','Keh',
       'Mak','K’ank’in','Muwan','Pax','K’ayab','Kumk’u','Wayeb'
+    ];
+    const haabMonthsRu = [
+      'Поп','Во','Сип','Соц','Цек','Шук','Йашкин','Моль','Чен','Йаш','Сак','Кех',
+      'Мак','Канкин','Муан','Паш','Кайаб','Кумху','Вайеб'
     ];
     const customMonths = [
       'Первая луна','Вторая луна','Третья луна','Четвёртая луна','Пятая луна','Шестая луна','Седьмая луна',
@@ -1092,7 +1160,6 @@
     function updateAll(){
       try {
         current = calculate();
-        document.getElementById('sCorrelation').textContent = current.correlation;
         document.getElementById('sGregorian').textContent = formatDate(current.y,current.m,current.d);
         document.getElementById('sTzolkin').textContent = current.tzolkin;
         document.getElementById('sKin').textContent = current.kin;
@@ -1111,37 +1178,17 @@
     }
 
     function sealGlyphSvg(index){
-      const bodies=[
-        '<path class="seal-glyph-line" d="M22 45 Q30 20 50 19 Q70 20 78 45 M27 48 Q50 63 73 48"/><circle class="seal-glyph-fill" cx="36" cy="35" r="3"/><circle class="seal-glyph-fill" cx="50" cy="31" r="3"/><circle class="seal-glyph-fill" cx="64" cy="35" r="3"/><path class="seal-glyph-line" d="M31 52 v10 M42 56 v10 M58 56 v10 M69 52 v10"/>',
-        '<path class="seal-glyph-line" d="M30 32 H70 M50 32 V62 M38 62 H62"/>',
-        '<path class="seal-glyph-line" d="M24 59 Q32 35 50 30 Q68 35 76 59 M30 59 H70 M34 39 Q50 48 66 39"/><circle class="seal-glyph-fill" cx="36" cy="55" r="3"/><circle class="seal-glyph-fill" cx="64" cy="55" r="3"/>',
-        '<path class="seal-glyph-line" d="M27 36 Q50 20 73 36 V62 Q50 75 27 62 Z M36 39 Q50 49 64 39 M36 58 Q50 48 64 58"/>',
-        '<path class="seal-glyph-line" d="M24 56 Q34 30 59 32 Q76 34 75 52 Q73 69 52 68 Q35 67 34 55 Q35 45 47 44 Q58 44 60 53"/><circle class="seal-glyph-fill" cx="69" cy="38" r="3"/>',
-        '<path class="seal-glyph-line" d="M28 50 Q37 34 46 43 Q51 48 56 42 Q66 31 74 49 M31 58 Q50 70 69 58"/><circle class="seal-glyph-fill" cx="34" cy="43" r="3"/><circle class="seal-glyph-fill" cx="66" cy="43" r="3"/>',
-        '<path class="seal-glyph-line" d="M29 63 Q25 43 39 34 Q45 29 47 37 L47 48 Q51 44 55 47 L59 52 Q63 44 69 47 Q75 53 68 64 Q59 73 46 70 Q34 68 29 63 Z"/>',
-        '<circle class="seal-glyph-line" cx="50" cy="50" r="21"/><circle class="seal-glyph-fill" cx="50" cy="33" r="3"/><circle class="seal-glyph-fill" cx="50" cy="67" r="3"/><circle class="seal-glyph-fill" cx="33" cy="50" r="3"/><circle class="seal-glyph-fill" cx="67" cy="50" r="3"/><path class="seal-glyph-line" d="M40 40 L60 60 M60 40 L40 60"/>',
-        '<path class="seal-glyph-line" d="M28 30 Q52 31 66 43 Q72 50 68 65 H39 Q28 61 28 50 Z M48 35 V64"/><circle class="seal-glyph-fill" cx="58" cy="43" r="4"/>',
-        '<path class="seal-glyph-line" d="M28 55 Q36 35 55 31 Q68 29 75 39 Q69 42 67 49 Q65 62 49 67 Q35 67 28 55 Z M43 42 Q51 48 60 43"/><circle class="seal-glyph-fill" cx="64" cy="37" r="3"/>',
-        '<path class="seal-glyph-line" d="M25 36 Q35 26 44 38 V61 M75 36 Q65 26 56 38 V61 M32 63 H68"/><path class="seal-glyph-line" d="M42 41 H58"/>',
-        '<path class="seal-glyph-line" d="M25 55 Q33 34 48 35 Q55 35 56 43 Q57 50 48 52 Q40 52 39 58 Q41 67 56 66 Q67 66 73 55"/><circle class="seal-glyph-fill" cx="67" cy="38" r="4"/>',
-        '<path class="seal-glyph-line" d="M28 31 V68 M72 31 V68 M38 39 V62 M50 35 V62 M62 39 V62 M28 31 H72"/>',
-        '<path class="seal-glyph-line" d="M28 33 Q50 24 72 33 M34 41 Q50 51 66 41 M30 65 Q50 56 70 65"/><circle class="seal-glyph-fill" cx="37" cy="57" r="3"/><circle class="seal-glyph-fill" cx="50" cy="60" r="3"/><circle class="seal-glyph-fill" cx="63" cy="57" r="3"/>',
-        '<path class="seal-glyph-line" d="M27 57 Q36 31 58 29 Q72 29 75 40 Q68 42 64 49 Q58 61 44 66 Q34 67 27 57 Z M50 39 Q56 44 63 41"/><circle class="seal-glyph-fill" cx="67" cy="36" r="3"/>',
-        '<path class="seal-glyph-line" d="M26 65 Q34 40 49 35 Q55 29 60 35 Q67 42 72 64 M31 65 H69"/><path class="seal-glyph-line" d="M41 56 Q50 48 59 56"/>',
-        '<path class="seal-glyph-line" d="M28 60 Q31 38 47 32 Q59 27 68 35 Q61 40 60 49 Q60 61 48 67 Q36 70 28 60 Z"/><path class="seal-glyph-line" d="M50 34 Q44 47 50 61"/><circle class="seal-glyph-fill" cx="64" cy="35" r="3"/>',
-        '<path class="seal-glyph-line" d="M28 34 L42 50 L28 66 M72 34 L58 50 L72 66 M42 50 H58"/><circle class="seal-glyph-fill" cx="50" cy="50" r="3"/>',
-        '<path class="seal-glyph-line" d="M26 42 Q40 29 55 34 Q69 38 74 54 Q68 67 51 68 Q34 68 27 57"/><path class="seal-glyph-line" d="M55 34 Q50 48 63 56"/><circle class="seal-glyph-fill" cx="39" cy="43" r="3"/><circle class="seal-glyph-fill" cx="45" cy="37" r="2.5"/><circle class="seal-glyph-fill" cx="34" cy="50" r="2.5"/>',
-        '<path class="seal-glyph-line" d="M28 38 Q38 27 50 34 Q62 27 72 38 V61 Q62 72 50 65 Q38 72 28 61 Z"/><circle class="seal-glyph-fill" cx="39" cy="46" r="3"/><circle class="seal-glyph-fill" cx="61" cy="46" r="3"/><path class="seal-glyph-line" d="M39 59 Q50 65 61 59"/>'
-      ];
-      return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect class="seal-glyph-frame" x="11" y="11" width="78" height="78" rx="17"/>${bodies[index]||bodies[0]}<path class="seal-glyph-line" d="M28 84 q5 8 10 0 q5 8 10 0 q5 8 10 0 q5 8 10 0"/></svg>`;
+      const src=tzolkinSealImages[index]||tzolkinSealImages[0];
+      const latin=dayNames[index]||'';
+      const russian=dayNamesRu[index]||'';
+      return `<img class="stone-glyph stone-seal-glyph" src="${src}" alt="${latin} — ${russian}">`;
     }
 
     function haabGlyphSvg(index){
-      const dotCount=mod(index,4)+1;
-      const bars=Math.floor((index+1)/5);
-      const dots=Array.from({length:dotCount},(_,i)=>`<circle cx="${36+i*9}" cy="37" r="3.5" fill="currentColor"/>`).join('');
-      const lines=Array.from({length:Math.min(3,bars)},(_,i)=>`<path d="M32 ${53+i*8} H68" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`).join('');
-      return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="13" y="13" width="74" height="74" rx="17" fill="none" stroke="currentColor" stroke-width="5"/><path d="M27 69 Q50 82 73 69" fill="none" stroke="currentColor" stroke-width="4"/>${dots}${lines}<path d="M34 25 Q50 17 66 25" fill="none" stroke="currentColor" stroke-width="4"/></svg>`;
+      const src=haabMonthImages[index]||haabMonthImages[0];
+      const latin=haabMonths[index]||'';
+      const russian=haabMonthsRu[index]||'';
+      return `<img class="stone-glyph stone-haab-glyph" src="${src}" alt="${latin} — ${russian}">`;
     }
 
     function kinForToneAndSeal(tone,signIndex){
@@ -1173,7 +1220,7 @@
         const tr=document.createElement('tr');
         const rowHead=document.createElement('th');
         rowHead.className='tz-seal-head';
-        rowHead.innerHTML=`<div class="tz-seal-wrap">${sealGlyphSvg(signIndex)}<b>${dayNames[signIndex]}</b></div>`;
+        rowHead.innerHTML=`<div class="tz-seal-wrap">${sealGlyphSvg(signIndex)}<b>${dayNames[signIndex]}</b><small>${dayNamesRu[signIndex]}</small></div>`;
         tr.appendChild(rowHead);
         for(let tone=1;tone<=13;tone++){
           const kin=kinForToneAndSeal(tone,signIndex);
@@ -1207,7 +1254,7 @@
         const block=document.createElement('article');
         block.className='haab-month';
         const h=document.createElement('h3');
-        h.innerHTML=`${haabGlyphSvg(index)}<span>${index+1}. ${month}</span>`;
+        h.innerHTML=`${haabGlyphSvg(index)}<span class="haab-title-text"><b>${month}</b><small>${haabMonthsRu[index]}</small></span>`;
         const days=document.createElement('div');
         days.className='haab-days';
         const max=index===18?5:20;
@@ -1245,17 +1292,19 @@
       if(type==='tzolkin'){
         const {tone,signIndex,kin}=data;
         const name=`${tone} ${dayNames[signIndex]}`;
+        const localName=dayNamesRu[signIndex];
         glyph.innerHTML=sealGlyphSvg(signIndex);
         tile.className=`calendar-detail-tile ${directionClasses[signIndex%4]}`;
-        tile.innerHTML=`<div><span class="big-name">${name}</span><span class="big-kin">КИН ${kin}</span></div>`;
-        title.textContent=`${name}, КИН ${kin}`;
+        tile.innerHTML=`<div><span class="big-name">${name}</span><span class="big-local">${localName}</span><span class="big-kin">КИН ${kin}</span></div>`;
+        title.textContent=`${name} · ${localName}, КИН ${kin}`;
       } else {
         const {monthIndex,day,ordinal}=data;
         const month=haabMonths[monthIndex];
+        const localMonth=haabMonthsRu[monthIndex];
         glyph.innerHTML=haabGlyphSvg(monthIndex);
         tile.className='calendar-detail-tile';
-        tile.innerHTML=`<div><span class="big-name">${day} ${month}</span><span class="big-kin">День ${ordinal} Хааба</span></div>`;
-        title.textContent=`${day} ${month}, день ${ordinal} Хааба`;
+        tile.innerHTML=`<div><span class="big-name">${day} ${month}</span><span class="big-local">${localMonth}</span><span class="big-kin">День ${ordinal} Хааба</span></div>`;
+        title.textContent=`${day} ${month} · ${localMonth}, день ${ordinal} Хааба`;
       }
       modal.hidden=false;
     }
@@ -1283,435 +1332,337 @@
       document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeCalendarDetail(); });
     }
 
-    function buildCustomCalendar(){
-      const grid=document.getElementById('customGrid');
-      customMonths.forEach((month,m)=>{
-        const article=document.createElement('article'); article.className='custom-month';
-        const h=document.createElement('h3'); h.textContent=`${m+1}. ${month}`; h.style.background=customPalette[m];
-        const table=document.createElement('table');
-        table.innerHTML=`<thead><tr><th></th>${weekdays.map((wd,i)=>`<th class="${i>=5?'weekend-head':''}">${wd}</th>`).join('')}</tr></thead>`;
-        const tbody=document.createElement('tbody');
-        for(let w=0;w<4;w++){
-          const tr=document.createElement('tr');
-          const label=document.createElement('td'); label.className='week-label'; label.textContent=`Нед. ${w+1}`; tr.appendChild(label);
-          for(let d=0;d<7;d++){
-            const day=m*28+w*7+d+1;
-            const td=document.createElement('td'); td.className='custom-day'+(d>=5?' weekend':''); td.dataset.day=day; td.textContent=day; tr.appendChild(td);
-          }
-          tbody.appendChild(tr);
-        }
-        table.appendChild(tbody); article.append(h,table); grid.appendChild(article);
-      });
-      const outside=document.createElement('article'); outside.className='outside-time'; outside.dataset.day='365';
-      outside.innerHTML='<div>День вне времени<span>365</span></div>';
-      grid.appendChild(outside);
+    function loadEvents(){
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch(e){ return {}; }
     }
-    function updateCustomCalendar(){
-      document.querySelectorAll('#customGrid [data-day]').forEach(cell=>{
-        const day=Number(cell.dataset.day);
-        const event=events[day] || {name:'',color:''};
-        cell.style.background=event.color || '';
-        cell.classList.toggle('has-event',Boolean(event.name));
-        cell.classList.toggle('current-day',day===current.personalDay);
-        cell.title=event.name ? `День ${day}: ${event.name}` : `День ${day}`;
-      });
+    function saveEvents(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+      applyEventColors();
+    }
+    function eventForDay(day){ return events[String(day)] || {text:'',color:''}; }
+    function eventsPayload(){ return {version:1,calendar:'maya-calendar',events}; }
+    function setEventsFileStatus(message,type='ok'){
+      const el=document.getElementById('eventsFileStatus');
+      if(!el) return;
+      el.textContent=message;
+      el.dataset.type=type;
+    }
+    function exportEvents(){
+      const json=JSON.stringify(eventsPayload(),null,2);
+      if(window.AndroidBridge && typeof AndroidBridge.exportJson==='function'){
+        try {
+          AndroidBridge.exportJson(json,'maya-calendar-events.json');
+          setEventsFileStatus('Файл событий передан Android для сохранения.','ok');
+          return;
+        } catch(e){ console.error(e); }
+      }
+      const blob = new Blob([json],{type:'application/json;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='maya-calendar-events.json'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),500);
+      setEventsFileStatus('Файл событий скачан.','ok');
+    }
+    function importEventsJsonText(text){
+      try {
+        const data=JSON.parse(text);
+        const payload=(data && data.events && typeof data.events==='object') ? data.events : data;
+        if(!payload || typeof payload!=='object' || Array.isArray(payload)) throw new Error('неверная структура JSON');
+        const next={};
+        Object.entries(payload).forEach(([key,value])=>{
+          const day=Number(key);
+          if(!Number.isInteger(day) || day<1 || day>365) return;
+          if(typeof value==='string') next[String(day)]={text:value,color:''};
+          else if(value && typeof value==='object') next[String(day)]={text:String(value.text||''),color:String(value.color||'')};
+        });
+        events=next;
+        saveEvents();
+        buildEventsTable();
+        applyEventColors();
+        setEventsFileStatus(`События загружены: ${Object.keys(next).filter(k=>next[k].text||next[k].color).length}.`,'ok');
+        return true;
+      } catch(error){
+        console.error(error);
+        setEventsFileStatus(`Не удалось загрузить события: ${error.message}`,'error');
+        return false;
+      }
+    }
+    window.receiveImportedEventsJson=function(text){
+      return importEventsJsonText(text);
+    };
+
+    function initStartupSplash(){
+      const splash=document.getElementById('startupSplash');
+      if(!splash) return;
+      const MIN_DURATION=4000;
+      const start=Date.now();
+      let hidden=false;
+      function hideSplash(){
+        if(hidden) return;
+        hidden=true;
+        const remaining=Math.max(0, MIN_DURATION-(Date.now()-start));
+        setTimeout(()=>{
+          splash.classList.add('hidden');
+          setTimeout(()=>{ if(splash && splash.remove) splash.remove(); }, 650);
+        }, remaining);
+      }
+      window.addEventListener('load', hideSplash, { once:true });
+      setTimeout(hideSplash, MIN_DURATION+120);
     }
 
-    function openEventModal(day){
-      const data=events[day];
-      if(!data || !data.name) return;
-      document.getElementById('eventModalDay').textContent=`День ${day} календаря 13 лун`;
-      document.getElementById('eventModalTitle').textContent=data.name;
-      document.getElementById('eventModalText').textContent='';
-      document.getElementById('eventModal').hidden=false;
-    }
-    function closeEventModal(){ document.getElementById('eventModal').hidden=true; }
-    function initCustomEventPopups(){
-      document.getElementById('customGrid').addEventListener('click',e=>{
-        const cell=e.target.closest('[data-day]');
-        if(!cell || !document.getElementById('customGrid').contains(cell)) return;
-        const day=Number(cell.dataset.day);
-        if(events[day] && events[day].name) openEventModal(day);
-      });
-      document.querySelectorAll('[data-close-event-modal]').forEach(el=>el.addEventListener('click',closeEventModal));
+    async function importEvents(file){
+      const text=await file.text();
+      importEventsJsonText(text);
     }
 
     function buildEventsTable(){
-      const tbody=document.querySelector('#eventsTable tbody');
-      const options=eventColors.map(([hex,name])=>`<option value="${hex}">${name}</option>`).join('');
-      const frag=document.createDocumentFragment();
+      const tbody = document.querySelector('#eventsTable tbody');
+      tbody.innerHTML='';
       for(let day=1;day<=365;day++){
-        const tr=document.createElement('tr'); tr.dataset.day=day;
-        tr.innerHTML=`<td>${day}</td><td><input type="text" maxlength="160" aria-label="Событие дня ${day}"></td><td><select aria-label="Цвет события дня ${day}">${options}</select></td>`;
-        const input=tr.querySelector('input'); const select=tr.querySelector('select');
-        const saved=events[day]||{}; input.value=saved.name||''; select.value=saved.color||'';
-        input.addEventListener('input',()=>saveEventRow(day,input.value,select.value,tr));
-        select.addEventListener('change',()=>saveEventRow(day,input.value,select.value,tr));
-        applyEventRowStyle(tr,select.value);
-        frag.appendChild(tr);
+        const tr=document.createElement('tr');
+        const tdDay=document.createElement('td');
+        const tdEvent=document.createElement('td');
+        const tdColor=document.createElement('td');
+        tdDay.textContent=day;
+        const input=document.createElement('input'); input.type='text'; input.value=eventForDay(day).text || '';
+        input.addEventListener('input',()=>{ events[String(day)] = {...eventForDay(day), text:input.value}; saveEvents(); });
+        const select=document.createElement('select');
+        eventColors.forEach(([value,label])=>{
+          const option=document.createElement('option'); option.value=value; option.textContent=label; select.appendChild(option);
+        });
+        select.value=eventForDay(day).color || '';
+        select.addEventListener('change',()=>{ events[String(day)] = {...eventForDay(day), color:select.value}; saveEvents(); });
+        tdEvent.appendChild(input); tdColor.appendChild(select); tr.append(tdDay,tdEvent,tdColor); tbody.appendChild(tr);
       }
-      tbody.appendChild(frag);
     }
-    function saveEventRow(day,name,color,row){
-      const cleanName=name.trim();
-      if(cleanName || color) events[day]={name:cleanName,color}; else delete events[day];
-      persistEvents();
-      applyEventRowStyle(row,color);
-      updateCustomCalendar();
-    }
-    function applyEventRowStyle(row,color){ row.style.background=color||''; }
-    function loadEvents(){
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}') || {}; }
-      catch { return {}; }
-    }
-    function persistEvents(){
-      try { localStorage.setItem(STORAGE_KEY,JSON.stringify(events)); }
-      catch { /* Страница продолжает работать без постоянного хранилища. */ }
-    }
-    function clearStoredEvents(){
-      try { localStorage.removeItem(STORAGE_KEY); }
-      catch { /* Хранилище может быть отключено браузером. */ }
-    }
-    function refreshEventsTable(){
-      document.querySelectorAll('#eventsTable tbody tr').forEach(row=>{
-        const day=Number(row.dataset.day); const data=events[day]||{};
-        row.querySelector('input').value=data.name||'';
-        row.querySelector('select').value=data.color||'';
-        applyEventRowStyle(row,data.color||'');
+
+    function buildCustomCalendar(){
+      const grid=document.getElementById('customGrid');
+      grid.innerHTML='';
+      let currentDay=1;
+      customMonths.forEach((month,index)=>{
+        const block=document.createElement('article'); block.className='custom-month';
+        const h=document.createElement('h3'); h.textContent=`${index+1}. ${month}`; h.style.background=customPalette[index];
+        const table=document.createElement('table');
+        const thead=document.createElement('thead');
+        const hr=document.createElement('tr');
+        const blank=document.createElement('th'); blank.textContent=''; hr.appendChild(blank);
+        weekdays.forEach(w=>{ const th=document.createElement('th'); th.textContent=w; hr.appendChild(th); }); thead.appendChild(hr);
+        const tbody=document.createElement('tbody');
+        for(let week=1;week<=4;week++){
+          const tr=document.createElement('tr'); const lab=document.createElement('td'); lab.className='week-label'; lab.textContent=`Неделя ${week}`; tr.appendChild(lab);
+          for(let wd=0;wd<7;wd++){
+            const td=document.createElement('td'); td.className='custom-day'; td.textContent=currentDay; td.dataset.day=currentDay;
+            if(wd>=5) td.classList.add('red-day'); tr.appendChild(td); currentDay++;
+          }
+          tbody.appendChild(tr);
+        }
+        table.append(thead,tbody); block.append(h,table); grid.appendChild(block);
       });
-      updateCustomCalendar();
+      const outside=document.createElement('article'); outside.className='outside-time'; outside.dataset.day=365;
+      outside.innerHTML='<div><span>365</span>День вне времени</div>'; grid.appendChild(outside);
+    }
+
+    function updateCustomCalendar(){
+      document.querySelectorAll('.custom-day,.outside-time').forEach(el=>el.classList.remove('current-day'));
+      const active=document.querySelector(`[data-day="${current.personalDay}"]`);
+      if(active) active.classList.add('current-day');
+      applyEventColors();
+    }
+
+    function applyEventColors(){
+      document.querySelectorAll('#customGrid [data-day]').forEach(el=>{
+        const day=el.dataset.day;
+        const ev=eventForDay(day);
+        el.classList.toggle('has-event',Boolean(ev.text));
+        if(ev.color){ el.style.backgroundColor=ev.color; } else { el.style.backgroundColor=''; }
+        el.title=ev.text || '';
+      });
+    }
+
+    function showCustomEventToast(text){
+      const toast=document.getElementById('customEventToast');
+      if(!toast) return;
+      toast.textContent=text;
+      toast.classList.remove('show');
+      void toast.offsetWidth;
+      toast.classList.add('show');
+      clearTimeout(showCustomEventToast.timer);
+      showCustomEventToast.timer=setTimeout(()=>toast.classList.remove('show'),3200);
+    }
+
+    function initCustomEventPopups(){
+      const grid=document.getElementById('customGrid');
+      grid.addEventListener('click',e=>{
+        const cell=e.target.closest('#customGrid [data-day]');
+        if(!cell) return;
+        const ev=eventForDay(cell.dataset.day);
+        if(ev && ev.text) showCustomEventToast(ev.text);
+      });
     }
 
     function buildReferences(){
       const signs=document.getElementById('signsTable');
-      signs.innerHTML='<thead><tr><th>№</th><th>Знак</th><th>Направление</th><th>Цвет</th><th>Краткое значение</th></tr></thead>';
+      signs.innerHTML='<thead><tr><th>№</th><th>Название</th><th>Значение</th></tr></thead>';
       const sb=document.createElement('tbody');
       dayNames.forEach((name,i)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i+1}</td><td><strong>${name}</strong></td><td>${directions[i%4]}</td><td>${directionColorNames[i%4]}</td><td>${dayMeanings[i]}</td>`;
-        sb.appendChild(tr);
-      }); signs.appendChild(sb);
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${i+1}</td><td>${name}</td><td>${dayMeanings[i]}</td>`; sb.appendChild(tr);
+      });
+      signs.appendChild(sb);
       const months=document.getElementById('monthsTable');
-      months.innerHTML='<thead><tr><th>№</th><th>Месяц</th><th>Дней</th></tr></thead>';
+      months.innerHTML='<thead><tr><th>№</th><th>Месяц</th><th>Дни</th></tr></thead>';
       const mb=document.createElement('tbody');
       haabMonths.forEach((name,i)=>{
-        const tr=document.createElement('tr'); tr.innerHTML=`<td>${i+1}</td><td><strong>${name}</strong></td><td>${i===18?5:20}</td>`; mb.appendChild(tr);
-      }); months.appendChild(mb);
-    }
-
-
-    const GEAR_GEOMETRY = {
-      tzolkin:{cx:320,cy:330,pitchRadius:178,rootRadius:169,outerRadius:190,teeth:52,days:260,pointerAngle:0},
-      haab:{cx:748,cy:330,pitchRadius:250,rootRadius:240,outerRadius:263,teeth:73,days:365,pointerAngle:180}
-    };
-    let gearDrag = null;
-    let gearTimer = null;
-
-    function svgElement(name,attrs={}){
-      const el=document.createElementNS('http://www.w3.org/2000/svg',name);
-      Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
-      return el;
-    }
-    function polarPoint(cx,cy,r,deg){
-      const rad=deg*Math.PI/180;
-      return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
-    }
-    function gearPath(cx,cy,rootRadius,outerRadius,teeth,startDeg=0){
-      const points=[];
-      const tooth=360/teeth;
-      for(let i=0;i<teeth;i++){
-        const base=startDeg+i*tooth;
-        [[0,rootRadius],[.12,rootRadius],[.22,outerRadius],[.62,outerRadius],[.76,rootRadius],[1,rootRadius]].forEach(([fraction,r])=>{
-          points.push(polarPoint(cx,cy,r,base+tooth*fraction));
-        });
-      }
-      return points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')+' Z';
-    }
-    function addRadialLine(parent,cx,cy,r1,r2,angle,className){
-      const a=polarPoint(cx,cy,r1,angle);
-      const b=polarPoint(cx,cy,r2,angle);
-      parent.appendChild(svgElement('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:className}));
-    }
-    function addRingLabel(parent,cx,cy,r,angle,text,className='gear-ring-label'){
-      const p=polarPoint(cx,cy,r,angle);
-      const label=svgElement('text',{x:p.x,y:p.y,class:className});
-      label.textContent=text;
-      parent.appendChild(label);
-    }
-    function buildGearCalendar(){
-      const tz=document.getElementById('tzGearRotor');
-      const hb=document.getElementById('haabGearRotor');
-      if(!tz || !hb || tz.childNodes.length) return;
-
-      const tg=GEAR_GEOMETRY.tzolkin;
-      tz.appendChild(svgElement('path',{d:gearPath(tg.cx,tg.cy,tg.rootRadius,tg.outerRadius,tg.teeth,-360/(tg.teeth*2)),class:'gear-body tzolkin-body'}));
-      tz.appendChild(svgElement('circle',{cx:tg.cx,cy:tg.cy,r:155,class:'gear-inner-ring'}));
-      tz.appendChild(svgElement('circle',{cx:tg.cx,cy:tg.cy,r:132,class:'gear-middle-ring'}));
-      for(let i=0;i<260;i++){
-        const angle=i*360/260;
-        addRadialLine(tz,tg.cx,tg.cy,i%13===0?147:153,163,angle,`gear-tick${i%13===0?' major':''}`);
-      }
-      dayNames.forEach((name,i)=>{
-        const angle=i*360/20;
-        addRingLabel(tz,tg.cx,tg.cy,143,angle,name);
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${i+1}</td><td>${name}</td><td>${i===18?5:20}</td>`; mb.appendChild(tr);
       });
-      for(let tone=1;tone<=13;tone++){
-        const angle=(tone-1)*360/13;
-        addRingLabel(tz,tg.cx,tg.cy,119,angle,String(tone),'gear-ring-label');
-      }
-
-      const hg=GEAR_GEOMETRY.haab;
-      tz.setAttribute('aria-label','Колесо Цолькина');
-      hb.appendChild(svgElement('path',{d:gearPath(hg.cx,hg.cy,hg.rootRadius,hg.outerRadius,hg.teeth,180-360/(hg.teeth*2)),class:'gear-body haab-body'}));
-      hb.appendChild(svgElement('circle',{cx:hg.cx,cy:hg.cy,r:219,class:'gear-inner-ring'}));
-      hb.appendChild(svgElement('circle',{cx:hg.cx,cy:hg.cy,r:183,class:'gear-middle-ring'}));
-      for(let i=0;i<365;i++){
-        const angle=180-i*360/365;
-        addRadialLine(hb,hg.cx,hg.cy,i%20===0?205:214,230,angle,`gear-tick${i%20===0?' major':''}`);
-      }
-      let startDay=0;
-      haabMonths.forEach((month,index)=>{
-        const length=index===18?5:20;
-        const boundaryAngle=180-startDay*360/365;
-        addRadialLine(hb,hg.cx,hg.cy,178,230,boundaryAngle,'gear-month-boundary');
-        const centerDay=startDay+(length-1)/2;
-        const labelAngle=180-centerDay*360/365;
-        addRingLabel(hb,hg.cx,hg.cy,198,labelAngle,month,'gear-ring-label haab-label');
-        startDay+=length;
-      });
-      hb.setAttribute('aria-label','Колесо Хааба');
-
-      document.querySelectorAll('.gear-hit').forEach(hit=>{
-        hit.addEventListener('pointerdown',startGearDrag);
-      });
-      window.addEventListener('pointermove',moveGearDrag,{passive:false});
-      window.addEventListener('pointerup',endGearDrag);
-      window.addEventListener('pointercancel',endGearDrag);
-    }
-    function updateGearCalendar(){
-      if(!current || !document.getElementById('tzGearRotor')) return;
-      const tzAngle=-(current.kin-1)*360/260;
-      const haabAngle=(current.personalDay-1)*360/365;
-      document.getElementById('tzGearRotor').setAttribute('transform',`rotate(${tzAngle} 320 330)`);
-      document.getElementById('haabGearRotor').setAttribute('transform',`rotate(${haabAngle} 748 330)`);
-      document.getElementById('gearTzolkinValue').textContent=current.tzolkin;
-      document.getElementById('gearKinValue').textContent=`КИН ${current.kin} · ${toneSymbol(current.tone)}`;
-      document.getElementById('gearHaabValue').textContent=current.haab;
-      document.getElementById('gearHaabOrdinal').textContent=`день ${current.personalDay} из 365`;
-      document.getElementById('gearJunctionValue').textContent=`${current.tzolkin} + ${current.haab}`;
-      document.getElementById('gearJunctionDate').textContent=`${formatDate(current.y,current.m,current.d)} · ${current.longCount}`;
-      const roundPosition=mod(current.days,18980);
-      const slider=document.getElementById('calendarRoundSlider');
-      if(slider && document.activeElement!==slider) slider.value=roundPosition;
-      document.getElementById('calendarRoundPosition').textContent=`День ${roundPosition+1} / 18 980`;
-    }
-    function currentInputYmd(){
-      return parseInputDate(document.getElementById('gregorianDate').value);
-    }
-    function setInputDateShift(base,delta){
-      const utc=new Date(Date.UTC(base.y,base.m-1,base.d+delta));
-      document.getElementById('gregorianDate').value=`${utc.getUTCFullYear()}-${pad(utc.getUTCMonth()+1)}-${pad(utc.getUTCDate())}`;
-      updateAll();
-    }
-    function shiftGregorianDate(delta){
-      setInputDateShift(currentInputYmd(),delta);
-    }
-    function clientToSvg(event){
-      const svg=document.getElementById('gearSvg');
-      const point=svg.createSVGPoint();
-      point.x=event.clientX; point.y=event.clientY;
-      return point.matrixTransform(svg.getScreenCTM().inverse());
-    }
-    function pointerAngle(event,wheel){
-      const p=clientToSvg(event);
-      const g=GEAR_GEOMETRY[wheel];
-      return Math.atan2(p.y-g.cy,p.x-g.cx)*180/Math.PI;
-    }
-    function normalizedAngleDelta(delta){
-      while(delta>180) delta-=360;
-      while(delta<-180) delta+=360;
-      return delta;
-    }
-    function startGearDrag(event){
-      stopGearPlay();
-      const wheel=event.currentTarget.dataset.wheel;
-      event.currentTarget.setPointerCapture?.(event.pointerId);
-      gearDrag={
-        pointerId:event.pointerId,
-        wheel,
-        lastAngle:pointerAngle(event,wheel),
-        accumulated:0,
-        base:currentInputYmd(),
-        lastDays:0
-      };
-      event.preventDefault();
-    }
-    function moveGearDrag(event){
-      if(!gearDrag || event.pointerId!==gearDrag.pointerId) return;
-      const next=pointerAngle(event,gearDrag.wheel);
-      gearDrag.accumulated+=normalizedAngleDelta(next-gearDrag.lastAngle);
-      gearDrag.lastAngle=next;
-      const daysPerTurn=GEAR_GEOMETRY[gearDrag.wheel].days;
-      const direction=gearDrag.wheel==='tzolkin'?-1:1;
-      const days=Math.round(direction*gearDrag.accumulated/(360/daysPerTurn));
-      if(days!==gearDrag.lastDays){
-        gearDrag.lastDays=days;
-        setInputDateShift(gearDrag.base,days);
-      }
-      event.preventDefault();
-    }
-    function endGearDrag(event){
-      if(!gearDrag || (event.pointerId!==undefined && event.pointerId!==gearDrag.pointerId)) return;
-      gearDrag=null;
-    }
-    function startGearPlay(){
-      if(gearTimer){ stopGearPlay(); return; }
-      document.getElementById('gearPlay').textContent='■ Остановить';
-      gearTimer=setInterval(()=>{
-        const step=Number(document.getElementById('gearSpeed').value)||1;
-        shiftGregorianDate(step);
-      },220);
-    }
-    function stopGearPlay(){
-      if(gearTimer){ clearInterval(gearTimer); gearTimer=null; }
-      const button=document.getElementById('gearPlay');
-      if(button) button.textContent='▶ Крутить';
-    }
-    function initGearControls(){
-      buildGearCalendar();
-      document.getElementById('gearMinus20').addEventListener('click',()=>shiftGregorianDate(-20));
-      document.getElementById('gearMinus1').addEventListener('click',()=>shiftGregorianDate(-1));
-      document.getElementById('gearPlus1').addEventListener('click',()=>shiftGregorianDate(1));
-      document.getElementById('gearPlus20').addEventListener('click',()=>shiftGregorianDate(20));
-      document.getElementById('gearPlay').addEventListener('click',startGearPlay);
-      document.getElementById('calendarRoundSlider').addEventListener('input',event=>{
-        stopGearPlay();
-        const target=Number(event.target.value);
-        const here=mod(current.days,18980);
-        shiftGregorianDate(target-here);
-      });
-      document.getElementById('gearStage').addEventListener('keydown',event=>{
-        if(event.key==='ArrowLeft'){ event.preventDefault(); shiftGregorianDate(-1); }
-        if(event.key==='ArrowRight'){ event.preventDefault(); shiftGregorianDate(1); }
-        if(event.key==='PageUp'){ event.preventDefault(); shiftGregorianDate(-20); }
-        if(event.key==='PageDown'){ event.preventDefault(); shiftGregorianDate(20); }
-        if(event.key===' '){ event.preventDefault(); startGearPlay(); }
-      });
-      updateGearCalendar();
+      months.appendChild(mb);
     }
 
-    function setEventsFileStatus(text,isError=false){
-      const el=document.getElementById('eventsFileStatus');
-      if(!el) return;
-      el.textContent=text||'';
-      el.style.color=isError?'#9c0006':'#375623';
-    }
-    function exportEvents(){
-      const payload={version:1,exportedAt:new Date().toISOString(),events};
-      const json=JSON.stringify(payload,null,2);
-      if(window.AndroidBridge){
-        try {
-          if(typeof window.AndroidBridge.exportJson==='function'){
-            window.AndroidBridge.exportJson(json,'maya_calendar_events.json');
-            setEventsFileStatus('События сохраняются в JSON. На Android 10+ файл появится в Загрузки/MayaCalendar.');
-            return;
+    function buildGearSvg(){
+      const svgNS='http://www.w3.org/2000/svg';
+      const tz=document.getElementById('tzGear');
+      const haab=document.getElementById('haabGear');
+      tz.setAttribute('transform','translate(300 330)');
+      haab.setAttribute('transform','translate(755 330)');
+
+      function buildWheel(group,count,radius,innerRadius,labelEvery,color){
+        const step=360/count;
+        for(let i=0;i<count;i++){
+          const angle=i*step;
+          const tooth=document.createElementNS(svgNS,'rect');
+          const toothWidth=Math.max(2.4,2*Math.PI*radius/count*.82);
+          tooth.setAttribute('x',-toothWidth/2); tooth.setAttribute('y',-(radius+17));
+          tooth.setAttribute('width',toothWidth); tooth.setAttribute('height',24); tooth.setAttribute('rx',Math.min(3,toothWidth/3));
+          tooth.setAttribute('class','gear-tooth'); tooth.setAttribute('transform',`rotate(${angle})`); group.appendChild(tooth);
+          if(i%labelEvery===0){
+            const rad=(angle-90)*Math.PI/180;
+            const text=document.createElementNS(svgNS,'text');
+            text.setAttribute('class','gear-ring-label');
+            text.setAttribute('x',Math.cos(rad)*(radius-26)); text.setAttribute('y',Math.sin(rad)*(radius-26)); text.setAttribute('text-anchor','middle');
+            text.setAttribute('dominant-baseline','middle'); text.textContent=i+1; group.appendChild(text);
           }
-          if(typeof window.AndroidBridge.saveEventsJson==='function'){
-            window.AndroidBridge.saveEventsJson(json,'maya_calendar_events.json');
-            setEventsFileStatus('Открыто системное сохранение файла JSON.');
-            return;
-          }
-        } catch(err){
-          console.error('Android export failed',err);
-          setEventsFileStatus('Не удалось запустить Android-сохранение. Используется резервный способ.',true);
         }
+        const circle=document.createElementNS(svgNS,'circle'); circle.setAttribute('class','gear-inner'); circle.setAttribute('r',innerRadius); group.appendChild(circle);
+        const mark=document.createElementNS(svgNS,'line'); mark.setAttribute('class','gear-index-mark'); mark.setAttribute('x1',0); mark.setAttribute('y1',-radius-22); mark.setAttribute('x2',0); mark.setAttribute('y2',-radius+12); group.appendChild(mark);
+        const hub=document.createElementNS(svgNS,'circle'); hub.setAttribute('class','gear-hub'); hub.setAttribute('r',48); group.appendChild(hub);
+        const ht=document.createElementNS(svgNS,'text'); ht.setAttribute('class','gear-hub-title'); ht.setAttribute('x',0); ht.setAttribute('y',3); ht.textContent=color; group.appendChild(ht);
       }
-      const blob=new Blob([json],{type:'application/json;charset=utf-8'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url; a.download='maya_calendar_events.json';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
-    }
-    function printCalendar(){
-      if(window.AndroidBridge && typeof window.AndroidBridge.printPage==='function') window.AndroidBridge.printPage();
-      else window.print();
+      buildWheel(tz,260,230,190,20,'260');
+      buildWheel(haab,365,255,215,25,'365');
     }
 
-    const APP_PAGES={summary:'Главная',tzolkin:'Цолькин',haab:'Хааб',custom:'Календарь 13 лун',events:'События',gears:'Календарный круг',references:'Справочники',about:'О приложении'};
-    function closePopupMenu(){
-      const menu=document.getElementById('popupMenu');
-      menu.classList.remove('open'); menu.setAttribute('aria-hidden','true');
-      document.getElementById('menuButton').setAttribute('aria-expanded','false');
-      document.getElementById('menuBackdrop').hidden=true;
+    function gearState(offset){
+      const baseDays=current.days;
+      const days=baseDays+offset;
+      const tone=mod(days+3,13)+1;
+      const signIndex=mod(days+19,20);
+      const kin=mod(days+159,260)+1;
+      const hi=mod(days+348,365);
+      return {tone,signIndex,kin,haabDay:hi%20,haabMonth:Math.floor(hi/20)};
     }
-    function openPopupMenu(){
-      const menu=document.getElementById('popupMenu');
-      menu.classList.add('open'); menu.setAttribute('aria-hidden','false');
-      document.getElementById('menuButton').setAttribute('aria-expanded','true');
+
+    let gearOffset=0, gearTimer=null, drag=null;
+    function updateGearCalendar(){
+      if(!current) return;
+      const state=gearState(gearOffset);
+      const cyclePos=mod(current.days+gearOffset,18980);
+      document.getElementById('gearSlider').value=cyclePos;
+      document.getElementById('gearPosition').textContent=`День ${cyclePos+1} / 18 980`;
+      document.getElementById('gearJunctionMain').textContent=`${state.tone} ${dayNames[state.signIndex]} + ${state.haabDay} ${haabMonths[state.haabMonth]}`;
+      document.getElementById('gearJunctionSub').textContent=`КИН ${state.kin}`;
+      document.getElementById('tzGear').setAttribute('transform',`translate(300 330) rotate(${-cyclePos*360/260})`);
+      document.getElementById('haabGear').setAttribute('transform',`translate(755 330) rotate(${cyclePos*360/365})`);
+    }
+
+    function initGearControls(){
+      buildGearSvg();
+      document.getElementById('gearMinus20').onclick=()=>{ gearOffset-=20; updateGearCalendar(); };
+      document.getElementById('gearMinus1').onclick=()=>{ gearOffset--; updateGearCalendar(); };
+      document.getElementById('gearPlus1').onclick=()=>{ gearOffset++; updateGearCalendar(); };
+      document.getElementById('gearPlus20').onclick=()=>{ gearOffset+=20; updateGearCalendar(); };
+      document.getElementById('gearToday').onclick=()=>{ gearOffset=0; updateGearCalendar(); };
+      document.getElementById('gearSlider').addEventListener('input',e=>{
+        const desired=Number(e.target.value); const now=mod(current.days,18980); gearOffset=desired-now; updateGearCalendar();
+      });
+      document.getElementById('gearPlay').onclick=()=>{
+        const btn=document.getElementById('gearPlay');
+        if(gearTimer){ clearInterval(gearTimer); gearTimer=null; btn.textContent='▶ Авто'; }
+        else { gearTimer=setInterval(()=>{ gearOffset++; updateGearCalendar(); },120); btn.textContent='■ Стоп'; }
+      };
+
+      document.querySelectorAll('.gear-wheel').forEach(group=>{
+        group.addEventListener('pointerdown',e=>{
+          const svg=document.getElementById('gearSvg'); const rect=svg.getBoundingClientRect();
+          const isTz=group.id==='tzGear';
+          const cx=rect.left+(isTz?300:755)*rect.width/1060;
+          const cy=rect.top+330*rect.height/660;
+          drag={group,isTz,cx,cy,last:Math.atan2(e.clientY-cy,e.clientX-cx),remainder:0};
+          group.setPointerCapture(e.pointerId); e.preventDefault();
+        });
+        group.addEventListener('pointermove',e=>{
+          if(!drag || drag.group!==group) return;
+          const angle=Math.atan2(e.clientY-drag.cy,e.clientX-drag.cx);
+          let diff=angle-drag.last; if(diff>Math.PI) diff-=2*Math.PI; if(diff<-Math.PI) diff+=2*Math.PI;
+          drag.last=angle;
+          const perDay=2*Math.PI/(drag.isTz?260:365);
+          drag.remainder += diff/perDay * (drag.isTz?-1:1);
+          const whole=drag.remainder>0?Math.floor(drag.remainder):Math.ceil(drag.remainder);
+          if(whole!==0){ gearOffset+=whole; drag.remainder-=whole; updateGearCalendar(); }
+          e.preventDefault();
+        });
+        const end=e=>{ if(drag && drag.group===group){ try{group.releasePointerCapture(e.pointerId);}catch(_){} drag=null; } };
+        group.addEventListener('pointerup',end); group.addEventListener('pointercancel',end);
+      });
+    }
+
+    function printCalendar(){
+      if(window.AndroidBridge && typeof AndroidBridge.printPage==='function'){
+        AndroidBridge.printPage();
+      } else {
+        window.print();
+      }
+    }
+
+    const APP_PAGE_TITLES = {
+      summary:'Главная', tzolkin:'Цолькин', haab:'Хааб', custom:'Календарь 13 лун', events:'События', references:'Справочники', about:'О приложении', gears:'Календарный круг'
+    };
+    function showAppPage(id,updateHash=true){
+      const page=document.getElementById(id);
+      if(!page) return;
+      document.querySelectorAll('.app-page').forEach(el=>el.classList.toggle('active',el.id===id));
+      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===id));
+      const title=APP_PAGE_TITLES[id]||'Календарь Майя';
+      document.getElementById('appPageTitle').textContent=title;
+      document.title=`${title} — Календарь Майя`;
+      if(updateHash){ try{history.replaceState(null,'',`#${id}`);}catch(_){} }
+      closeAppMenu();
+      window.scrollTo({top:0,behavior:'auto'});
+    }
+    function openAppMenu(){
+      document.getElementById('popupMenu').classList.add('open');
+      document.getElementById('popupMenu').setAttribute('aria-hidden','false');
       document.getElementById('menuBackdrop').hidden=false;
+      document.getElementById('menuButton').setAttribute('aria-expanded','true');
     }
-    function showAppPage(page,push=true){
-      if(!APP_PAGES[page]) page='summary';
-      document.querySelectorAll('.app-page').forEach(el=>el.classList.toggle('active',el.id===page));
-      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));
-      document.getElementById('appPageTitle').textContent=APP_PAGES[page];
-      closePopupMenu();
-      window.scrollTo(0,0);
-      const target='#'+page;
-      if(push && location.hash!==target) history.pushState({page},'',target);
-      else if(!push) history.replaceState({page},'',target);
+    function closeAppMenu(){
+      document.getElementById('popupMenu').classList.remove('open');
+      document.getElementById('popupMenu').setAttribute('aria-hidden','true');
+      document.getElementById('menuBackdrop').hidden=true;
+      document.getElementById('menuButton').setAttribute('aria-expanded','false');
     }
     function initAppNavigation(){
-      const menuButton=document.getElementById('menuButton');
-      menuButton.addEventListener('click',()=>document.getElementById('popupMenu').classList.contains('open')?closePopupMenu():openPopupMenu());
-      document.getElementById('menuBackdrop').addEventListener('click',closePopupMenu);
-      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.addEventListener('click',()=>showAppPage(btn.dataset.page,true)));
-      window.addEventListener('popstate',()=>showAppPage(location.hash.slice(1)||'summary',false));
-      document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePopupMenu(); closeEventModal(); } });
-      showAppPage(location.hash.slice(1)||'summary',false);
-    }
-    function normalizeImportedEvents(incoming){
-      if(!incoming || typeof incoming!=='object' || Array.isArray(incoming)) throw new Error('Файл не содержит события');
-      const normalized={};
-      Object.entries(incoming).forEach(([key,value])=>{
-        const day=Number(key);
-        if(!Number.isInteger(day) || day<1 || day>365) return;
-        if(typeof value==='string'){
-          if(value.trim()) normalized[day]={name:value.trim(),color:''};
-        } else if(value && typeof value==='object'){
-          const name=String(value.name ?? value.title ?? '').trim();
-          const color=String(value.color ?? '').trim();
-          if(name || color) normalized[day]={name,color};
-        }
+      document.getElementById('menuButton').addEventListener('click',()=>{
+        const open=document.getElementById('popupMenu').classList.contains('open');
+        open?closeAppMenu():openAppMenu();
       });
-      return normalized;
+      document.getElementById('menuBackdrop').addEventListener('click',closeAppMenu);
+      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.addEventListener('click',()=>showAppPage(btn.dataset.page)));
+      const requested=location.hash.replace('#','');
+      showAppPage(APP_PAGE_TITLES[requested]?requested:'summary',false);
     }
-    function importEventsJsonText(text){
-      const cleanText=String(text ?? '').replace(/^\uFEFF/, '').trim();
-      if(!cleanText) throw new Error('Файл пуст');
-      const parsed=JSON.parse(cleanText);
-      const incoming=parsed && parsed.events ? parsed.events : parsed;
-      const normalized=normalizeImportedEvents(incoming);
-      events=normalized;
-      persistEvents();
-      refreshEventsTable();
-      updateCustomCalendar();
-      setEventsFileStatus(`События успешно загружены: ${Object.keys(events).length}.`);
-      return Object.keys(events).length;
-    }
-    window.receiveImportedEventsJson=function(text){
-      try {
-        const count=importEventsJsonText(text);
-        alert(`События загружены: ${count}.`);
-        return;
-      } catch(err){
-        setEventsFileStatus(`Ошибка загрузки: ${err.message}`,true);
-        alert(`Не удалось загрузить файл: ${err.message}`);
-        return;
-      }
-    };
-    window.applyImportedEventsJson=window.receiveImportedEventsJson;
 
     function initStartupSplash(){
       const splash=document.getElementById('startupSplash');
@@ -1727,15 +1678,10 @@
       setTimeout(hide,duration+100);
     }
 
-    async function importEvents(file){
-      const text=await file.text();
-      importEventsJsonText(text);
-    }
-
     document.addEventListener('DOMContentLoaded',()=>{
       initStartupSplash();
       document.getElementById('gregorianDate').value=inputDateString(new Date());
-      buildTzolkin(); buildHaab(); buildCustomCalendar(); buildEventsTable(); buildReferences(); initGearControls(); initCustomEventPopups(); initCalendarDetailInteractions(); initAppNavigation(); updateAll();
+      buildTzolkin(); buildHaab(); buildCustomCalendar(); buildEventsTable(); buildReferences(); initGearControls(); initCustomEventPopups(); initAppNavigation(); initCalendarDetailInteractions(); updateAll();
 
       document.getElementById('correlation').addEventListener('input',updateAll);
       document.getElementById('gregorianDate').addEventListener('change',updateAll);
@@ -1744,21 +1690,17 @@
       });
       document.getElementById('exportEvents').addEventListener('click',exportEvents);
       document.getElementById('importEventsButton').addEventListener('click',()=>{
-        if(window.AndroidBridge && typeof window.AndroidBridge.importJson==='function'){
-          window.AndroidBridge.importJson();
-        } else {
-          document.getElementById('importEvents').click();
+        if(window.AndroidBridge && typeof AndroidBridge.importJson==='function'){
+          try { AndroidBridge.importJson(); return; } catch(error){ console.error(error); }
         }
+        document.getElementById('importEvents').click();
       });
       document.getElementById('importEvents').addEventListener('change',async e=>{
-        if(!e.target.files[0]) return;
-        try { await importEvents(e.target.files[0]); setEventsFileStatus('События успешно загружены из JSON.'); alert('События загружены.'); }
-        catch(err){ alert(`Не удалось загрузить файл: ${err.message}`); }
-        e.target.value='';
+        const file=e.target.files && e.target.files[0];
+        if(file){ await importEvents(file); e.target.value=''; }
       });
       document.getElementById('clearEvents').addEventListener('click',()=>{
-        if(!confirm('Удалить все введённые праздники и события?')) return;
-        events={}; clearStoredEvents(); refreshEventsTable(); setEventsFileStatus('События очищены.');
+        if(confirm('Очистить все события?')){ events={}; saveEvents(); buildEventsTable(); setEventsFileStatus('Все события очищены.','ok'); }
       });
     });
   </script>
