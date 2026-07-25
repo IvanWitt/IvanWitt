@@ -11,12 +11,8 @@ import io.github.cosinekitty.astronomy.equator
 import io.github.cosinekitty.astronomy.horizon
 import io.github.cosinekitty.astronomy.searchRiseSet
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import kotlin.math.floor
 
 enum class SkyBody { SUN, MOON }
 
@@ -24,38 +20,117 @@ data class BodyState(
     val body: SkyBody,
     val visible: Boolean,
     val arcDegrees: Double?,
+    val markerDegrees: Double?,
     val altitudeDegrees: Double,
     val azimuthDegrees: Double,
-    val currentCycleHours: Double?,
-    val monthlyRepresentativeHours: Int?
+    val currentCycleHours: Double?
 )
 
 data class AstroSnapshot(
     val activeBody: SkyBody,
     val sun: BodyState,
-    val moon: BodyState
+    val moon: BodyState,
+    val usingNetworkSchedule: Boolean
 )
 
 object AstroEngine {
-    fun snapshot(settings: WidgetSettings, nowMillis: Long, zone: ZoneId): AstroSnapshot {
+    fun snapshot(
+        settings: WidgetSettings,
+        nowMillis: Long,
+        zone: ZoneId,
+        networkCache: SkyScheduleCache? = null
+    ): AstroSnapshot {
         val observer = Observer(settings.latitude, settings.longitude, settings.elevationMeters)
         val now = timeFromMillis(nowMillis)
 
-        val sun = bodyState(Body.Sun, SkyBody.SUN, observer, now, zone, nowMillis)
-        val moon = bodyState(Body.Moon, SkyBody.MOON, observer, now, zone, nowMillis)
+        val sunFromCache = networkCache?.let {
+            bodyStateFromSchedule(Body.Sun, SkyBody.SUN, observer, now, nowMillis, it)
+        }
+        val moonFromCache = networkCache?.let {
+            bodyStateFromSchedule(Body.Moon, SkyBody.MOON, observer, now, nowMillis, it)
+        }
 
-        // Sun always wins. When it is below the horizon, the widget switches to Moon
-        // even when the Moon itself is currently below the horizon.
+        val sun = sunFromCache ?: bodyStateLocal(Body.Sun, SkyBody.SUN, observer, now, nowMillis)
+        val moon = moonFromCache ?: bodyStateLocal(Body.Moon, SkyBody.MOON, observer, now, nowMillis)
+
+        // Sun always wins. The instant it is no longer above the horizon the widget becomes lunar,
+        // even when the Moon itself has not risen yet or has already set.
         val active = if (sun.visible) SkyBody.SUN else SkyBody.MOON
-        return AstroSnapshot(active, sun, moon)
+        return AstroSnapshot(
+            activeBody = active,
+            sun = sun,
+            moon = moon,
+            usingNetworkSchedule = sunFromCache != null && moonFromCache != null
+        )
     }
 
-    private fun bodyState(
+    private fun bodyStateFromSchedule(
         body: Body,
         skyBody: SkyBody,
         observer: Observer,
         now: Time,
-        zone: ZoneId,
+        nowMillis: Long,
+        cache: SkyScheduleCache
+    ): BodyState? {
+        val rises = cache.days.mapNotNull {
+            if (skyBody == SkyBody.SUN) it.sunRiseMillis else it.moonRiseMillis
+        }.sorted()
+        val sets = cache.days.mapNotNull {
+            if (skyBody == SkyBody.SUN) it.sunSetMillis else it.moonSetMillis
+        }.sorted()
+
+        if (rises.isEmpty() || sets.isEmpty()) return null
+
+        val lastRise = rises.lastOrNull { it <= nowMillis }
+        val lastSet = sets.lastOrNull { it <= nowMillis }
+        val visible = lastRise != null && (lastSet == null || lastRise > lastSet)
+
+        var arc: Double? = null
+        var marker: Double? = null
+        var cycleHours: Double? = null
+
+        if (visible && lastRise != null) {
+            val nextSet = sets.firstOrNull { it > lastRise }
+            if (nextSet != null && nextSet > lastRise) {
+                cycleHours = (nextSet - lastRise) / 3_600_000.0
+                arc = ((nowMillis - lastRise).toDouble() / (nextSet - lastRise).toDouble() * 180.0)
+                    .coerceIn(0.0, 180.0)
+                marker = arc
+            }
+        } else {
+            val nextRise = rises.firstOrNull { it > nowMillis }
+            if (nextRise != null) {
+                val nextSet = sets.firstOrNull { it > nextRise }
+                if (nextSet != null && nextSet > nextRise) {
+                    cycleHours = (nextSet - nextRise) / 3_600_000.0
+                }
+            }
+            // Keep the marker on the horizon whenever rise/set data exist. After a set it remains
+            // at the right-hand horizon until the next rise, then starts again from the left.
+            marker = when {
+                lastSet != null -> 180.0
+                nextRise != null -> 0.0
+                else -> null
+            }
+        }
+
+        val position = horizontal(body, observer, now)
+        return BodyState(
+            body = skyBody,
+            visible = visible,
+            arcDegrees = arc,
+            markerDegrees = marker,
+            altitudeDegrees = position.first,
+            azimuthDegrees = position.second,
+            currentCycleHours = cycleHours
+        )
+    }
+
+    private fun bodyStateLocal(
+        body: Body,
+        skyBody: SkyBody,
+        observer: Observer,
+        now: Time,
         nowMillis: Long
     ): BodyState {
         val position = horizontal(body, observer, now)
@@ -70,28 +145,47 @@ object AstroEngine {
             eventBasedVisible
         }
 
-        val nextSet = if (visible) searchRiseSet(body, observer, Direction.Set, now, 3.0) else null
-        val currentHours =
-            if (visible && lastRise != null && nextSet != null) {
-                (nextSet.toMillisecondsSince1970() - lastRise.toMillisecondsSince1970()) / 3_600_000.0
-            } else null
+        var arc: Double? = null
+        var marker: Double? = null
+        var cycleHours: Double? = null
 
-        val arc =
-            if (visible && lastRise != null && nextSet != null) {
-                val start = lastRise.toMillisecondsSince1970().toDouble()
-                val end = nextSet.toMillisecondsSince1970().toDouble()
-                if (end > start) ((nowMillis - start) / (end - start) * 180.0).coerceIn(0.0, 180.0)
-                else null
-            } else null
+        if (visible && lastRise != null) {
+            val nextSet = searchRiseSet(body, observer, Direction.Set, now, 3.0)
+            if (nextSet != null) {
+                val riseMs = lastRise.toMillisecondsSince1970()
+                val setMs = nextSet.toMillisecondsSince1970()
+                if (setMs > riseMs) {
+                    cycleHours = (setMs - riseMs) / 3_600_000.0
+                    arc = ((nowMillis - riseMs).toDouble() / (setMs - riseMs).toDouble() * 180.0)
+                        .coerceIn(0.0, 180.0)
+                    marker = arc
+                }
+            }
+        } else {
+            val nextRise = searchRiseSet(body, observer, Direction.Rise, now, 3.0)
+            if (nextRise != null) {
+                val nextSet = searchRiseSet(body, observer, Direction.Set, nextRise.addDays(0.001), 3.0)
+                if (nextSet != null) {
+                    val riseMs = nextRise.toMillisecondsSince1970()
+                    val setMs = nextSet.toMillisecondsSince1970()
+                    if (setMs > riseMs) cycleHours = (setMs - riseMs) / 3_600_000.0
+                }
+            }
+            marker = when {
+                lastSet != null -> 180.0
+                nextRise != null -> 0.0
+                else -> null
+            }
+        }
 
         return BodyState(
             body = skyBody,
             visible = visible,
             arcDegrees = arc,
+            markerDegrees = marker,
             altitudeDegrees = position.first,
             azimuthDegrees = position.second,
-            currentCycleHours = currentHours,
-            monthlyRepresentativeHours = monthlyRepresentativeHours(body, observer, nowMillis, zone)
+            currentCycleHours = cycleHours
         )
     }
 
@@ -112,30 +206,6 @@ object AstroEngine {
             cursor = event.addDays(0.002)
         }
         return latest
-    }
-
-    /**
-     * Monthly mode follows the user's month-table concept: the 15th day of the current
-     * month is used as the representative date. The returned value is whole visible hours.
-     */
-    private fun monthlyRepresentativeHours(
-        body: Body,
-        observer: Observer,
-        nowMillis: Long,
-        zone: ZoneId
-    ): Int? {
-        val localNow = Instant.ofEpochMilli(nowMillis).atZone(zone)
-        val date = LocalDate.of(localNow.year, localNow.monthValue, 15)
-        val startLocal = LocalDateTime.of(date, LocalTime.MIDNIGHT).atZone(zone)
-        val start = timeFromMillis(startLocal.toInstant().toEpochMilli())
-
-        val rise = searchRiseSet(body, observer, Direction.Rise, start, 2.2) ?: return null
-        val setSearch = rise.addDays(0.002)
-        val set = searchRiseSet(body, observer, Direction.Set, setSearch, 2.2) ?: return null
-
-        val hours = (set.toMillisecondsSince1970() - rise.toMillisecondsSince1970()) / 3_600_000.0
-        if (hours < 0.0 || hours > 48.0) return null
-        return floor(hours).toInt()
     }
 
     fun timeFromMillis(ms: Long): Time {
