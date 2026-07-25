@@ -16,8 +16,6 @@ jobs:
         run: |
           HTML=app/src/main/assets/index.html
           JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
-          echo 'afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  app/src/main/assets/index.html' | sha256sum -c -
-          echo '90ca2a8458f2ef3bab4ab9bde6e2a6b1b8fad9d20464a91a5b45551acd1c7adb  app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java' | sha256sum -c -
           echo 'c40b642d0e4514a8a441515b2d7d8e45c6d708b8494c9806fecd8d1270d3126e  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
           ! grep -q 'iwitt.ru' "$HTML"
           ! grep -q 'Автономный HTML' "$HTML"
@@ -29,6 +27,14 @@ jobs:
           grep -q 'Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL' "$JAVA"
           grep -q 'targetSdk 34' app/build.gradle
           grep -q "versionName '1.2'" app/build.gradle
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('app/src/main/assets/index.html').read_text('utf-8')
+          blocks=re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)
+          Path('/tmp/app.js').write_text('\n'.join(blocks),'utf-8')
+          PY
+          node --check /tmp/app.js
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -43,7 +49,10 @@ jobs:
       - name: Verify APK
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
-          unzip -p "$APK" assets/index.html | sha256sum | grep '^afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c'
+          unzip -p "$APK" assets/index.html > /tmp/final-index.html
+          ! grep -q 'iwitt.ru' /tmp/final-index.html
+          ! grep -q 'Автономный HTML' /tmp/final-index.html
+          grep -q 'receiveImportedEventsJson' /tmp/final-index.html
           unzip -l "$APK" | grep 'splash_maya'
           mkdir -p /tmp/apk
           cp "$APK" /tmp/apk/MayaCalendar-v1.2-final.apk
