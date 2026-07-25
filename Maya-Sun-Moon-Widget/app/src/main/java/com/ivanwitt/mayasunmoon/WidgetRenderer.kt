@@ -38,6 +38,8 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
+        drawLocationText(canvas, paint, w, h, settings)
+
         val sidePad = w * 0.10f
         val radius = min(w * 0.39f, h * 0.43f)
         val cx = w / 2f
@@ -50,13 +52,24 @@ object WidgetRenderer {
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
 
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
+
+        // Preserve the original requirement: while the body is actually above the horizon,
+        // a thick ray marks the current position on the rise-to-set arc.
         state.arcDegrees?.let {
             drawActiveRay(canvas, paint, cx, baselineY, radius, it, isSun)
         }
 
+        // New v0.2 marker: a clearly visible point sits on the arc continuously while rise/set
+        // data exist. It starts at the left horizon at rise and reaches the right horizon at set.
+        state.markerDegrees?.let {
+            drawPositionDot(canvas, paint, cx, baselineY, radius, it)
+        }
+
         val centerValue = when (settings.centerMode) {
-            CenterMode.ARC_DEGREES -> state.arcDegrees?.roundToInt() ?: 0
-            CenterMode.MONTH_VISIBLE_HOURS -> state.monthlyRepresentativeHours ?: 0
+            CenterMode.ARC_DEGREES -> state.arcDegrees?.roundToInt()
+                ?: state.markerDegrees?.roundToInt()
+                ?: 0
+            CenterMode.VISIBLE_HOURS -> state.currentCycleHours?.roundToInt() ?: 0
             CenterMode.CLOCK_12H -> {
                 val hour = Instant.ofEpochMilli(nowMillis).atZone(zone).hour
                 val h12 = hour % 12
@@ -76,14 +89,31 @@ object WidgetRenderer {
             maxHeight = numeralHeight
         )
 
-        if (!isSun && !state.visible) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = max(2f, w * 0.004f)
-            canvas.drawCircle(cx, baselineY - radius * 0.14f, radius * 0.035f, paint)
-        }
+        // The old small open circle used as a "Moon below horizon" indicator was removed because
+        // it visually merged with the Mayan numeral and could be mistaken for an extra digit.
 
         drawCalendarText(canvas, paint, w, h, mayaDate)
         return bitmap
+    }
+
+    private fun drawLocationText(
+        canvas: Canvas,
+        paint: Paint,
+        width: Int,
+        height: Int,
+        settings: WidgetSettings
+    ) {
+        if (!settings.showLocationName) return
+        val label = listOf(settings.cityName.trim(), settings.countryName.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(", ")
+        if (label.isBlank()) return
+
+        paint.style = Paint.Style.FILL
+        paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = max(14f, width * 0.027f)
+        canvas.drawText(label, width / 2f, height * 0.075f, paint)
     }
 
     private fun drawTicks(
@@ -134,6 +164,22 @@ object WidgetRenderer {
         val x2 = cx + (outer * cos(theta)).toFloat()
         val y2 = baselineY - (outer * sin(theta)).toFloat()
         canvas.drawLine(x1, y1, x2, y2, paint)
+    }
+
+    private fun drawPositionDot(
+        canvas: Canvas,
+        paint: Paint,
+        cx: Float,
+        baselineY: Float,
+        radius: Float,
+        degrees: Double
+    ) {
+        val theta = PI - degrees.coerceIn(0.0, 180.0) * PI / 180.0
+        val x = cx + (radius * cos(theta)).toFloat()
+        val y = baselineY - (radius * sin(theta)).toFloat()
+        val dotRadius = max(9f, radius * 0.045f)
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(x, y, dotRadius, paint)
     }
 
     private fun drawMayanNumber(

@@ -24,6 +24,7 @@ class MayaWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
+        AstroSyncJobService.scheduleIfNeeded(context)
         scheduleNext(context)
     }
 
@@ -70,7 +71,13 @@ class MayaWidgetProvider : AppWidgetProvider() {
             val settings = WidgetPrefs.load(context)
             val now = System.currentTimeMillis()
             val zone = ZoneId.systemDefault()
-            val snapshot = AstroEngine.snapshot(settings, now, zone)
+
+            // This only schedules a system job when the 72-hour cache is stale/missing.
+            // The job itself is network-constrained, so it waits silently if the phone is offline.
+            AstroSyncJobService.scheduleIfNeeded(context)
+            val networkCache = SkyScheduleStore.loadUsable(context, settings, zone, now)
+
+            val snapshot = AstroEngine.snapshot(settings, now, zone, networkCache)
             val localDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
             val mayaDate = MayaCalendar.fromGregorian(localDate, settings.correlation)
 

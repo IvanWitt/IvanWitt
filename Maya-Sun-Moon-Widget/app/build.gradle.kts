@@ -11,8 +11,8 @@ android {
         applicationId = "com.ivanwitt.mayasunmoon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     compileOptions {
@@ -26,5 +26,6 @@ android {
 }
 
 dependencies {
+    // Kept as an offline fallback if the USNO cache has not yet been downloaded.
     implementation("io.github.cosinekitty:astronomy:2.1.19")
 }
