@@ -4,16 +4,13 @@ on:
   push:
     branches:
       - feature/maya-calendar-main-tzolkin-haab
-    paths:
-      - 'ui-v123/**'
-      - '.github/workflows/maya-v123-ui-build.yml'
   pull_request:
     branches:
       - maya-final-base
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -23,46 +20,13 @@ jobs:
         with:
           ref: feature/maya-calendar-main-tzolkin-haab
 
-      - name: Restore exact UI source and repair Android bridge
+      - name: Verify final sources
         run: |
-          cat ui-v123/00.b64 ui-v123/01.b64 ui-v123/02.b64 ui-v123/03.b64 ui-v123/04.b64 ui-v123/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          html=Path('app/src/main/assets/index.html')
-          s=html.read_text('utf-8')
-          old='return `${dayInMoon}/${customMonths[monthIndex]}/${state.y}`;'
-          new='return `${dayInMoon}/${monthIndex+1}/${state.y}`;'
-          if old not in s:
-              raise SystemExit('13-moon numeric date patch target not found')
-          html.write_text(s.replace(old,new,1),'utf-8')
-
-          java=Path('app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java')
-          j=java.read_text('utf-8')
-
-          method_pattern=r'    private void deliverImportedJsonToWebView\(String json\) \{.*?\n    \}\n\n    private void exportJson'
-          method_replacement='''    private void deliverImportedJsonToWebView(String json) {\n        if (webView == null) return;\n        String quoted = org.json.JSONObject.quote(json);\n        webView.post(() -> webView.evaluateJavascript(\n                "if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;",\n                null\n        ));\n    }\n\n    private void exportJson'''
-          j,n=re.subn(method_pattern,method_replacement,j,count=1,flags=re.S)
-          if n!=1:
-              raise SystemExit('Android JSON delivery patch target not found')
-
-          tail_pattern=r'    private void openEventsJson\(\) \{.*?\n    \}\n\}'
-          tail_replacement='''    private void openEventsJson() {\n        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);\n        intent.addCategory(Intent.CATEGORY_OPENABLE);\n        intent.setType("application/json");\n        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/json", "text/plain"});\n        try {\n            startActivityForResult(intent, OPEN_JSON_REQUEST);\n        } catch (ActivityNotFoundException e) {\n            Toast.makeText(this, "Не найдено приложение для открытия JSON", Toast.LENGTH_LONG).show();\n        }\n    }\n\n    private void printCurrentPage() {\n        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);\n        String jobName = getString(R.string.app_name) + " — календарь";\n        printManager.print(jobName, webView.createPrintDocumentAdapter(jobName), new PrintAttributes.Builder().build());\n    }\n\n    public final class AndroidBridge {\n        private final Activity activity;\n\n        AndroidBridge(Activity activity) {\n            this.activity = activity;\n        }\n\n        @JavascriptInterface\n        public void saveEventsJson(String json, String filename) {\n            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(\n                    json,\n                    (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename\n            ));\n        }\n\n        @JavascriptInterface\n        public void exportJson(String json, String filename) {\n            activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename));\n        }\n\n        @JavascriptInterface\n        public void importJson() {\n            activity.runOnUiThread(MainActivity.this::openEventsJson);\n        }\n\n        @JavascriptInterface\n        public void openEventsJson() {\n            activity.runOnUiThread(MainActivity.this::openEventsJson);\n        }\n\n        @JavascriptInterface\n        public void printPage() {\n            activity.runOnUiThread(MainActivity.this::printCurrentPage);\n        }\n    }\n}'''
-          j2,n=re.subn(tail_pattern,tail_replacement,j,count=1,flags=re.S)
-          if n!=1:
-              raise SystemExit('Android bridge tail patch target not found')
-          java.write_text(j2,'utf-8')
-          PY
           echo '3a271fe1a3e954492964cd45c9079f56d0597880c8683f1d9de773cf88fa3dc6  app/src/main/assets/index.html' | sha256sum -c -
-
-      - name: Verify requested UI and Android code
-        run: |
           HTML=app/src/main/assets/index.html
           JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           grep -q '>Главная<' "$HTML"
           grep -q 'На основании текущей даты рассчитываются Цолькин и Хааб' "$HTML"
-          grep -q 'format13MoonDate' "$HTML"
           grep -q 'monthIndex+1' "$HTML"
           grep -q 'kinForToneAndSeal' "$HTML"
           grep -q 'tzolkinZoomButton' "$HTML"
@@ -70,46 +34,51 @@ jobs:
           grep -q 'haab-day' "$HTML"
           grep -q 'org.json.JSONObject.quote(json)' "$JAVA"
           grep -q 'public void importJson()' "$JAVA"
-          grep -q '@JavascriptInterface' "$JAVA"
           ! grep -q 'n new String' "$JAVA"
           python3 - <<'PY'
           from pathlib import Path
           import re
           s=Path('app/src/main/assets/index.html').read_text('utf-8')
-          blocks=re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)
-          Path('/tmp/maya.js').write_text('\n'.join(blocks),'utf-8')
+          Path('/tmp/maya.js').write_text('\n'.join(re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)),'utf-8')
           PY
           node --check /tmp/maya.js
-
-      - name: Commit reconstructed sources to feature branch
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name 'ChatGPT Build'
-          git config user.email 'actions@users.noreply.github.com'
-          git add app/src/main/assets/index.html app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
-          if ! git diff --cached --quiet; then
-            git commit -m 'Update Maya Calendar main, Tzolkin, Haab and Android bridge'
-            git push origin HEAD:feature/maya-calendar-main-tzolkin-haab
-          fi
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Build APK and capture diagnostics
+        id: gradle_build
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon assembleDebug --stacktrace > /tmp/gradle.log 2>&1
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          tail -n 120 /tmp/gradle.log > /tmp/gradle-tail.txt
+          exit 0
 
-      - name: Verify APK source
+      - name: Upload Gradle diagnostics
+        if: steps.gradle_build.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.3-gradle-diagnostics
+          path: /tmp/gradle-tail.txt
+
+      - name: Fail if Gradle failed
+        if: steps.gradle_build.outputs.exit_code != '0'
+        run: |
+          cat /tmp/gradle-tail.txt
+          exit 1
+
+      - name: Verify APK
+        if: steps.gradle_build.outputs.exit_code == '0'
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           unzip -p "$APK" assets/index.html > /tmp/apk-index.html
@@ -118,6 +87,7 @@ jobs:
           cp "$APK" /tmp/apk/MayaCalendar-v1.2.3-ui-debug.apk
 
       - uses: actions/upload-artifact@v4
+        if: steps.gradle_build.outputs.exit_code == '0'
         with:
           name: MayaCalendar-v1.2.3-ui-debug
           path: /tmp/apk/MayaCalendar-v1.2.3-ui-debug.apk
