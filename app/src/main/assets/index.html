@@ -3,233 +3,1764 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Календарь Майя</title>
+  <meta name="color-scheme" content="light">
+  <title>Календарь Цолькин, Хааб и 13 месяцев</title>
   <style>
     :root {
-      --blue-900: #2c4b3e;
-      --blue-800: #376456;
-      --blue-700: #447a6d;
-      --line: #d7dbd2;
-      --muted: #667085;
-      --cream: #f6f1e6;
-      --stone: #e2e7de;
-      --ochre: #c89b42;
-      --dark-red: #7f0000;
-      --maya-green: #23443f;
-      --maya-green-2: #2f5c53;
-      --maya-gold: #a87f3c;
+      --blue-900:#23443f;
+      --blue-800:#315b52;
+      --blue-600:#718f7f;
+      --blue-100:#e4ece6;
+      --paper:#f3efe6;
+      --card:#fffdf8;
+      --ink:#2f342f;
+      --muted:#6f716a;
+      --line:#d7cfbf;
+      --yellow:#f4e7b7;
+      --today:#8b2f28;
+      --gold:#a78345;
+      --clay:#8b6548;
+      --shadow:0 8px 24px rgba(72,63,46,.11);
+      --radius:16px;
     }
-    * {box-sizing:border-box}
+
+    * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
     body {
       margin:0;
-      background:linear-gradient(180deg,#f8f7f2 0%,#f1ede4 100%);
-      color:#252a25;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:linear-gradient(180deg,#e9e4d8 0,#f8f5ee 320px,#f3efe6 100%);
+      color:var(--ink);
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      line-height:1.45;
+    }
+    button,input,select { font:inherit; }
+    a { color:inherit; }
+
+    .topbar {
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:rgba(23,54,93,.96);
+      color:white;
+      box-shadow:0 4px 14px rgba(0,0,0,.16);
+      backdrop-filter:blur(8px);
+    }
+    .topbar-inner {
+      max-width:1700px;
+      margin:auto;
+      padding:10px 18px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    .brand { font-weight:800; white-space:nowrap; }
+    .nav {
+      display:flex;
+      gap:7px;
+      overflow-x:auto;
+      scrollbar-width:thin;
+      padding-bottom:2px;
+    }
+    .nav a {
+      text-decoration:none;
+      background:rgba(255,255,255,.10);
+      padding:7px 11px;
+      border-radius:999px;
+      white-space:nowrap;
+      font-size:13px;
+    }
+    .nav a:hover { background:rgba(255,255,255,.22); }
+
+    main { max-width:1700px; margin:0 auto; padding:24px 18px 60px; }
+    .hero {
+      background:linear-gradient(135deg,var(--blue-800),#6f7d63);
+      color:white;
+      border-radius:22px;
+      padding:26px;
+      box-shadow:var(--shadow);
+      margin-bottom:22px;
+    }
+    .hero h1 { margin:0 0 8px; font-size:clamp(25px,4vw,42px); line-height:1.12; }
+    .hero p { max-width:950px; margin:0; color:#f2eee3; }
+
+    section {
+      scroll-margin-top:78px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      margin:20px 0;
+      overflow:hidden;
+    }
+    .section-head {
+      padding:15px 19px;
+      background:var(--blue-800);
+      color:white;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .section-head h2 { margin:0; font-size:20px; }
+    .section-note { margin:0; color:#e8f2fb; font-size:13px; }
+    .section-body { padding:18px; }
+
+    .toolbar {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:end;
+      margin-bottom:16px;
+    }
+    .field { display:grid; gap:5px; }
+    .field label { font-size:12px; color:var(--muted); font-weight:700; }
+    input,select {
+      min-height:40px;
+      border:1px solid #b7c5d3;
+      border-radius:9px;
+      background:white;
+      color:var(--ink);
+      padding:8px 10px;
+      outline:none;
+    }
+    input:focus,select:focus { border-color:var(--blue-600); box-shadow:0 0 0 3px rgba(91,155,213,.18); }
+    #correlation { background:var(--yellow); font-weight:800; width:145px; }
+    #gregorianDate { font-weight:700; }
+    .btn {
+      min-height:40px;
+      border:0;
+      border-radius:9px;
+      padding:8px 14px;
+      font-weight:750;
+      cursor:pointer;
+      background:var(--blue-800);
+      color:white;
+    }
+    .btn:hover { filter:brightness(1.08); }
+    .btn.secondary { background:#eee9df; color:#3b463e; }
+    .btn.danger { background:#b42318; }
+
+    .summary-grid {
+      display:grid;
+      grid-template-columns:minmax(220px,1.1fr) minmax(180px,.8fr) minmax(280px,1.8fr);
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+    }
+    .summary-grid > div { padding:12px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .summary-grid > div:nth-child(3n) { border-right:0; }
+    .summary-grid .hdr { background:var(--blue-600); color:white; font-weight:800; text-align:center; }
+    .summary-grid .label { background:#e9ede6; font-weight:800; }
+    .summary-grid .value { font-weight:800; text-align:center; font-size:17px; }
+    .summary-grid .help { color:#5c6673; font-size:13px; }
+    .status-note {
+      margin-top:14px;
+      background:#e2f0d9;
+      color:#375623;
+      padding:11px 14px;
+      border-radius:10px;
+      font-weight:750;
+      text-align:center;
     }
 
-    .appbar {
-      position:sticky; top:0; z-index:300; min-height:58px; height:calc(58px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; gap:12px;
-      box-sizing:border-box; padding:env(safe-area-inset-top, 0px) 14px 0 14px; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
-    }
-    .menu-button {
-      width:46px; height:46px; border:1px solid rgba(255,255,255,.35); border-radius:13px; background:rgba(255,255,255,.1); color:#fff; font-size:25px; font-weight:900; cursor:pointer;
-    }
-    .app-title { font-weight:850; font-size:clamp(16px,2.2vw,22px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    .drawer {
-      position:fixed; top:calc(66px + env(safe-area-inset-top, 0px)); left:12px; z-index:450; width:min(310px,calc(100vw-24px)); padding:10px; background:rgba(255,255,255,.98); border:1px solid #cfd7cf; border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.25); display:none;
-    }
-    .drawer.open { display:block; }
-    .drawer button { width:100%; text-align:left; border:0; background:transparent; padding:13px 14px; border-radius:10px; font-size:15px; font-weight:750; color:#24302a; cursor:pointer; }
-    .drawer button:hover,.drawer button.active { background:#e9efea; color:#204f45; }
-
-    main { max-width:1400px; margin:0 auto; padding:25px 16px 60px; }
-    .app-page { display:noe; }
-    .app-page.active { display:block; }
-    .hero { background:linear-gradient(135deg,#2f5c53 0%,#23443f 100%); color:#fff; border-radius:20px 20px 0 0; padding:28px 32px; box-shadow:0 10px 30px rgba(36,48,42,.14); }
-    .hero h1 { margin:0; font-size:clamp(22px,4.8vw,42px); line-height:1.1; }
-    .hero p { margin:18px 0 0; color:rgba(255,255,255,.86); font-size:clamp(14px,2.2vw,18px); }
-
-    section { background:rgba(255,255,255,.94); border:1px solid #d8ddd5; border-radius:20px; margin-top:24px; box-shadow:0 10px 30px rgba(32,40,34,.08); overflow:hidden; }
-    .section-head { padding:22px 26px; background:#2f5c53; color:#fff; }
-    .section-head h2 { margin:0; font-size:30px; }
-    .section-head p { margin:10px 0 0; font-size:16px; color:#edf4f0; }
-    .section-body { paddin:20px; }
-    .section-note { margin-bottom:14px; color:#6b332f; font-weight:750; }
-
-    .summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
-    .card { border:1px solid #d6dbd2; border-radius:16px; overflow:hidden; background:#fff; }
-    .card h3 { margin:0; padding:14px 16px; background:#e8ede7; font-size:17px; }
-    .card .big { padding:20px; font-size:26px; font-weight:800; text-align:center; }
-    .card .desc { padding:16px; color:#667085; line-height:1.45; }
-
-    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:18px; }
-    .field { display:grid; gap:6px; min-width:170px; }
-    .field label { font-weight:700; color:#656963; }
-    input[type="number"],input[type="date"],textarea { width:100%; box-sizing:border-box; padding:13px 14px; border:1px solid #bfcfc6; border-radius:12px; font-size:17px; background:#fff; }
-    button { font-family:inherit; }
-    .btn { border:0; border-radius:12px; padding:13px 20px; font-weight:800; font-size:16px; cursor:pointer; }
-    .btn.primary { background:#2f5c53; color:#fff; }
-    .btn.secondary { background:#e9ede7; color:#24302a; }
-    .btn.danger { background:#b42418; color:#fff; }
-
-    .table-wrap { overflow:auto; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:11px; }
     table { border-collapse:collapse; width:100%; }
-    th,td { border:1px solid #d8ddde; padding:10px; vertical-align:top; }
-    th { background:#5a86a9; color:#fff; position:sticky; top:0; z-index:1; }
+    th,td { border:1px solid var(--line); padding:8px; }
+    th { background:var(--blue-600); color:white; font-weight:800; text-align:center; }
 
     .tzolkin-wrap { overflow:auto; }
-    .tzolkin-table { min-width:900px; }
-    .tz-cell { min-width:42px; height:60px; text-align:center; font-size:11px; }
-    .tz-current { outline:3px solid #7f0000; outline-offset:-3px; }
+    .tzolkin-table { min-width:1300px; table-layout:fixed; }
+    .tzolkin-table th:first-child { width:54px; }
+    .tz-cell {
+      min-width:62px;
+      height:75px;
+      text-align:center;
+      vertical-align:middle;
+      font-size:12px;
+      font-weight:800;
+      position:relative;
+      transition:transform .12s ease,box-shadow .12s ease;
+    }
+    .tz-cell:hover { transform:scale(1.035); z-index:2; box-shadow:0 5px 14px rgba(0,0,0,.15); }
+    .tz-east { background:#f4cccc; color:#7f0000; }
+    .tz-north { background:#fff; color:#1f1f1f; }
+    .tz-west { background:#44546a; color:#fff; }
+    .tz-south { background:#fff2cc; color:#7f6000; }
+    .mayan-number { display:block; font-size:13px; margin-top:4px; letter-spacing:1px; }
+    .today-badge { display:block; margin-top:3px; font-size:10px; color:#006100; }
+    .is-today {
+      outline:4px solid #18a558 !important;
+      outline-offset:-4px;
+      box-shadow:inset 0 0 0 2px #fff;
+      z-index:3;
+    }
+    .legend { display:flex; flex-wrap:wrap; gap:9px; margin-top:13px; }
+    .legend-item { border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:12px; font-weight:700; }
 
-    .haab-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-    .haab-month { border:1px solid #d7dbd2; border-radius:14px; overflow:hidden; }
-    .haab-month h4 { margin:0; padding:11px 12px; background:#e9ede7; }
-    .haab-month ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
-    .haab-month li { padding:8px; border-top:1px solid #e1e6de; border-right:1px solid #e1e6de; text-align:center; }
+    .haab-grid {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(240px,1fr));
+      gap:14px;
+    }
+    .haab-month {
+      border:1px solid var(--line);
+      border-radius:11px;
+      overflow:hidden;
+      background:#fff;
+    }
+    .haab-month h3 { margin:0; padding:9px; text-align:center; font-size:15px; }
+    .haab-days { display:grid; grid-template-columns:repeat(4,1fr); }
+    .haab-day {
+      min-height:61px;
+      padding:6px 4px;
+      border-top:1px solid rgba(100,116,139,.24);
+      border-right:1px solid rgba(100,116,139,.24);
+      text-align:center;
+      font-weight:800;
+      font-size:12px;
+    }
+    .haab-day:nth-child(4n) { border-right:0; }
+    .haab-day small { display:block; font-weight:600; opacity:.75; margin-top:3px; }
 
-    .custom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-    .custom-month { border:1px solid #d7dbd2; border-radius:14px; overflow:hidden; background:#fff; }
-    .custom-month h4 { margin:0; padding:14px; text-align:center; background:#e7ed7b; font-size:20px; }
-    .custom-month table { width:100%; table-layout:fixed; }
-    .custom-month th,.custom-month td { padding:9px 4px; text-align:center; font-size:14px; }
-    .custom-month .red-day { background:#e9ebe9; }
-    .custom-month .event-day { cursor:pointer; font-weight:800; }
-    .custom-month .current-day { outline:3px solid #7f0000; outline-offset:-3px; }
+    .custom-grid {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(500px,1fr));
+      gap:15px;
+    }
+    .custom-month {
+      border:1px solid var(--line);
+      border-radius:11px;
+      overflow:hidden;
+      background:white;
+    }
+    .custom-month h3 { margin:0; text-align:center; padding:9px; }
+    .custom-month table { table-layout:fixed; }
+    .custom-month th,.custom-month td { text-align:center; padding:7px 4px; }
+    .custom-month th:first-child,.week-label { width:80px; }
+    .week-label { background:#f2f2f2; font-weight:800; font-size:12px; }
+    .custom-day {
+      height:44px;
+      background:#fff;
+      font-weight:800;
+      position:relative;
+    }
+    .custom-day.current-day { color:var(--today); box-shadow:inset 0 0 0 3px var(--today); }
+    .custom-day.has-event::after {
+      content:"";
+      position:absolute;
+      right:4px;
+      top:4px;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:rgba(31,41,55,.46);
+    }
+    .outside-time {
+      display:grid;
+      place-items:center;
+      min-height:180px;
+      border:1px solid #a9c896;
+      border-radius:11px;
+      background:#e2f0d9;
+      color:#375623;
+      font-weight:900;
+      text-align:center;
+      font-size:22px;
+    }
+    .outside-time span { display:block; font-size:42px; }
+    .outside-time.current-day { box-shadow:inset 0 0 0 4px var(--today); color:var(--today); }
 
-    .events-scroll { max-height:680px; overflow:auto; }
-    .events-table { min-width:800px; }
-    .events-table textarea { min-height:54px; resize:vertical; }
+    .events-toolbar { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:12px; }
+    .events-table { min-width:720px; }
+    .events-table td:first-child { width:120px; text-align:center; font-weight:800; }
+    .events-table td:nth-child(2) { min-width:360px; }
+    .events-table td:nth-child(3) { width:190px; }
+    .events-table input,.events-table select { width:100%; min-height:34px; border-radius:6px; }
+    .events-scroll { max-height:720px; overflow:auto; border:1px solid var(--line); border-radius:11px; }
+    .events-scroll thead th { position:sticky; top:0; z-index:5; }
 
-    .gear-stage { position:relative; aspect-ratio:1060/660; background:#f3efe8; border-radius:18px; overflow:hidden; }
+    .ref-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; }
+    .compact td,.compact th { padding:7px; font-size:13px; }
+    .formula-box {
+      background:#f7f9fb;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:13px;
+      font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+      font-size:13px;
+      overflow:auto;
+    }
+
+    .gear-controls {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:end;
+      margin-bottom:14px;
+    }
+    .gear-controls .field.grow { flex:1 1 320px; }
+    .gear-controls input[type="range"] {
+      width:100%;
+      min-width:240px;
+      padding:0;
+      border:0;
+      box-shadow:none;
+      accent-color:var(--blue-800);
+    }
+    .gear-position {
+      min-width:160px;
+      min-height:40px;
+      display:grid;
+      place-items:center;
+      border:1px solid #b7c5d3;
+      border-radius:9px;
+      background:#f7f9fb;
+      font-weight:850;
+      color:var(--blue-900);
+      padding:7px 12px;
+    }
+    .gear-stage {
+      position:relative;
+      width:100%;
+      aspect-ratio:1060 / 660;
+      min-height:420px;
+      border:1px solid #cbd6e1;
+      border-radius:18px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 30% 45%,rgba(237,173,98,.19),transparent 31%),
+        radial-gradient(circle at 72% 46%,rgba(86,145,154,.19),transparent 34%),
+        linear-gradient(180deg,#f8fbfd,#edf3f7);
+      box-shadow:inset 0 0 38px rgba(31,78,120,.08);
+      outline:none;
+    }
+    .gear-stage:focus-visible { box-shadow:0 0 0 4px rgba(91,155,213,.28),inset 0 0 38px rgba(31,78,120,.08); }
     .gear-svg { width:100%; height:100%; display:block; touch-action:none; user-select:none; }
-    .gear-controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .gear-junction-card { position:absolute; left:47%; top:50%; transform:translate(-50%,-50%); width:min(210px,24%); min-width:150px; background:rgba(255,255,255,.96); border:3px solid #9c0006; border-radius:16px; padding:10px 12px; text-align:center; box-shadow:0 9px 24px rgba(48,31,20,.22); pointer-events:none; z-index:4; }
+    .gear-rotor { transform-box:view-box; will-change:transform; }
+    .gear-body.tzolkin-body { fill:url(#tzGearGradient); stroke:#713c1e; stroke-width:4; }
+    .gear-body.haab-body { fill:url(#haabGearGradient); stroke:#244e55; stroke-width:4; }
+    .gear-inner-ring { fill:none; stroke:rgba(255,255,255,.70); stroke-width:4; }
+    .gear-middle-ring { fill:none; stroke:rgba(28,48,64,.30); stroke-width:2; }
+    .gear-tick { stroke:rgba(23,54,93,.44); stroke-width:1; }
+    .gear-tick.major { stroke:#17365d; stroke-width:2.4; }
+    .gear-month-boundary { stroke:#17365d; stroke-width:2; opacity:.62; }
+    .gear-ring-label {
+      fill:#17365d;
+      font-size:11px;
+      font-weight:850;
+      text-anchor:middle;
+      dominant-baseline:middle;
+      paint-order:stroke;
+      stroke:rgba(255,255,255,.88);
+      stroke-width:3px;
+      stroke-linejoin:round;
+    }
+    .gear-ring-label.haab-label { font-size:10px; }
+    .gear-hub { fill:rgba(255,255,255,.94); stroke:#17365d; stroke-width:5; filter:url(#gearShadow); }
+    .gear-hub-title { fill:#17365d; font-size:25px; font-weight:900; text-anchor:middle; }
+    .gear-hub-main { fill:#1f2937; font-size:24px; font-weight:900; text-anchor:middle; }
+    .gear-hub-sub { fill:#667085; font-size:15px; font-weight:750; text-anchor:middle; }
+    .gear-pointer { fill:#9c0006; stroke:#fff; stroke-width:3; filter:url(#gearShadow); }
+    .gear-contact { fill:#fff2cc; stroke:#9c0006; stroke-width:4; filter:url(#gearShadow); }
+    .gear-hit { fill:transparent; cursor:grab; pointer-events:all; }
+    .gear-hit:active { cursor:grabbing; }
+    .gear-junction-card {
+      position:absolute;
+      left:47.0%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:min(210px,24%);
+      min-width:150px;
+      background:rgba(255,255,255,.96);
+      border:3px solid #9c0006;
+      border-radius:16px;
+      padding:10px 12px;
+      text-align:center;
+      box-shadow:0 9px 24px rgba(48,31,20,.22);
+      pointer-events:none;
+      z-index:4;
+    }
     .gear-junction-card small { display:block; color:#7f0000; font-weight:850; letter-spacing:.02em; }
     .gear-junction-card strong { display:block; margin:3px 0; color:#17365d; font-size:clamp(14px,1.7vw,21px); line-height:1.15; }
     .gear-junction-card span { display:block; color:#667085; font-size:12px; font-weight:700; }
-    .gear-help { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:13px; }
-    .gear-help div { border:1px solid #d8ddde; border-radius:10px; background:#f8fafc; padding:10px 12px; font-size:13px; }
+    .gear-help {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-top:13px;
+    }
+    .gear-help div {
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#f8fafc;
+      padding:10px 12px;
+      font-size:13px;
+    }
+    .gear-help strong { color:var(--blue-900); }
 
-    .about-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-    .about-card { border:1px solid #d7dbd2; border-radius:14px; padding:16px; background:#fff; }
-    .about-card h3 { margin:0 0 8px; color:#2f5c53; }
-    .meta-list { display:grid; gap:8px; margin-top:12px; }
-    .meta-list div { display:flex; justify-content:space-between; gap:12px; border-top:1px solid #e5e9e2; padding-top:8px; }
-    .meta-list span { color:#667085; }
-
-    .event-toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:800; width:min(90%,480px); background:#23443f; color:#fff; padding:14px 16px; border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.28); display:none; font-weight:700; text-align:center; }
-    .event-toast.show { display:block; animation:toastIn .15s ease-out; }
-    @keyframes toastIn { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
+    footer { text-align:center; color:var(--muted); font-size:12px; padding:12px; }
 
     @media (max-width:1150px) {
       .haab-grid { grid-template-columns:repeat(2,minmax(240px,1fr)); }
       .custom-grid { grid-template-columns:1fr; }
-      .about-grid { grid-template-columns:1fr; }
+      .ref-grid { grid-template-columns:1fr; }
     }
     @media (max-width:760px) {
-      main { padding:16px 10px 48px; }
-      .appbar { min-height:56px; height:calc(56px + env(safe-area-inset-top, 0px)); padding:env(safe-area-inset-top, 0px) 10px 0; }
-      .menu-button { width:42px; height:42px; }
-      .hero { padding:20px; border-radius:16px 16px 0 0; }
-      .section-head { padding:18px 20px; }
-      .section-head h2 { font-size:24px; }
-      .section-body { padding:14px; }
-      .summary-grid,.haab-grid,.about-grid { grid-template-columns:1fr; }
-      .custom-grid { grid-template-columns:1fr; gap:11px; }
-      .custom-month { overflow:hidden; }
-      .custom-month table { width:100%; min-width:0; table-layout:fixed; }
-      .custom-month th,.custom-month td { font-size:12px; padding:8px 2px; }
-      .custom-month th:first-child,.custom-month td:first-child { width:19%; }
-      .custom-month th:not(:first-child),.custom-month td:not(:first-child) { width:11.5%; }
+      main { padding:15px 9px 45px; }
+      .topbar-inner { padding:8px 9px; }
+      .brand { display:none; }
+      .hero { padding:19px; border-radius:15px; }
+      .section-body { padding:11px; }
+      .summary-grid { grid-template-columns:1fr; }
+      .summary-grid > div { border-right:0; }
+      .summary-grid .hdr { display:none; }
+      .summary-grid .label { border-bottom:0; }
+      .summary-grid .value { border-bottom:0; }
+      .haab-grid { grid-template-columns:1fr; }
+      .custom-grid { grid-template-columns:1fr; }
+      .custom-month { overflow:auto; }
+      .custom-month table { min-width:0; width:100%; }
+      .gear-stage { min-height:300px; aspect-ratio:1060 / 660; overflow:hidden; }
+      .gear-svg { min-width:0; }
+      .gear-ring-label { display:none; }
+      .gear-hub-title { font-size:40px; }
+      .gear-hub-main { font-size:36px; }
+      .gear-hub-sub { font-size:24px; }
+      .gear-junction-card { position:absolute; left:47%; top:50%; width:130px; min-width:0; padding:6px 7px; border-width:2px; border-radius:10px; }
+      .gear-junction-card small { font-size:8px; }
+      .gear-junction-card strong { font-size:11px; }
+      .gear-junction-card span { font-size:8px; }
       .gear-help { grid-template-columns:1fr; }
-      .gear-junction-card { width:136px; min-width:0; padding:7px 8px; border-width:2px; }
-      .events-table { min-width:680px; }
     }
+
+
+    /* Navigation between independent app pages. */
+    .appbar {
+      position:sticky; top:0; z-index:300; min-height:58px; height:calc(58px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; gap:12px;
+      box-sizing:border-box; padding:env(safe-area-inset-top, 0px) 14px 0; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
+    }
+    .menu-button {
+      width:42px; height:42px; flex:0 0 42px; border:1px solid rgba(255,255,255,.28); border-radius:12px;
+      background:rgba(255,255,255,.12); color:#fff; font-size:25px; line-height:1; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    }
+    .appbar-title { font-weight:850; font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .popup-menu {
+      position:fixed; z-index:420; top:calc(66px + env(safe-area-inset-top, 0px)); left:12px; width:min(360px,calc(100vw - 24px)); display:none;
+      padding:8px; border:1px solid #d7cfbf; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(55,45,31,.25);
+    }
+    .popup-menu.open { display:grid; gap:4px; }
+    .popup-menu button {
+      width:100%; min-height:46px; border:0; border-radius:11px; background:transparent; color:#24364a; text-align:left;
+      padding:11px 13px; font:inherit; font-weight:780; cursor:pointer; -webkit-tap-highlight-color:transparent;
+    }
+    .popup-menu button:hover,.popup-menu button.active { background:#efe9dc; color:#315b52; }
+    .menu-backdrop { position:fixed; z-index:410; inset:0; background:rgba(10,24,40,.30); }
+    .app-page { display:none; margin-top:14px; }
+    .app-page.active { display:block; animation:pageIn .16s ease-out; }
+    @keyframes pageIn { from { opacity:.35; transform:translateY(5px); } to { opacity:1; transform:none; } }
+    .file-status { min-height:20px; margin:-3px 0 12px; color:#375623; font-size:13px; font-weight:700; }
+    #customGrid .custom-day.has-event,#customGrid .outside-time.has-event { cursor:pointer; }
+    #customGrid .custom-day.has-event:active,#customGrid .outside-time.has-event:active { transform:scale(.97); }
+    .event-modal[hidden] { display:none; }
+    .event-modal { position:fixed; z-index:600; inset:0; display:flex; align-items:center; justify-content:center; padding:22px; }
+    .event-modal-backdrop { position:absolute; inset:0; background:rgba(8,20,34,.52); }
+    .event-modal-card {
+      position:relative; z-index:1; width:min(440px,100%); background:#fff; border-radius:18px; padding:22px 20px 20px;
+      box-shadow:0 22px 60px rgba(0,0,0,.30); border:1px solid #d8e0e8;
+    }
+    .event-modal-close { position:absolute; top:8px; right:10px; width:38px; height:38px; border:0; border-radius:50%; background:#eef3f7; font-size:25px; cursor:pointer; }
+    .event-modal-day { color:#667085; font-size:13px; font-weight:800; margin-right:40px; }
+    .event-modal-card h3 { margin:7px 36px 8px 0; color:#17365d; font-size:20px; }
+    .event-modal-card p { margin:0; font-size:16px; white-space:pre-wrap; }
+
+
+    /* Сдержанная стилизация в духе камня, нефрита и тёплой охры. */
+    section { border-color:#d7cfbf; }
+    .section-head { border-bottom:2px solid rgba(167,131,69,.32); }
+    .menu-button { border-color:rgba(214,191,143,.55); }
+    .custom-day.weekend { background:#f0efeb; }
+    .custom-month th.weekend-head { background:#678171; }
+    .about-card { max-width:760px; margin:0 auto; }
+    .about-card p { margin:0 0 16px; }
+    .about-meta {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
+      margin-top:20px; padding-top:16px; border-top:1px solid var(--line);
+    }
+    .about-meta div {
+      display:grid; gap:3px; padding:11px 12px; border:1px solid var(--line);
+      border-radius:10px; background:#f7f3ea;
+    }
+    .about-meta span { font-size:12px; color:var(--muted); font-weight:700; }
+    .about-meta a { color:var(--blue-800); font-weight:800; text-decoration:none; }
+
+    @media (max-width:760px) {
+      .custom-grid { grid-template-columns:1fr; gap:12px; }
+      .custom-month { overflow:hidden; width:100%; }
+      .custom-month table { min-width:0 !important; width:100%; table-layout:fixed; }
+      .custom-month th,.custom-month td { padding:6px 1px; font-size:12px; }
+      .custom-month th:first-child,.week-label { width:58px !important; }
+      .week-label { font-size:10px; line-height:1.15; padding:4px 1px !important; }
+      .custom-day { height:42px; min-width:0; }
+      .about-meta { grid-template-columns:1fr; }
+      .section-head h2 { font-size:19px; }
+    }
+
+    @media print {
+      .topbar,.appbar,.popup-menu,.menu-backdrop,.toolbar,.events-toolbar,.section-note { display:none !important; }
+      body { background:white; }
+      main { max-width:none; padding:0; }
+      .app-page { display:block !important; }
+      section { box-shadow:none; break-inside:avoid; }
+      .events-scroll { max-height:none; overflow:visible; }
+      .tzolkin-wrap,.table-wrap { overflow:visible; }
+      .tzolkin-table { min-width:0; font-size:8px; }
+      .tz-cell { min-width:0; height:50px; font-size:8px; }
+      .gear-controls { display:none !important; }
+      .gear-stage { min-height:0; break-inside:avoid; }
+    }
+  
+    #startupSplash{position:fixed;inset:0;z-index:999999;background:#050806;opacity:1;visibility:visible;transition:opacity .45s ease,visibility .45s ease;overflow:hidden}
+    #startupSplash.hidden{opacity:0;visibility:hidden;pointer-events:none}
+    #startupSplash .startup-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#050806;user-select:none;-webkit-user-drag:none}
+    #startupSplash .startup-hourglass-wrap{position:absolute;left:50%;top:71.2%;transform:translate(-50%,-50%);width:clamp(78px,18vw,124px);aspect-ratio:3/5;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));animation:hgFloat 1.8s ease-in-out infinite}
+    #startupSplash .startup-title{position:absolute;left:0;right:0;bottom:max(24px,env(safe-area-inset-bottom));padding:0 18px;text-align:center;color:#f4dfa2;font-family:Georgia,'Times New Roman',serif;font-weight:800;font-size:clamp(24px,5.4vw,38px);letter-spacing:.15px;text-shadow:0 2px 12px rgba(0,0,0,.85),0 0 6px rgba(20,10,4,.8)}
+    #startupSplash svg{width:100%;height:100%;overflow:visible}
+    #startupSplash .hg-frame{fill:url(#hgBronze);stroke:#4e2e13;stroke-width:6}
+    #startupSplash .hg-cap{fill:url(#hgGold);stroke:#5e3817;stroke-width:5}
+    #startupSplash .hg-glass{fill:rgba(255,244,219,.14);stroke:rgba(255,239,198,.78);stroke-width:3}
+    #startupSplash .hg-sand-top{transform-box:fill-box;transform-origin:center top;animation:sandTop 1.8s linear infinite;fill:url(#hgSand)}
+    #startupSplash .hg-sand-bottom{transform-box:fill-box;transform-origin:center bottom;animation:sandBottom 1.8s linear infinite;fill:url(#hgSand)}
+    #startupSplash .hg-stream{animation:sandStream 1.8s linear infinite;transform-origin:center center}
+    #startupSplash .hg-glow{animation:hgGlow 1.8s ease-in-out infinite}
+    @keyframes sandTop{0%{transform:scaleY(1)}85%{transform:scaleY(.12)}100%{transform:scaleY(1)}}
+    @keyframes sandBottom{0%{transform:scaleY(.18)}85%{transform:scaleY(1)}100%{transform:scaleY(.18)}}
+    @keyframes sandStream{0%,10%{opacity:1;transform:scaleY(1)}88%,100%{opacity:0;transform:scaleY(.2)}}
+    @keyframes hgFloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-5px)}}
+    @keyframes hgGlow{0%,100%{opacity:.72}50%{opacity:1}}
+
+  
+
+    /* v1.2.3 — compact home and interactive Maya tables */
+    .compact-head { padding:10px 14px; min-height:48px; }
+    .compact-head h2 { font-size:18px; }
+    .home-body { padding:10px 11px 12px; }
+    .home-controls {
+      display:grid; grid-template-columns:minmax(105px,.58fr) minmax(170px,1.15fr) auto; gap:8px; align-items:end; margin-bottom:10px;
+    }
+    .home-controls .field { min-width:0; }
+    .home-controls input { min-height:36px; padding:6px 8px; font-size:15px; }
+    .home-correlation #correlation { width:100%; }
+    .date-basis-note { display:block; margin-top:3px; color:#6f6658; font-size:10px; line-height:1.18; font-weight:650; max-width:240px; }
+    .home-actions { display:flex; gap:6px; }
+    .home-actions .btn { min-height:36px; padding:7px 10px; font-size:13px; }
+    .home-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+    .home-value-card {
+      min-width:0; border:1px solid #cdbd9b; border-radius:11px; padding:8px 9px; background:linear-gradient(145deg,#fffdf7,#f2ead9);
+      box-shadow:inset 0 0 0 1px rgba(112,78,32,.06),0 2px 6px rgba(66,48,23,.06);
+    }
+    .home-value-card.wide { grid-column:span 2; }
+    .home-value-card span { display:block; color:#746650; font-size:10px; line-height:1.1; font-weight:750; margin-bottom:4px; }
+    .home-value-card strong { display:block; color:#27372f; font-size:14px; line-height:1.15; overflow-wrap:anywhere; }
+    .home-value-card em { display:block; margin-top:3px; color:#8a5d22; font-size:10px; font-style:normal; font-weight:800; }
+
+    .maya-section-head {
+      background:linear-gradient(135deg,#244b42,#375f50 55%,#6e542e); border-bottom:2px solid #b9914d;
+    }
+    .tzolkin-section-body,.haab-section-body { background:linear-gradient(180deg,#f5efe2 0%,#ebe0ca 100%); }
+    .tz-toolbar { display:flex; align-items:center; gap:9px; margin-bottom:10px; font-size:11px; color:#675942; }
+    .tz-zoom-button { flex:0 0 auto; border:1px solid #b78d49; background:#efe3c6!important; color:#4b351a!important; }
+    .tzolkin-wrap {
+      width:100%; overflow-x:hidden; overflow-y:visible; border:2px solid #6c4b27; border-radius:12px; background:#b18a4f;
+      box-shadow:0 5px 16px rgba(64,43,20,.18); touch-action:pan-x pan-y; -webkit-overflow-scrolling:touch;
+    }
+    .tzolkin-wrap.zoomed { overflow-x:auto; }
+    .tzolkin-table { width:100%; min-width:0!important; table-layout:fixed; border-collapse:separate; border-spacing:1px; background:#6c4b27; }
+    .tzolkin-wrap.zoomed .tzolkin-table { width:200%; min-width:720px!important; }
+    .tzolkin-table th,.tzolkin-table td { border:0; }
+    .tz-tone-head { height:30px; padding:2px 0!important; background:linear-gradient(#7b5b30,#5c4022)!important; color:#f8e8bd!important; font-size:9px; }
+    .tz-seal-head {
+      width:66px!important; min-width:66px; padding:3px!important; background:linear-gradient(145deg,#d5b26c,#9a6d37)!important; color:#2f2419!important;
+      position:sticky; left:0; z-index:4; box-shadow:2px 0 3px rgba(54,35,15,.2);
+    }
+    .tz-seal-wrap { display:grid; justify-items:center; gap:1px; line-height:1; }
+    .tz-seal-wrap svg { width:31px; height:31px; color:#2f2419; }
+    .tz-seal-wrap b { font-size:8px; white-space:nowrap; }
+    .tz-cell {
+      min-width:0!important; height:43px!important; padding:2px 1px!important; cursor:pointer; overflow:hidden; line-height:1.05;
+      box-shadow:inset 0 0 0 1px rgba(74,51,28,.10); transition:filter .12s ease,transform .12s ease;
+    }
+    .tz-cell:active { transform:scale(.96); filter:brightness(.94); }
+    .tz-cell .kin-name { display:block; font-size:clamp(5px,1.45vw,8.5px); font-weight:900; white-space:normal; overflow-wrap:anywhere; }
+    .tz-cell .kin-number { display:block; margin-top:3px; font-size:clamp(4.8px,1.25vw,7.5px); font-weight:750; opacity:.78; white-space:nowrap; }
+    .tz-cell .today-badge { display:block; font-size:5px; margin-top:1px; color:#154f31; font-weight:900; }
+    .tz-east { background:#d9977a!important; color:#4f1f17!important; }
+    .tz-north { background:#eee9db!important; color:#302b22!important; }
+    .tz-west { background:#52656a!important; color:#fff4d6!important; }
+    .tz-south { background:#e0c36f!important; color:#4b3815!important; }
+    .tz-cell.is-today { outline:3px solid #1e7b4d!important; outline-offset:-3px; box-shadow:inset 0 0 0 1px #fff4d6; }
+    .compact-legend { margin-top:8px; gap:5px; }
+    .compact-legend .legend-item { padding:4px 7px; font-size:9px; }
+
+    .seal-glyph-frame { fill:#e7d6ab; stroke:currentColor; stroke-width:4.2; }
+    .seal-glyph-line { fill:none; stroke:currentColor; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+    .seal-glyph-fill { fill:currentColor; }
+
+    .haab-grid { grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:9px!important; }
+    .haab-month {
+      border:2px solid #765129!important; border-radius:12px!important; overflow:hidden; background:#efe2c7!important;
+      box-shadow:0 4px 12px rgba(74,49,22,.12);
+    }
+    .haab-month h3 {
+      display:flex; align-items:center; justify-content:center; gap:6px; padding:7px 5px!important; color:#f7e4b7!important;
+      background:linear-gradient(135deg,#35584c,#765129)!important; border-bottom:1px solid #a47b42; font-size:13px!important;
+    }
+    .haab-month h3 svg { width:25px; height:25px; color:#f0d495; }
+    .haab-days { grid-template-columns:repeat(4,1fr)!important; background:#efe2c7!important; gap:1px; padding:1px; }
+    .haab-day {
+      min-height:52px!important; padding:5px 2px!important; border:0!important; background:linear-gradient(145deg,#fff9e9,#e6d5b6)!important;
+      color:#3b3226!important; font-size:10px!important; cursor:pointer; box-shadow:inset 0 0 0 1px rgba(112,78,39,.15);
+    }
+    .haab-day:active { transform:scale(.96); }
+    .haab-day small { font-size:8px; color:#765129; }
+    .haab-day.is-today { outline:3px solid #1e7b4d!important; outline-offset:-3px; }
+
+    .calendar-detail-modal[hidden] { display:none; }
+    .calendar-detail-modal { position:fixed; z-index:690; inset:0; display:flex; align-items:center; justify-content:center; padding:18px; }
+    .calendar-detail-backdrop { position:absolute; inset:0; background:rgba(16,22,18,.66); backdrop-filter:blur(2px); }
+    .calendar-detail-card {
+      position:relative; z-index:1; width:min(470px,96vw); border:2px solid #a67a3b; border-radius:20px; padding:20px 17px 17px;
+      background:linear-gradient(145deg,#fffaf0,#e9dbc0); box-shadow:0 24px 65px rgba(0,0,0,.42),inset 0 0 0 1px #f8e6b5;
+    }
+    .calendar-detail-close { position:absolute; right:8px; top:8px; width:38px; height:38px; border:1px solid #a98a58; border-radius:50%; background:#f4ead6; color:#4b351a; font-size:25px; }
+    .calendar-detail-preview { display:grid; grid-template-columns:118px minmax(0,1fr); gap:14px; align-items:center; padding-right:30px; }
+    .calendar-detail-glyph { display:grid; place-items:center; min-height:124px; border-radius:16px; background:#d6b779; border:2px solid #79552a; }
+    .calendar-detail-glyph svg { width:100px; height:100px; color:#342419; }
+    .calendar-detail-tile { min-height:104px; display:grid; place-items:center; text-align:center; border-radius:15px; padding:12px; border:2px solid #765129; background:#f4e5c6; font-weight:900; }
+    .calendar-detail-tile .big-name { font-size:22px; display:block; }
+    .calendar-detail-tile .big-kin { display:block; margin-top:7px; color:#775326; font-size:15px; }
+    .calendar-detail-description { margin-top:15px; min-height:76px; border:1px solid #b79a68; border-radius:13px; padding:12px 14px; background:rgba(255,252,242,.78); }
+    .calendar-detail-description strong { display:block; color:#3e2c19; font-size:17px; }
+    .calendar-detail-description > div { min-height:32px; margin-top:7px; color:#665947; }
+
+    @media (max-width:760px) {
+      .app-page { margin-top:8px; }
+      .home-body { padding:8px; }
+      .home-controls { grid-template-columns:100px minmax(0,1fr); gap:6px; }
+      .home-actions { grid-column:1 / -1; justify-content:flex-end; margin-top:-1px; }
+      .home-actions .btn { min-height:32px; padding:5px 10px; }
+      .date-basis-note { font-size:9px; }
+      .home-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+      .home-value-card,.home-value-card.wide { grid-column:span 1; padding:7px 8px; }
+      .home-value-card span { font-size:9px; }
+      .home-value-card strong { font-size:13px; }
+      .tzolkin-section-body { padding:7px!important; }
+      .tz-toolbar { font-size:9px; align-items:flex-start; }
+      .tz-seal-head { width:58px!important; min-width:58px; }
+      .tz-seal-wrap svg { width:27px; height:27px; }
+      .tz-seal-wrap b { font-size:7px; }
+      .tz-cell { height:39px!important; }
+      .haab-section-body { padding:8px!important; }
+      .haab-grid { grid-template-columns:1fr!important; }
+      .haab-days { grid-template-columns:repeat(5,1fr)!important; }
+      .haab-day { min-height:48px!important; }
+      .calendar-detail-preview { grid-template-columns:96px minmax(0,1fr); gap:10px; }
+      .calendar-detail-glyph { min-height:104px; }
+      .calendar-detail-glyph svg { width:82px; height:82px; }
+      .calendar-detail-tile .big-name { font-size:19px; }
+    }
+
   </style>
 </head>
 <body>
-  <div class="appbar">
-    <button class="menu-button" id="menuButton" aria-label="Меню">☱</button>
-    <div class="app-title" id="appTitle">Сводный календарь</div>
+
+  <div id="startupSplash" aria-hidden="true">
+    <img class="startup-image" src="splash_start.png" alt="Заставка Календаря Майя">
+    <div class="startup-hourglass-wrap" aria-hidden="true">
+      <svg viewBox="0 0 210 350">
+        <defs>
+          <linearGradient id="hgBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8ca7d"/><stop offset="28%" stop-color="#b27c39"/><stop offset="58%" stop-color="#825020"/><stop offset="100%" stop-color="#d9b46b"/></linearGradient>
+          <linearGradient id="hgGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5df9c"/><stop offset="100%" stop-color="#956426"/></linearGradient>
+          <linearGradient id="hgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe9ac"/><stop offset="100%" stop-color="#d7a64c"/></linearGradient>
+          <radialGradient id="hgGlowGrad"><stop offset="0%" stop-color="#ffdf8c" stop-opacity=".55"/><stop offset="100%" stop-color="#ffdf8c" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse class="hg-glow" cx="105" cy="175" rx="88" ry="145" fill="url(#hgGlowGrad)"/>
+        <rect class="hg-cap" x="34" y="18" rx="12" width="142" height="24"/><rect class="hg-cap" x="34" y="308" rx="12" width="142" height="24"/>
+        <rect class="hg-frame" x="44" y="32" rx="11" width="20" height="286"/><rect class="hg-frame" x="146" y="32" rx="11" width="20" height="286"/>
+        <path class="hg-glass" d="M76 66 L134 66 C129 95 116 122 105 148 C94 122 81 95 76 66 Z"/><path class="hg-glass" d="M76 284 L134 284 C129 255 116 228 105 202 C94 228 81 255 76 284 Z"/>
+        <path class="hg-sand-top" d="M84 84 L126 84 C123 102 115 118 105 132 C95 118 87 102 84 84 Z"/>
+        <path class="hg-stream" d="M102 148 C102 140 108 140 108 148 L109 198 C109 205 101 205 101 198 Z" fill="url(#hgSand)"/>
+        <path class="hg-sand-bottom" d="M92 268 C96 252 101 236 105 226 C109 236 114 252 118 268 C110 272 99 272 92 268 Z"/>
+        <circle cx="105" cy="175" r="6" fill="#8d5c24" stroke="#4e2e13" stroke-width="2"/><circle cx="105" cy="175" r="3" fill="#f3d890"/>
+      </svg>
+    </div>
+    <div class="startup-title">Календарь Майя v1.2</div>
   </div>
-  <div class="drawer" id="drawer">
-    <button data-page="summary">Сводный</button>
-    <button data-page="tzolkin">Цолькин</button>
-    <button data-page="haab">Хааб</button>
-    <button data-page="custom">Календарь 13 лун</button>
-    <buttton data-page="events">События</button>
-    <button data-page="gears">Шестерёнки</button>
-    <button data-page="about">О приложении</button>
-  </div>
+
+  <header class="appbar">
+    <button class="menu-button" id="menuButton" type="button" aria-label="Открыть меню" aria-expanded="false">☰</button>
+    <div class="appbar-title" id="appPageTitle">Главная</div>
+  </header>
+  <div class="menu-backdrop" id="menuBackdrop" hidden></div>
+  <nav class="popup-menu" id="popupMenu" aria-label="Разделы приложения" aria-hidden="true">
+    <button type="button" data-page="summary">Главная</button>
+    <button type="button" data-page="tzolkin">Цолькин</button>
+    <button type="button" data-page="haab">Хааб</button>
+    <button type="button" data-page="custom">Календарь 13 лун</button>
+    <button type="button" data-page="events">События</button>
+    <button type="button" data-page="gears">Календарный круг</button>
+    <button type="button" data-page="references">Справочники</button>
+    <button type="button" data-page="about">О приложении</button>
+  </nav>
 
   <main>
-    <div id="page-summary" class="app-page active">
-      <div class="hero">
-        <h1>Сводный календарь</h1>
-        <p>По умолчанию используется корреляция GMT 584283</p>
+
+    <section id="summary" class="app-page">
+      <div class="section-head compact-head">
+        <h2>Главная</h2>
+        <p class="section-note">GMT 584283</p>
       </div>
-      <section>
-        <div class="section-body">
-          <div class="toolbar">
-            <div class="field">
-              <label for="correlation">Корреляция</label>
-              <input id="correlation" type="number" value="584283">
-            </div>
-            <div class="field">
-              <label for="gregorianDate">Григорианская дата</label>
-              <input id="gregorianDate" type="date">
-            </div>
-            <button class="btn secondary" id="todayBtn">Сегодня</button>
-            <button class="btn secondary" id="printBtn">Печать</button>
+      <div class="section-body home-body">
+        <div class="home-controls">
+          <div class="field home-correlation">
+            <label for="correlation">Корреляция</label>
+            <input id="correlation" type="number" step="1" value="584283">
           </div>
-          <div class="summary-grid" id="summaryGrid"></div>
+          <div class="field home-date-field">
+            <label for="gregorianDate">Григорианская дата</label>
+            <input id="gregorianDate" type="date">
+            <small class="date-basis-note">На основании текущей даты рассчитываются Цолькин и Хааб</small>
+          </div>
+          <div class="home-actions">
+            <button class="btn secondary" id="todayButton" type="button">Сегодня</button>
+            <button class="btn secondary" type="button" onclick="printCalendar()">Печать</button>
+          </div>
         </div>
-      </section>
+
+        <div class="home-summary" id="summaryGrid">
+          <div class="home-value-card"><span>Григорианская дата</span><strong id="sGregorian"></strong></div>
+          <div class="home-value-card"><span>Календарь 13 лун</span><strong id="s13Moon"></strong></div>
+          <div class="home-value-card"><span>Цолькин</span><strong id="sTzolkin"></strong><em id="sKinLine"></em></div>
+          <div class="home-value-card"><span>Хааб</span><strong id="sHaab"></strong></div>
+          <div class="home-value-card wide"><span>Цолькин + Хааб</span><strong id="sRound"></strong></div>
+          <div class="home-value-card"><span>Длинный счёт</span><strong id="sLongCount"></strong></div>
+          <div class="home-value-card"><span>Корреляция</span><strong id="sCorrelation"></strong></div>
+          <span id="sKin" hidden></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="tzolkin" class="app-page">
+      <div class="section-head maya-section-head">
+        <h2>Цолькин — 260 КИНов</h2>
+        <p class="section-note">20 печатей × 13 тонов</p>
+      </div>
+      <div class="section-body tzolkin-section-body">
+        <div class="tz-toolbar">
+          <button class="btn secondary tz-zoom-button" id="tzolkinZoomButton" type="button">Масштаб ×2</button>
+          <span>В обычном режиме матрица помещается по ширине. В увеличенном — перетягивайте таблицу влево и вправо.</span>
+        </div>
+        <div class="tzolkin-wrap" id="tzolkinWrap"><table class="tzolkin-table" id="tzolkinTable"></table></div>
+        <div class="legend compact-legend">
+          <span class="legend-item tz-east">Восток</span>
+          <span class="legend-item tz-north">Север</span>
+          <span class="legend-item tz-west">Запад</span>
+          <span class="legend-item tz-south">Юг</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="haab" class="app-page">
+      <div class="section-head maya-section-head">
+        <h2>Хааб — 365 дней</h2>
+        <p class="section-note">18 месяцев по 20 дней и Wayeb из 5 дней</p>
+      </div>
+      <div class="section-body haab-section-body">
+        <div class="haab-grid" id="haabGrid"></div>
+      </div>
+    </section>
+
+    <section id="custom" class="app-page">
+      <div class="section-head">
+        <h2>Календарь 13 лун</h2>
+        <p class="section-note">День 1 совпадает с 0 Pop Хааба</p>
+      </div>
+      <div class="section-body">
+        <p style="margin-top:0;color:#7f0000;font-weight:700">Текущий день отмечается тёмно-красной рамкой. Праздники окрашиваются цветом, выбранным в таблице событий.</p>
+        <div class="custom-grid" id="customGrid"></div>
+      </div>
+    </section>
+
+    <section id="events" class="app-page">
+      <div class="section-head">
+        <h2>Праздники и особые дни</h2>
+        <p class="section-note">Данные автоматически сохраняются в приложении</p>
+      </div>
+      <div class="section-body">
+        <div class="events-toolbar">
+          <button class="btn secondary" id="exportEvents" type="button">Скачать события JSON</button>
+          <button class="btn secondary" id="importEventsButton" type="button">Загрузить события JSON</button>
+          <input id="importEvents" type="file" accept="application/json,.json,text/plain" hidden>
+          <button class="btn danger" id="clearEvents" type="button">Очистить события</button>
+        </div>
+        <div class="file-status" id="eventsFileStatus" role="status" aria-live="polite"></div>
+        <div class="events-scroll">
+          <table class="events-table" id="eventsTable">
+            <thead><tr><th>Номер дня в году</th><th>Праздник или событие</th><th>Цвет события</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="references" class="app-page">
+      <div class="section-head">
+        <h2>Справочники и методика расчёта</h2>
+        <p class="section-note">Служебное содержание Excel-листа перенесено на страницу</p>
+      </div>
+      <div class="section-body">
+        <div class="ref-grid">
+          <div>
+            <h3>20 дневных знаков Цолькина</h3>
+            <div class="table-wrap"><table class="compact" id="signsTable"></table></div>
+          </div>
+          <div>
+            <h3>Месяцы Хааба</h3>
+            <div class="table-wrap"><table class="compact" id="monthsTable"></table></div>
+            <h3>Формулы</h3>
+            <div class="formula-box">JDN = число суток григорианской даты<br>
+Дни от эпохи = JDN − корреляция<br>
+Тон = mod(дни + 3, 13) + 1<br>
+Знак = mod(дни + 19, 20)<br>
+КИН = mod(дни + 159, 260) + 1<br>
+Хааб = mod(дни + 348, 365)</div>
+          </div>
+        </div>
+        <h3>Контрольный расчёт</h3>
+        <p>При корреляции GMT 584283 дата 21.12.2012 должна давать: <strong>4 Ajaw, КИН 160, 3 K’ank’in, 13.0.0.0.0</strong>.</p>
+        <h3>Источники, указанные в Excel</h3>
+        <ul>
+          <li>Smithsonian NMAI — система календарей майя</li>
+          <li>Penn Museum — календари майя</li>
+          <li>Scientific Reports — проверка корреляции GMT</li>
+          <li>FAMSI — конвертер дат длинного счёта</li>
+          <li>Carnegie Mellon — Maya Calendar and Mesoamerican Astronomy</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <section id="about" class="app-page">
+      <div class="section-head">
+        <h2>О приложении</h2>
+        <p class="section-note">Календарные циклы майя в одном приложении</p>
+      </div>
+      <div class="section-body">
+        <div class="about-card">
+          <p><strong>Календари майя</strong> — система взаимосвязанных циклов счёта времени. Цолькин представляет 260-дневный ритуальный цикл, а Хааб — 365-дневный солнечный календарь. Их сочетание образует Календарный круг. Эти системы использовались для организации календарного и ритуального времени и датировки событий.</p>
+          <p>Отдельно в приложении представлен <strong>Календарь 13 лун</strong> — пользовательский календарь из 13 периодов по 28 дней и одного дня вне времени.</p>
+          <div class="about-meta">
+            <div><span>Версия</span><strong>1.2</strong></div>
+            <div><span>Дата версии</span><strong>25.07.2026</strong></div>
+            <div><span>Автор</span><strong>Ivan Witt</strong></div>
+            <div><span>Служебная почта</span><a href="mailto:svc.witt@gmail.com">svc.witt@gmail.com</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gears" class="app-page">
+      <div class="section-head">
+        <h2>Календарный круг — Цолькин и Хааб как шестерёнки</h2>
+        <p class="section-note">Перетаскивайте любое колесо мышью или пальцем</p>
+      </div>
+      <div class="section-body">
+        <div class="gear-controls">
+          <button class="btn secondary" id="gearMinus20" type="button">−20 дней</button>
+          <button class="btn secondary" id="gearMinus1" type="button">−1 день</button>
+          <button class="btn secondary" id="gearPlus1" type="button">+1 день</button>
+          <button class="btn secondary" id="gearPlus20" type="button">+20 дней</button>
+          <button class="btn" id="gearPlay" type="button">▶ Крутить</button>
+          <div class="field">
+            <label for="gearSpeed">Шаг автопрокрутки</label>
+            <select id="gearSpeed">
+              <option value="1">1 день</option>
+              <option value="5">5 дней</option>
+              <option value="20">20 дней</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="calendarRoundSlider">Позиция в календарном круге из 18 980 дней</label>
+            <input id="calendarRoundSlider" type="range" min="0" max="18979" step="1" value="0">
+          </div>
+          <div class="gear-position" id="calendarRoundPosition">День 1 / 18 980</div>
+        </div>
+
+        <div class="gear-stage" id="gearStage" tabindex="0" aria-label="Интерактивные шестерёнки календарей. Используйте стрелки влево и вправо для перемещения по дням.">
+          <svg class="gear-svg" id="gearSvg" viewBox="0 0 1060 660" role="img" aria-labelledby="gearTitle gearDescription">
+            <title id="gearTitle">Взаимодействие календарей Цолькин и Хааб</title>
+            <desc id="gearDescription">Колесо Цолькина имеет 260 делений, колесо Хааба — 365. Они вращаются в противоположных направлениях, а в точке сцепления показана общая дата.</desc>
+            <defs>
+              <radialGradient id="tzGearGradient" cx="35%" cy="30%" r="75%">
+                <stop offset="0" stop-color="#f8d6a5"/>
+                <stop offset=".56" stop-color="#d58a4f"/>
+                <stop offset="1" stop-color="#a85d31"/>
+              </radialGradient>
+              <radialGradient id="haabGearGradient" cx="35%" cy="30%" r="75%">
+                <stop offset="0" stop-color="#d8eef0"/>
+                <stop offset=".58" stop-color="#74aab0"/>
+                <stop offset="1" stop-color="#3f7078"/>
+              </radialGradient>
+              <filter id="gearShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity=".25"/>
+              </filter>
+            </defs>
+
+            <g id="tzGearRotor" class="gear-rotor"></g>
+            <g id="haabGearRotor" class="gear-rotor"></g>
+
+            <polygon class="gear-pointer" points="485,317 513,330 485,343" aria-hidden="true"></polygon>
+            <polygon class="gear-pointer" points="511,317 483,330 511,343" aria-hidden="true"></polygon>
+            <circle class="gear-contact" cx="498" cy="330" r="11" aria-hidden="true"></circle>
+
+            <circle class="gear-hub" cx="320" cy="330" r="91"></circle>
+            <text class="gear-hub-title" x="320" y="285">ЦОЛЬКИН</text>
+            <text class="gear-hub-main" id="gearTzolkinValue" x="320" y="329"></text>
+            <text class="gear-hub-sub" id="gearKinValue" x="320" y="359"></text>
+            <text class="gear-hub-sub" x="320" y="386">260 дней · 52 зубца</text>
+
+            <circle class="gear-hub" cx="748" cy="330" r="104"></circle>
+            <text class="gear-hub-title" x="748" y="278">ХААБ</text>
+            <text class="gear-hub-main" id="gearHaabValue" x="748" y="326"></text>
+            <text class="gear-hub-sub" id="gearHaabOrdinal" x="748" y="356"></text>
+            <text class="gear-hub-sub" x="748" y="386">365 дней · 73 зубца</text>
+
+            <circle class="gear-hit" data-wheel="tzolkin" cx="320" cy="330" r="207" tabindex="-1"></circle>
+            <circle class="gear-hit" data-wheel="haab" cx="748" cy="330" r="278" tabindex="-1"></circle>
+          </svg>
+
+          <div class="gear-junction-card" aria-live="polite">
+            <small>СТЫК КАЛЕНДАРЕЙ</small>
+            <strong id="gearJunctionValue"></strong>
+            <span id="gearJunctionDate"></span>
+          </div>
+        </div>
+
+        <div class="gear-help">
+          <div><strong>Цолькин:</strong> полный оборот равен 260 суткам. 52 видимых зубца соответствуют группам по 5 дней.</div>
+          <div><strong>Хааб:</strong> полный оборот равен 365 суткам. 73 зубца также соответствуют группам по 5 дней.</div>
+          <div><strong>Общий цикл:</strong> исходная комбинация Цолькин + Хааб повторяется через 18 980 суток, или 52 года Хааба.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <div class="calendar-detail-modal" id="calendarDetailModal" hidden>
+      <div class="calendar-detail-backdrop" data-close-calendar-detail></div>
+      <div class="calendar-detail-card" role="dialog" aria-modal="true" aria-labelledby="calendarDetailTitle">
+        <button class="calendar-detail-close" type="button" data-close-calendar-detail aria-label="Закрыть">×</button>
+        <div class="calendar-detail-preview">
+          <div class="calendar-detail-glyph" id="calendarDetailGlyph"></div>
+          <div class="calendar-detail-tile" id="calendarDetailTile"></div>
+        </div>
+        <div class="calendar-detail-description">
+          <strong id="calendarDetailTitle"></strong>
+          <div id="calendarDetailText"></div>
+        </div>
+      </div>
     </div>
 
-    <div id="page-tzolkin" class="app-page">
-      <div class="hero">
-        <h1>Календарь Цолькин</h1>
-        <p>Классический период 260 дней от тукущей даты</p>
+    <div class="event-modal" id="eventModal" hidden>
+      <div class="event-modal-backdrop" data-close-event-modal></div>
+      <div class="event-modal-card" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
+        <button class="event-modal-close" type="button" data-close-event-modal aria-label="Закрыть">×</button>
+        <div class="event-modal-day" id="eventModalDay"></div>
+        <h3 id="eventModalTitle">Событие</h3>
+        <p id="eventModalText"></p>
       </div>
-      <section>
-        <div class="section-body">
-          <div class="tzolkin-wrap"><table class="tzolkin-table" id="tzolkinTable"></table></div>
-        </div>
-      </section>
-    </div>
-    <div id="page-haab" class="app-page">
-      <div class="hero">
-        <h1>Календарь ҅ааб</h1>
-        <p>18 месяцев по 20 дней и отдельный период ВѰйеб из 5 дней</p>
-      </div>
-      <section><div class="section-body"><div class="haab-grid" id="haabGrid"></div></div></section>
     </div>
 
-    <div id="page-custom" class="app-page">
-      <div class="hero">
-        <h1>Календарь 13 лун</h1>
-        <p>День 1 совпадает с 0 Pop Хааба</p>
-      </div>
-      <section>
-        <div class="section-body">
-          <div class="section-note">Текущий день отмечается тёмно-красной рамкой. Праздники окрашиваются цветом, выбранным в таблице событий.</div>
-          <div class="custom-grid" id="customGrid"></div>
-        </div>
-      </section>
-    </div>
-    <div id="page-events" class="app-page">
-      <div class="hero">
-        <h1>Праздники и особые дни</h1>
-        <p>Данные автоматически сохраняются в приложении</p>
-      </div>
-      <section>
-        <div class="section-body">
-          <div class="toolbar">
-            <button class="btn secondary" id="exportEventsBtn">Скачать праздники JSON</button>
-            <button class="btn secondary" id="importEventsBtn">Загрузить праздники JSON</button>
-            <button class="btn danger" id="clearEventsBtn">Очистить праздники</button>
-            <input type="file" id="importEventsFile" accept=".��'j�e�ƭ�����'�']z݊�b��Z�
+  </main>
+
+  <script>
+    'use strict';
+
+    const DAY_MS = 86400000;
+    const STORAGE_KEY = 'maya-calendar-events-v1';
+
+    const dayNames = [
+      'Imix','Ik’','Ak’bal','K’an','Chikchan','Kimi','Manik’','Lamat','Muluk','Ok',
+      'Chuwen','Eb’','B’en','Ix','Men','Kib’','Kab’an','Etz’nab’','Kawak','Ajaw'
+    ];
+    const dayMeanings = [
+      'водяное чудовище / начало','ветер / дыхание','ночь / рассвет','кукуруза / зрелость','змей',
+      'смерть','олень','Венера / звезда','вода / подношение','собака','обезьяна / ремесло',
+      'лестница / путь','тростник / рост','ягуар','орёл','воск / очищение','земля / движение',
+      'кремень','буря / дождь','владыка / солнце'
+    ];
+    const directions = ['Восток','Север','Запад','Юг'];
+    const directionClasses = ['tz-east','tz-north','tz-west','tz-south'];
+    const directionColorNames = ['Красный','Белый','Чёрный/синий','Жёлтый'];
+
+    const haabMonths = [
+      'Pop','Wo','Sip','Sotz’','Sek','Xul','Yaxk’in','Mol','Ch’en','Yax','Sak','Keh',
+      'Mak','K’ank’in','Muwan','Pax','K’ayab','Kumk’u','Wayeb'
+    ];
+    const customMonths = [
+      'Первая луна','Вторая луна','Третья луна','Четвёртая луна','Пятая луна','Шестая луна','Седьмая луна',
+      'Восьмая луна','Девятая луна','Десятая луна','Одиннадцатая луна','Двенадцатая луна','Тринадцатая луна'
+    ];
+    const weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    const monthPalette = [
+      '#fce4d6','#fff2cc','#e2f0d9','#ddebf7','#e4dfec','#f4cccc','#d9e1f2',
+      '#e7e6e6','#f3e5ab','#d5e8d4','#dae8fc','#ffe6cc','#e1d5e7','#f8cecc',
+      '#d0e0e3','#fff4c2','#ead1dc','#cfe2f3','#d9d2e9'
+    ];
+    const customPalette = [
+      '#ddebf7','#e2f0d9','#fff2cc','#fce4d6','#e4dfec','#f4cccc','#d9e1f2',
+      '#f3e5ab','#d5e8d4','#dae8fc','#ffe6cc','#ead1dc','#cfe2f3'
+    ];
+    const eventColors = [
+      ['','Без цвета'],['#fadbd8','Красный'],['#fce4d6','Оранжевый'],['#fff2cc','Жёлтый'],
+      ['#e2f0d9','Зелёный'],['#ddebf7','Голубой'],['#d9e1f2','Синий'],
+      ['#e4dfec','Фиолетовый'],['#fce4ec','Розовый'],['#e7e6e6','Серый'],['#f3e5ab','Бежевый']
+    ];
+
+    let current = null;
+    let events = loadEvents();
+
+    function mod(n,m){ return ((n % m) + m) % m; }
+    function floorDiv(a,b){ return Math.floor(a / b); }
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function formatDate(y,m,d){ return `${pad(d)}.${pad(m)}.${y}`; }
+    function inputDateString(date){
+      return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+    }
+    function parseInputDate(value){
+      const parts = value.split('-').map(Number);
+      if(parts.length !== 3 || parts.some(Number.isNaN)) throw new Error('Некорректная дата');
+      return {y:parts[0],m:parts[1],d:parts[2]};
+    }
+    function gregorianToJdn(y,m,d){
+      const a = Math.floor((14-m)/12);
+      const yy = y + 4800 - a;
+      const mm = m + 12*a - 3;
+      return d + Math.floor((153*mm+2)/5) + 365*yy + Math.floor(yy/4) - Math.floor(yy/100) + Math.floor(yy/400) - 32045;
+    }
+    function longCount(days){
+      const baktun = floorDiv(days,144000);
+      let rest = mod(days,144000);
+      const katun = floorDiv(rest,7200); rest = mod(rest,7200);
+      const tun = floorDiv(rest,360); rest = mod(rest,360);
+      const uinal = floorDiv(rest,20);
+      const kin = mod(rest,20);
+      return `${baktun}.${katun}.${tun}.${uinal}.${kin}`;
+    }
+    function toneSymbol(tone){
+      const bars = Math.floor(tone / 5);
+      const dots = tone % 5;
+      return `${dots ? '•'.repeat(dots) : ''}${dots && bars ? ' ' : ''}${bars ? '—'.repeat(bars) : ''}`;
+    }
+    function calculate(){
+      const correlation = Math.trunc(Number(document.getElementById('correlation').value));
+      const {y,m,d} = parseInputDate(document.getElementById('gregorianDate').value);
+      const jdn = gregorianToJdn(y,m,d);
+      const days = jdn - correlation;
+      const tone = mod(days + 3,13) + 1;
+      const signIndex = mod(days + 19,20);
+      const kin = mod(days + 159,260) + 1;
+      const haabIndex = mod(days + 348,365);
+      const haabMonthIndex = Math.floor(haabIndex / 20);
+      const haabDay = mod(haabIndex,20);
+      const personalDay = haabIndex + 1;
+      return {
+        correlation,y,m,d,jdn,days,tone,signIndex,kin,haabIndex,haabMonthIndex,haabDay,personalDay,
+        tzolkin:`${tone} ${dayNames[signIndex]}`,
+        haab:`${haabDay} ${haabMonths[haabMonthIndex]}`,
+        longCount:longCount(days)
+      };
+    }
+
+    function format13MoonDate(state){
+      const day=state.personalDay;
+      if(day===365) return `1/День вне времени/${state.y}`;
+      const monthIndex=Math.floor((day-1)/28);
+      const dayInMoon=mod(day-1,28)+1;
+      return `${dayInMoon}/${customMonths[monthIndex]}/${state.y}`;
+    }
+
+    function updateAll(){
+      try {
+        current = calculate();
+        document.getElementById('sCorrelation').textContent = current.correlation;
+        document.getElementById('sGregorian').textContent = formatDate(current.y,current.m,current.d);
+        document.getElementById('sTzolkin').textContent = current.tzolkin;
+        document.getElementById('sKin').textContent = current.kin;
+        document.getElementById('sKinLine').textContent = `КИН ${current.kin}`;
+        document.getElementById('sHaab').textContent = current.haab;
+        document.getElementById('sRound').textContent = `${current.tzolkin} / ${current.haab}`;
+        document.getElementById('sLongCount').textContent = current.longCount;
+        document.getElementById('s13Moon').textContent = format13MoonDate(current);
+        updateTzolkinHighlight();
+        updateHaabHighlight();
+        updateCustomCalendar();
+        updateGearCalendar();
+      } catch(error) {
+        console.error(error);
+      }
+    }
+
+    function sealGlyphSvg(index){
+      const bodies=[
+        '<path class="seal-glyph-line" d="M22 45 Q30 20 50 19 Q70 20 78 45 M27 48 Q50 63 73 48"/><circle class="seal-glyph-fill" cx="36" cy="35" r="3"/><circle class="seal-glyph-fill" cx="50" cy="31" r="3"/><circle class="seal-glyph-fill" cx="64" cy="35" r="3"/><path class="seal-glyph-line" d="M31 52 v10 M42 56 v10 M58 56 v10 M69 52 v10"/>',
+        '<path class="seal-glyph-line" d="M30 32 H70 M50 32 V62 M38 62 H62"/>',
+        '<path class="seal-glyph-line" d="M24 59 Q32 35 50 30 Q68 35 76 59 M30 59 H70 M34 39 Q50 48 66 39"/><circle class="seal-glyph-fill" cx="36" cy="55" r="3"/><circle class="seal-glyph-fill" cx="64" cy="55" r="3"/>',
+        '<path class="seal-glyph-line" d="M27 36 Q50 20 73 36 V62 Q50 75 27 62 Z M36 39 Q50 49 64 39 M36 58 Q50 48 64 58"/>',
+        '<path class="seal-glyph-line" d="M24 56 Q34 30 59 32 Q76 34 75 52 Q73 69 52 68 Q35 67 34 55 Q35 45 47 44 Q58 44 60 53"/><circle class="seal-glyph-fill" cx="69" cy="38" r="3"/>',
+        '<path class="seal-glyph-line" d="M28 50 Q37 34 46 43 Q51 48 56 42 Q66 31 74 49 M31 58 Q50 70 69 58"/><circle class="seal-glyph-fill" cx="34" cy="43" r="3"/><circle class="seal-glyph-fill" cx="66" cy="43" r="3"/>',
+        '<path class="seal-glyph-line" d="M29 63 Q25 43 39 34 Q45 29 47 37 L47 48 Q51 44 55 47 L59 52 Q63 44 69 47 Q75 53 68 64 Q59 73 46 70 Q34 68 29 63 Z"/>',
+        '<circle class="seal-glyph-line" cx="50" cy="50" r="21"/><circle class="seal-glyph-fill" cx="50" cy="33" r="3"/><circle class="seal-glyph-fill" cx="50" cy="67" r="3"/><circle class="seal-glyph-fill" cx="33" cy="50" r="3"/><circle class="seal-glyph-fill" cx="67" cy="50" r="3"/><path class="seal-glyph-line" d="M40 40 L60 60 M60 40 L40 60"/>',
+        '<path class="seal-glyph-line" d="M28 30 Q52 31 66 43 Q72 50 68 65 H39 Q28 61 28 50 Z M48 35 V64"/><circle class="seal-glyph-fill" cx="58" cy="43" r="4"/>',
+        '<path class="seal-glyph-line" d="M28 55 Q36 35 55 31 Q68 29 75 39 Q69 42 67 49 Q65 62 49 67 Q35 67 28 55 Z M43 42 Q51 48 60 43"/><circle class="seal-glyph-fill" cx="64" cy="37" r="3"/>',
+        '<path class="seal-glyph-line" d="M25 36 Q35 26 44 38 V61 M75 36 Q65 26 56 38 V61 M32 63 H68"/><path class="seal-glyph-line" d="M42 41 H58"/>',
+        '<path class="seal-glyph-line" d="M25 55 Q33 34 48 35 Q55 35 56 43 Q57 50 48 52 Q40 52 39 58 Q41 67 56 66 Q67 66 73 55"/><circle class="seal-glyph-fill" cx="67" cy="38" r="4"/>',
+        '<path class="seal-glyph-line" d="M28 31 V68 M72 31 V68 M38 39 V62 M50 35 V62 M62 39 V62 M28 31 H72"/>',
+        '<path class="seal-glyph-line" d="M28 33 Q50 24 72 33 M34 41 Q50 51 66 41 M30 65 Q50 56 70 65"/><circle class="seal-glyph-fill" cx="37" cy="57" r="3"/><circle class="seal-glyph-fill" cx="50" cy="60" r="3"/><circle class="seal-glyph-fill" cx="63" cy="57" r="3"/>',
+        '<path class="seal-glyph-line" d="M27 57 Q36 31 58 29 Q72 29 75 40 Q68 42 64 49 Q58 61 44 66 Q34 67 27 57 Z M50 39 Q56 44 63 41"/><circle class="seal-glyph-fill" cx="67" cy="36" r="3"/>',
+        '<path class="seal-glyph-line" d="M26 65 Q34 40 49 35 Q55 29 60 35 Q67 42 72 64 M31 65 H69"/><path class="seal-glyph-line" d="M41 56 Q50 48 59 56"/>',
+        '<path class="seal-glyph-line" d="M28 60 Q31 38 47 32 Q59 27 68 35 Q61 40 60 49 Q60 61 48 67 Q36 70 28 60 Z"/><path class="seal-glyph-line" d="M50 34 Q44 47 50 61"/><circle class="seal-glyph-fill" cx="64" cy="35" r="3"/>',
+        '<path class="seal-glyph-line" d="M28 34 L42 50 L28 66 M72 34 L58 50 L72 66 M42 50 H58"/><circle class="seal-glyph-fill" cx="50" cy="50" r="3"/>',
+        '<path class="seal-glyph-line" d="M26 42 Q40 29 55 34 Q69 38 74 54 Q68 67 51 68 Q34 68 27 57"/><path class="seal-glyph-line" d="M55 34 Q50 48 63 56"/><circle class="seal-glyph-fill" cx="39" cy="43" r="3"/><circle class="seal-glyph-fill" cx="45" cy="37" r="2.5"/><circle class="seal-glyph-fill" cx="34" cy="50" r="2.5"/>',
+        '<path class="seal-glyph-line" d="M28 38 Q38 27 50 34 Q62 27 72 38 V61 Q62 72 50 65 Q38 72 28 61 Z"/><circle class="seal-glyph-fill" cx="39" cy="46" r="3"/><circle class="seal-glyph-fill" cx="61" cy="46" r="3"/><path class="seal-glyph-line" d="M39 59 Q50 65 61 59"/>'
+      ];
+      return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect class="seal-glyph-frame" x="11" y="11" width="78" height="78" rx="17"/>${bodies[index]||bodies[0]}<path class="seal-glyph-line" d="M28 84 q5 8 10 0 q5 8 10 0 q5 8 10 0 q5 8 10 0"/></svg>`;
+    }
+
+    function haabGlyphSvg(index){
+      const dotCount=mod(index,4)+1;
+      const bars=Math.floor((index+1)/5);
+      const dots=Array.from({length:dotCount},(_,i)=>`<circle cx="${36+i*9}" cy="37" r="3.5" fill="currentColor"/>`).join('');
+      const lines=Array.from({length:Math.min(3,bars)},(_,i)=>`<path d="M32 ${53+i*8} H68" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`).join('');
+      return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="13" y="13" width="74" height="74" rx="17" fill="none" stroke="currentColor" stroke-width="5"/><path d="M27 69 Q50 82 73 69" fill="none" stroke="currentColor" stroke-width="4"/>${dots}${lines}<path d="M34 25 Q50 17 66 25" fill="none" stroke="currentColor" stroke-width="4"/></svg>`;
+    }
+
+    function kinForToneAndSeal(tone,signIndex){
+      for(let kin=1;kin<=260;kin++){
+        if(mod(kin-1,13)+1===tone && mod(kin-1,20)===signIndex) return kin;
+      }
+      return 1;
+    }
+
+    function buildTzolkin(){
+      const table=document.getElementById('tzolkinTable');
+      table.innerHTML='';
+      const thead=document.createElement('thead');
+      const hr=document.createElement('tr');
+      const corner=document.createElement('th');
+      corner.className='tz-tone-head tz-seal-head';
+      corner.textContent='Печать';
+      hr.appendChild(corner);
+      for(let tone=1;tone<=13;tone++){
+        const th=document.createElement('th');
+        th.className='tz-tone-head';
+        th.innerHTML=`<span>${tone}</span>`;
+        th.title=`Тон ${tone}: ${toneSymbol(tone)}`;
+        hr.appendChild(th);
+      }
+      thead.appendChild(hr);
+      const tbody=document.createElement('tbody');
+      for(let signIndex=0;signIndex<20;signIndex++){
+        const tr=document.createElement('tr');
+        const rowHead=document.createElement('th');
+        rowHead.className='tz-seal-head';
+        rowHead.innerHTML=`<div class="tz-seal-wrap">${sealGlyphSvg(signIndex)}<b>${dayNames[signIndex]}</b></div>`;
+        tr.appendChild(rowHead);
+        for(let tone=1;tone<=13;tone++){
+          const kin=kinForToneAndSeal(tone,signIndex);
+          const td=document.createElement('td');
+          td.className=`tz-cell ${directionClasses[signIndex%4]}`;
+          td.dataset.kin=kin;
+          td.dataset.tone=tone;
+          td.dataset.signIndex=signIndex;
+          td.title=`${tone} ${dayNames[signIndex]}, КИН ${kin}`;
+          td.innerHTML=`<span class="kin-name">${tone} ${dayNames[signIndex]}</span><span class="kin-number">КИН ${kin}</span><span class="today-badge"></span>`;
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.append(thead,tbody);
+    }
+
+    function updateTzolkinHighlight(){
+      document.querySelectorAll('.tz-cell').forEach(cell=>{
+        const active=Number(cell.dataset.kin)===current.kin;
+        cell.classList.toggle('is-today',active);
+        const badge=cell.querySelector('.today-badge');
+        if(badge) badge.textContent=active?'СЕГОДНЯ':'';
+      });
+    }
+
+    function buildHaab(){
+      const grid=document.getElementById('haabGrid');
+      grid.innerHTML='';
+      haabMonths.forEach((month,index)=>{
+        const block=document.createElement('article');
+        block.className='haab-month';
+        const h=document.createElement('h3');
+        h.innerHTML=`${haabGlyphSvg(index)}<span>${index+1}. ${month}</span>`;
+        const days=document.createElement('div');
+        days.className='haab-days';
+        const max=index===18?5:20;
+        for(let d=0;d<max;d++){
+          const ordinal=index*20+d+1;
+          const cell=document.createElement('div');
+          cell.className='haab-day';
+          cell.dataset.ordinal=ordinal;
+          cell.dataset.monthIndex=index;
+          cell.dataset.haabDay=d;
+          cell.innerHTML=`<strong>${d} ${month}</strong><small>День ${ordinal}</small>`;
+          days.appendChild(cell);
+        }
+        block.append(h,days);
+        grid.appendChild(block);
+      });
+    }
+
+    function updateHaabHighlight(){
+      document.querySelectorAll('.haab-day').forEach(cell=>{
+        const active=Number(cell.dataset.ordinal)===current.personalDay;
+        cell.classList.toggle('is-today',active);
+        const small=cell.querySelector('small');
+        small.textContent=`День ${cell.dataset.ordinal}${active?' · СЕГОДНЯ':''}`;
+      });
+    }
+
+    function openCalendarDetail(type,data){
+      const modal=document.getElementById('calendarDetailModal');
+      const glyph=document.getElementById('calendarDetailGlyph');
+      const tile=document.getElementById('calendarDetailTile');
+      const title=document.getElementById('calendarDetailTitle');
+      const text=document.getElementById('calendarDetailText');
+      text.textContent='';
+      if(type==='tzolkin'){
+        const {tone,signIndex,kin}=data;
+        const name=`${tone} ${dayNames[signIndex]}`;
+        glyph.innerHTML=sealGlyphSvg(signIndex);
+        tile.className=`calendar-detail-tile ${directionClasses[signIndex%4]}`;
+        tile.innerHTML=`<div><span class="big-name">${name}</span><span class="big-kin">КИН ${kin}</span></div>`;
+        title.textContent=`${name}, КИН ${kin}`;
+      } else {
+        const {monthIndex,day,ordinal}=data;
+        const month=haabMonths[monthIndex];
+        glyph.innerHTML=haabGlyphSvg(monthIndex);
+        tile.className='calendar-detail-tile';
+        tile.innerHTML=`<div><span class="big-name">${day} ${month}</span><span class="big-kin">День ${ordinal} Хааба</span></div>`;
+        title.textContent=`${day} ${month}, день ${ordinal} Хааба`;
+      }
+      modal.hidden=false;
+    }
+
+    function closeCalendarDetail(){ document.getElementById('calendarDetailModal').hidden=true; }
+
+    function initCalendarDetailInteractions(){
+      document.getElementById('tzolkinTable').addEventListener('click',e=>{
+        const cell=e.target.closest('.tz-cell');
+        if(!cell) return;
+        openCalendarDetail('tzolkin',{tone:Number(cell.dataset.tone),signIndex:Number(cell.dataset.signIndex),kin:Number(cell.dataset.kin)});
+      });
+      document.getElementById('haabGrid').addEventListener('click',e=>{
+        const cell=e.target.closest('.haab-day');
+        if(!cell) return;
+        openCalendarDetail('haab',{monthIndex:Number(cell.dataset.monthIndex),day:Number(cell.dataset.haabDay),ordinal:Number(cell.dataset.ordinal)});
+      });
+      document.querySelectorAll('[data-close-calendar-detail]').forEach(el=>el.addEventListener('click',closeCalendarDetail));
+      document.getElementById('tzolkinZoomButton').addEventListener('click',()=>{
+        const wrap=document.getElementById('tzolkinWrap');
+        const zoomed=wrap.classList.toggle('zoomed');
+        document.getElementById('tzolkinZoomButton').textContent=zoomed?'Масштаб ×1':'Масштаб ×2';
+        if(!zoomed) wrap.scrollLeft=0;
+      });
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeCalendarDetail(); });
+    }
+
+    function buildCustomCalendar(){
+      const grid=document.getElementById('customGrid');
+      customMonths.forEach((month,m)=>{
+        const article=document.createElement('article'); article.className='custom-month';
+        const h=document.createElement('h3'); h.textContent=`${m+1}. ${month}`; h.style.background=customPalette[m];
+        const table=document.createElement('table');
+        table.innerHTML=`<thead><tr><th></th>${weekdays.map((wd,i)=>`<th class="${i>=5?'weekend-head':''}">${wd}</th>`).join('')}</tr></thead>`;
+        const tbody=document.createElement('tbody');
+        for(let w=0;w<4;w++){
+          const tr=document.createElement('tr');
+          const label=document.createElement('td'); label.className='week-label'; label.textContent=`Нед. ${w+1}`; tr.appendChild(label);
+          for(let d=0;d<7;d++){
+            const day=m*28+w*7+d+1;
+            const td=document.createElement('td'); td.className='custom-day'+(d>=5?' weekend':''); td.dataset.day=day; td.textContent=day; tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody); article.append(h,table); grid.appendChild(article);
+      });
+      const outside=document.createElement('article'); outside.className='outside-time'; outside.dataset.day='365';
+      outside.innerHTML='<div>День вне времени<span>365</span></div>';
+      grid.appendChild(outside);
+    }
+    function updateCustomCalendar(){
+      document.querySelectorAll('#customGrid [data-day]').forEach(cell=>{
+        const day=Number(cell.dataset.day);
+        const event=events[day] || {name:'',color:''};
+        cell.style.background=event.color || '';
+        cell.classList.toggle('has-event',Boolean(event.name));
+        cell.classList.toggle('current-day',day===current.personalDay);
+        cell.title=event.name ? `День ${day}: ${event.name}` : `День ${day}`;
+      });
+    }
+
+    function openEventModal(day){
+      const data=events[day];
+      if(!data || !data.name) return;
+      document.getElementById('eventModalDay').textContent=`День ${day} календаря 13 лун`;
+      document.getElementById('eventModalTitle').textContent=data.name;
+      document.getElementById('eventModalText').textContent='';
+      document.getElementById('eventModal').hidden=false;
+    }
+    function closeEventModal(){ document.getElementById('eventModal').hidden=true; }
+    function initCustomEventPopups(){
+      document.getElementById('customGrid').addEventListener('click',e=>{
+        const cell=e.target.closest('[data-day]');
+        if(!cell || !document.getElementById('customGrid').contains(cell)) return;
+        const day=Number(cell.dataset.day);
+        if(events[day] && events[day].name) openEventModal(day);
+      });
+      document.querySelectorAll('[data-close-event-modal]').forEach(el=>el.addEventListener('click',closeEventModal));
+    }
+
+    function buildEventsTable(){
+      const tbody=document.querySelector('#eventsTable tbody');
+      const options=eventColors.map(([hex,name])=>`<option value="${hex}">${name}</option>`).join('');
+      const frag=document.createDocumentFragment();
+      for(let day=1;day<=365;day++){
+        const tr=document.createElement('tr'); tr.dataset.day=day;
+        tr.innerHTML=`<td>${day}</td><td><input type="text" maxlength="160" aria-label="Событие дня ${day}"></td><td><select aria-label="Цвет события дня ${day}">${options}</select></td>`;
+        const input=tr.querySelector('input'); const select=tr.querySelector('select');
+        const saved=events[day]||{}; input.value=saved.name||''; select.value=saved.color||'';
+        input.addEventListener('input',()=>saveEventRow(day,input.value,select.value,tr));
+        select.addEventListener('change',()=>saveEventRow(day,input.value,select.value,tr));
+        applyEventRowStyle(tr,select.value);
+        frag.appendChild(tr);
+      }
+      tbody.appendChild(frag);
+    }
+    function saveEventRow(day,name,color,row){
+      const cleanName=name.trim();
+      if(cleanName || color) events[day]={name:cleanName,color}; else delete events[day];
+      persistEvents();
+      applyEventRowStyle(row,color);
+      updateCustomCalendar();
+    }
+    function applyEventRowStyle(row,color){ row.style.background=color||''; }
+    function loadEvents(){
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}') || {}; }
+      catch { return {}; }
+    }
+    function persistEvents(){
+      try { localStorage.setItem(STORAGE_KEY,JSON.stringify(events)); }
+      catch { /* Страница продолжает работать без постоянного хранилища. */ }
+    }
+    function clearStoredEvents(){
+      try { localStorage.removeItem(STORAGE_KEY); }
+      catch { /* Хранилище может быть отключено браузером. */ }
+    }
+    function refreshEventsTable(){
+      document.querySelectorAll('#eventsTable tbody tr').forEach(row=>{
+        const day=Number(row.dataset.day); const data=events[day]||{};
+        row.querySelector('input').value=data.name||'';
+        row.querySelector('select').value=data.color||'';
+        applyEventRowStyle(row,data.color||'');
+      });
+      updateCustomCalendar();
+    }
+
+    function buildReferences(){
+      const signs=document.getElementById('signsTable');
+      signs.innerHTML='<thead><tr><th>№</th><th>Знак</th><th>Направление</th><th>Цвет</th><th>Краткое значение</th></tr></thead>';
+      const sb=document.createElement('tbody');
+      dayNames.forEach((name,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i+1}</td><td><strong>${name}</strong></td><td>${directions[i%4]}</td><td>${directionColorNames[i%4]}</td><td>${dayMeanings[i]}</td>`;
+        sb.appendChild(tr);
+      }); signs.appendChild(sb);
+      const months=document.getElementById('monthsTable');
+      months.innerHTML='<thead><tr><th>№</th><th>Месяц</th><th>Дней</th></tr></thead>';
+      const mb=document.createElement('tbody');
+      haabMonths.forEach((name,i)=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${i+1}</td><td><strong>${name}</strong></td><td>${i===18?5:20}</td>`; mb.appendChild(tr);
+      }); months.appendChild(mb);
+    }
+
+
+    const GEAR_GEOMETRY = {
+      tzolkin:{cx:320,cy:330,pitchRadius:178,rootRadius:169,outerRadius:190,teeth:52,days:260,pointerAngle:0},
+      haab:{cx:748,cy:330,pitchRadius:250,rootRadius:240,outerRadius:263,teeth:73,days:365,pointerAngle:180}
+    };
+    let gearDrag = null;
+    let gearTimer = null;
+
+    function svgElement(name,attrs={}){
+      const el=document.createElementNS('http://www.w3.org/2000/svg',name);
+      Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));
+      return el;
+    }
+    function polarPoint(cx,cy,r,deg){
+      const rad=deg*Math.PI/180;
+      return {x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
+    }
+    function gearPath(cx,cy,rootRadius,outerRadius,teeth,startDeg=0){
+      const points=[];
+      const tooth=360/teeth;
+      for(let i=0;i<teeth;i++){
+        const base=startDeg+i*tooth;
+        [[0,rootRadius],[.12,rootRadius],[.22,outerRadius],[.62,outerRadius],[.76,rootRadius],[1,rootRadius]].forEach(([fraction,r])=>{
+          points.push(polarPoint(cx,cy,r,base+tooth*fraction));
+        });
+      }
+      return points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')+' Z';
+    }
+    function addRadialLine(parent,cx,cy,r1,r2,angle,className){
+      const a=polarPoint(cx,cy,r1,angle);
+      const b=polarPoint(cx,cy,r2,angle);
+      parent.appendChild(svgElement('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:className}));
+    }
+    function addRingLabel(parent,cx,cy,r,angle,text,className='gear-ring-label'){
+      const p=polarPoint(cx,cy,r,angle);
+      const label=svgElement('text',{x:p.x,y:p.y,class:className});
+      label.textContent=text;
+      parent.appendChild(label);
+    }
+    function buildGearCalendar(){
+      const tz=document.getElementById('tzGearRotor');
+      const hb=document.getElementById('haabGearRotor');
+      if(!tz || !hb || tz.childNodes.length) return;
+
+      const tg=GEAR_GEOMETRY.tzolkin;
+      tz.appendChild(svgElement('path',{d:gearPath(tg.cx,tg.cy,tg.rootRadius,tg.outerRadius,tg.teeth,-360/(tg.teeth*2)),class:'gear-body tzolkin-body'}));
+      tz.appendChild(svgElement('circle',{cx:tg.cx,cy:tg.cy,r:155,class:'gear-inner-ring'}));
+      tz.appendChild(svgElement('circle',{cx:tg.cx,cy:tg.cy,r:132,class:'gear-middle-ring'}));
+      for(let i=0;i<260;i++){
+        const angle=i*360/260;
+        addRadialLine(tz,tg.cx,tg.cy,i%13===0?147:153,163,angle,`gear-tick${i%13===0?' major':''}`);
+      }
+      dayNames.forEach((name,i)=>{
+        const angle=i*360/20;
+        addRingLabel(tz,tg.cx,tg.cy,143,angle,name);
+      });
+      for(let tone=1;tone<=13;tone++){
+        const angle=(tone-1)*360/13;
+        addRingLabel(tz,tg.cx,tg.cy,119,angle,String(tone),'gear-ring-label');
+      }
+
+      const hg=GEAR_GEOMETRY.haab;
+      tz.setAttribute('aria-label','Колесо Цолькина');
+      hb.appendChild(svgElement('path',{d:gearPath(hg.cx,hg.cy,hg.rootRadius,hg.outerRadius,hg.teeth,180-360/(hg.teeth*2)),class:'gear-body haab-body'}));
+      hb.appendChild(svgElement('circle',{cx:hg.cx,cy:hg.cy,r:219,class:'gear-inner-ring'}));
+      hb.appendChild(svgElement('circle',{cx:hg.cx,cy:hg.cy,r:183,class:'gear-middle-ring'}));
+      for(let i=0;i<365;i++){
+        const angle=180-i*360/365;
+        addRadialLine(hb,hg.cx,hg.cy,i%20===0?205:214,230,angle,`gear-tick${i%20===0?' major':''}`);
+      }
+      let startDay=0;
+      haabMonths.forEach((month,index)=>{
+        const length=index===18?5:20;
+        const boundaryAngle=180-startDay*360/365;
+        addRadialLine(hb,hg.cx,hg.cy,178,230,boundaryAngle,'gear-month-boundary');
+        const centerDay=startDay+(length-1)/2;
+        const labelAngle=180-centerDay*360/365;
+        addRingLabel(hb,hg.cx,hg.cy,198,labelAngle,month,'gear-ring-label haab-label');
+        startDay+=length;
+      });
+      hb.setAttribute('aria-label','Колесо Хааба');
+
+      document.querySelectorAll('.gear-hit').forEach(hit=>{
+        hit.addEventListener('pointerdown',startGearDrag);
+      });
+      window.addEventListener('pointermove',moveGearDrag,{passive:false});
+      window.addEventListener('pointerup',endGearDrag);
+      window.addEventListener('pointercancel',endGearDrag);
+    }
+    function updateGearCalendar(){
+      if(!current || !document.getElementById('tzGearRotor')) return;
+      const tzAngle=-(current.kin-1)*360/260;
+      const haabAngle=(current.personalDay-1)*360/365;
+      document.getElementById('tzGearRotor').setAttribute('transform',`rotate(${tzAngle} 320 330)`);
+      document.getElementById('haabGearRotor').setAttribute('transform',`rotate(${haabAngle} 748 330)`);
+      document.getElementById('gearTzolkinValue').textContent=current.tzolkin;
+      document.getElementById('gearKinValue').textContent=`КИН ${current.kin} · ${toneSymbol(current.tone)}`;
+      document.getElementById('gearHaabValue').textContent=current.haab;
+      document.getElementById('gearHaabOrdinal').textContent=`день ${current.personalDay} из 365`;
+      document.getElementById('gearJunctionValue').textContent=`${current.tzolkin} + ${current.haab}`;
+      document.getElementById('gearJunctionDate').textContent=`${formatDate(current.y,current.m,current.d)} · ${current.longCount}`;
+      const roundPosition=mod(current.days,18980);
+      const slider=document.getElementById('calendarRoundSlider');
+      if(slider && document.activeElement!==slider) slider.value=roundPosition;
+      document.getElementById('calendarRoundPosition').textContent=`День ${roundPosition+1} / 18 980`;
+    }
+    function currentInputYmd(){
+      return parseInputDate(document.getElementById('gregorianDate').value);
+    }
+    function setInputDateShift(base,delta){
+      const utc=new Date(Date.UTC(base.y,base.m-1,base.d+delta));
+      document.getElementById('gregorianDate').value=`${utc.getUTCFullYear()}-${pad(utc.getUTCMonth()+1)}-${pad(utc.getUTCDate())}`;
+      updateAll();
+    }
+    function shiftGregorianDate(delta){
+      setInputDateShift(currentInputYmd(),delta);
+    }
+    function clientToSvg(event){
+      const svg=document.getElementById('gearSvg');
+      const point=svg.createSVGPoint();
+      point.x=event.clientX; point.y=event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    }
+    function pointerAngle(event,wheel){
+      const p=clientToSvg(event);
+      const g=GEAR_GEOMETRY[wheel];
+      return Math.atan2(p.y-g.cy,p.x-g.cx)*180/Math.PI;
+    }
+    function normalizedAngleDelta(delta){
+      while(delta>180) delta-=360;
+      while(delta<-180) delta+=360;
+      return delta;
+    }
+    function startGearDrag(event){
+      stopGearPlay();
+      const wheel=event.currentTarget.dataset.wheel;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      gearDrag={
+        pointerId:event.pointerId,
+        wheel,
+        lastAngle:pointerAngle(event,wheel),
+        accumulated:0,
+        base:currentInputYmd(),
+        lastDays:0
+      };
+      event.preventDefault();
+    }
+    function moveGearDrag(event){
+      if(!gearDrag || event.pointerId!==gearDrag.pointerId) return;
+      const next=pointerAngle(event,gearDrag.wheel);
+      gearDrag.accumulated+=normalizedAngleDelta(next-gearDrag.lastAngle);
+      gearDrag.lastAngle=next;
+      const daysPerTurn=GEAR_GEOMETRY[gearDrag.wheel].days;
+      const direction=gearDrag.wheel==='tzolkin'?-1:1;
+      const days=Math.round(direction*gearDrag.accumulated/(360/daysPerTurn));
+      if(days!==gearDrag.lastDays){
+        gearDrag.lastDays=days;
+        setInputDateShift(gearDrag.base,days);
+      }
+      event.preventDefault();
+    }
+    function endGearDrag(event){
+      if(!gearDrag || (event.pointerId!==undefined && event.pointerId!==gearDrag.pointerId)) return;
+      gearDrag=null;
+    }
+    function startGearPlay(){
+      if(gearTimer){ stopGearPlay(); return; }
+      document.getElementById('gearPlay').textContent='■ Остановить';
+      gearTimer=setInterval(()=>{
+        const step=Number(document.getElementById('gearSpeed').value)||1;
+        shiftGregorianDate(step);
+      },220);
+    }
+    function stopGearPlay(){
+      if(gearTimer){ clearInterval(gearTimer); gearTimer=null; }
+      const button=document.getElementById('gearPlay');
+      if(button) button.textContent='▶ Крутить';
+    }
+    function initGearControls(){
+      buildGearCalendar();
+      document.getElementById('gearMinus20').addEventListener('click',()=>shiftGregorianDate(-20));
+      document.getElementById('gearMinus1').addEventListener('click',()=>shiftGregorianDate(-1));
+      document.getElementById('gearPlus1').addEventListener('click',()=>shiftGregorianDate(1));
+      document.getElementById('gearPlus20').addEventListener('click',()=>shiftGregorianDate(20));
+      document.getElementById('gearPlay').addEventListener('click',startGearPlay);
+      document.getElementById('calendarRoundSlider').addEventListener('input',event=>{
+        stopGearPlay();
+        const target=Number(event.target.value);
+        const here=mod(current.days,18980);
+        shiftGregorianDate(target-here);
+      });
+      document.getElementById('gearStage').addEventListener('keydown',event=>{
+        if(event.key==='ArrowLeft'){ event.preventDefault(); shiftGregorianDate(-1); }
+        if(event.key==='ArrowRight'){ event.preventDefault(); shiftGregorianDate(1); }
+        if(event.key==='PageUp'){ event.preventDefault(); shiftGregorianDate(-20); }
+        if(event.key==='PageDown'){ event.preventDefault(); shiftGregorianDate(20); }
+        if(event.key===' '){ event.preventDefault(); startGearPlay(); }
+      });
+      updateGearCalendar();
+    }
+
+    function setEventsFileStatus(text,isError=false){
+      const el=document.getElementById('eventsFileStatus');
+      if(!el) return;
+      el.textContent=text||'';
+      el.style.color=isError?'#9c0006':'#375623';
+    }
+    function exportEvents(){
+      const payload={version:1,exportedAt:new Date().toISOString(),events};
+      const json=JSON.stringify(payload,null,2);
+      if(window.AndroidBridge){
+        try {
+          if(typeof window.AndroidBridge.exportJson==='function'){
+            window.AndroidBridge.exportJson(json,'maya_calendar_events.json');
+            setEventsFileStatus('События сохраняются в JSON. На Android 10+ файл появится в Загрузки/MayaCalendar.');
+            return;
+          }
+          if(typeof window.AndroidBridge.saveEventsJson==='function'){
+            window.AndroidBridge.saveEventsJson(json,'maya_calendar_events.json');
+            setEventsFileStatus('Открыто системное сохранение файла JSON.');
+            return;
+          }
+        } catch(err){
+          console.error('Android export failed',err);
+          setEventsFileStatus('Не удалось запустить Android-сохранение. Используется резервный способ.',true);
+        }
+      }
+      const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='maya_calendar_events.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    function printCalendar(){
+      if(window.AndroidBridge && typeof window.AndroidBridge.printPage==='function') window.AndroidBridge.printPage();
+      else window.print();
+    }
+
+    const APP_PAGES={summary:'Главная',tzolkin:'Цолькин',haab:'Хааб',custom:'Календарь 13 лун',events:'События',gears:'Календарный круг',references:'Справочники',about:'О приложении'};
+    function closePopupMenu(){
+      const menu=document.getElementById('popupMenu');
+      menu.classList.remove('open'); menu.setAttribute('aria-hidden','true');
+      document.getElementById('menuButton').setAttribute('aria-expanded','false');
+      document.getElementById('menuBackdrop').hidden=true;
+    }
+    function openPopupMenu(){
+      const menu=document.getElementById('popupMenu');
+      menu.classList.add('open'); menu.setAttribute('aria-hidden','false');
+      document.getElementById('menuButton').setAttribute('aria-expanded','true');
+      document.getElementById('menuBackdrop').hidden=false;
+    }
+    function showAppPage(page,push=true){
+      if(!APP_PAGES[page]) page='summary';
+      document.querySelectorAll('.app-page').forEach(el=>el.classList.toggle('active',el.id===page));
+      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.classList.toggle('active',btn.dataset.page===page));
+      document.getElementById('appPageTitle').textContent=APP_PAGES[page];
+      closePopupMenu();
+      window.scrollTo(0,0);
+      const target='#'+page;
+      if(push && location.hash!==target) history.pushState({page},'',target);
+      else if(!push) history.replaceState({page},'',target);
+    }
+    function initAppNavigation(){
+      const menuButton=document.getElementById('menuButton');
+      menuButton.addEventListener('click',()=>document.getElementById('popupMenu').classList.contains('open')?closePopupMenu():openPopupMenu());
+      document.getElementById('menuBackdrop').addEventListener('click',closePopupMenu);
+      document.querySelectorAll('#popupMenu [data-page]').forEach(btn=>btn.addEventListener('click',()=>showAppPage(btn.dataset.page,true)));
+      window.addEventListener('popstate',()=>showAppPage(location.hash.slice(1)||'summary',false));
+      document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePopupMenu(); closeEventModal(); } });
+      showAppPage(location.hash.slice(1)||'summary',false);
+    }
+    function normalizeImportedEvents(incoming){
+      if(!incoming || typeof incoming!=='object' || Array.isArray(incoming)) throw new Error('Файл не содержит события');
+      const normalized={};
+      Object.entries(incoming).forEach(([key,value])=>{
+        const day=Number(key);
+        if(!Number.isInteger(day) || day<1 || day>365) return;
+        if(typeof value==='string'){
+          if(value.trim()) normalized[day]={name:value.trim(),color:''};
+        } else if(value && typeof value==='object'){
+          const name=String(value.name ?? value.title ?? '').trim();
+          const color=String(value.color ?? '').trim();
+          if(name || color) normalized[day]={name,color};
+        }
+      });
+      return normalized;
+    }
+    function importEventsJsonText(text){
+      const cleanText=String(text ?? '').replace(/^\uFEFF/, '').trim();
+      if(!cleanText) throw new Error('Файл пуст');
+      const parsed=JSON.parse(cleanText);
+      const incoming=parsed && parsed.events ? parsed.events : parsed;
+      const normalized=normalizeImportedEvents(incoming);
+      events=normalized;
+      persistEvents();
+      refreshEventsTable();
+      updateCustomCalendar();
+      setEventsFileStatus(`События успешно загружены: ${Object.keys(events).length}.`);
+      return Object.keys(events).length;
+    }
+    window.receiveImportedEventsJson=function(text){
+      try {
+        const count=importEventsJsonText(text);
+        alert(`События загружены: ${count}.`);
+        return;
+      } catch(err){
+        setEventsFileStatus(`Ошибка загрузки: ${err.message}`,true);
+        alert(`Не удалось загрузить файл: ${err.message}`);
+        return;
+      }
+    };
+    window.applyImportedEventsJson=window.receiveImportedEventsJson;
+
+    function initStartupSplash(){
+      const splash=document.getElementById('startupSplash');
+      if(!splash)return;
+      const start=Date.now(), duration=4000;
+      let once=false;
+      function hide(){
+        if(once)return; once=true;
+        const wait=Math.max(0,duration-(Date.now()-start));
+        setTimeout(()=>{splash.classList.add('hidden');setTimeout(()=>{if(splash.remove)splash.remove()},500)},wait);
+      }
+      window.addEventListener('load',hide,{once:true});
+      setTimeout(hide,duration+100);
+    }
+
+    async function importEvents(file){
+      const text=await file.text();
+      importEventsJsonText(text);
+    }
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      initStartupSplash();
+      document.getElementById('gregorianDate').value=inputDateString(new Date());
+      buildTzolkin(); buildHaab(); buildCustomCalendar(); buildEventsTable(); buildReferences(); initGearControls(); initCustomEventPopups(); initCalendarDetailInteractions(); initAppNavigation(); updateAll();
+
+      document.getElementById('correlation').addEventListener('input',updateAll);
+      document.getElementById('gregorianDate').addEventListener('change',updateAll);
+      document.getElementById('todayButton').addEventListener('click',()=>{
+        document.getElementById('gregorianDate').value=inputDateString(new Date()); updateAll();
+      });
+      document.getElementById('exportEvents').addEventListener('click',exportEvents);
+      document.getElementById('importEventsButton').addEventListener('click',()=>{
+        if(window.AndroidBridge && typeof window.AndroidBridge.importJson==='function'){
+          window.AndroidBridge.importJson();
+        } else {
+          document.getElementById('importEvents').click();
+        }
+      });
+      document.getElementById('importEvents').addEventListener('change',async e=>{
+        if(!e.target.files[0]) return;
+        try { await importEvents(e.target.files[0]); setEventsFileStatus('События успешно загружены из JSON.'); alert('События загружены.'); }
+        catch(err){ alert(`Не удалось загрузить файл: ${err.message}`); }
+        e.target.value='';
+      });
+      document.getElementById('clearEvents').addEventListener('click',()=>{
+        if(!confirm('Удалить все введённые праздники и события?')) return;
+        events={}; clearStoredEvents(); refreshEventsTable(); setEventsFileStatus('События очищены.');
+      });
+    });
+  </script>
+</body>
+</html>
