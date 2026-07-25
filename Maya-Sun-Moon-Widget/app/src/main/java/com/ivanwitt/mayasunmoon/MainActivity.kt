@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -15,6 +16,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -29,11 +31,13 @@ class MainActivity : Activity() {
     private lateinit var modeSpinner: Spinner
     private lateinit var correlationInput: EditText
     private lateinit var colorSpinner: Spinner
+    private lateinit var showLocationCheck: CheckBox
     private lateinit var locationText: TextView
+    private lateinit var dataText: TextView
 
     private val modes = listOf(
         "Градус положения на дуге (0–180°)" to CenterMode.ARC_DEGREES,
-        "Целые часы видимости, 15-е число месяца" to CenterMode.MONTH_VISIBLE_HOURS,
+        "Часов нахождения в видимости" to CenterMode.VISIBLE_HOURS,
         "Современный час 1–12" to CenterMode.CLOCK_12H
     )
 
@@ -53,6 +57,16 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(buildUi())
         loadIntoUi()
+        AstroSyncJobService.scheduleIfNeeded(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::locationText.isInitialized) {
+            val settings = WidgetPrefs.load(this)
+            renderLocation(settings)
+            renderDataStatus(settings)
+        }
     }
 
     private fun buildUi(): ScrollView {
@@ -72,8 +86,9 @@ class MainActivity : Activity() {
 
         root.addView(title("Maya Sun/Moon Widget", 26f))
         root.addView(paragraph(
-            "Виджет работает автономно: координаты сохраняются на устройстве, " +
-                "а положение Солнца и Луны, восходы и заходы вычисляются локально."
+            "Восходы и заходы Солнца и Луны загружаются из официального сервиса " +
+                "U.S. Naval Observatory (USNO), сохраняются на телефоне и используются автономно до 72 часов. " +
+                "Между восходом и заходом положение на дуге рассчитывается по часам телефона."
         ))
 
         root.addView(section("Что показывает число в полукруге"))
@@ -84,6 +99,10 @@ class MainActivity : Activity() {
             modes.map { it.first }
         )
         root.addView(modeSpinner, fullWidth())
+        root.addView(paragraph(
+            "В режиме «Часов нахождения в видимости» выводится округлённая продолжительность " +
+                "интервала восход → заход текущего Солнца или Луны."
+        ))
 
         root.addView(section("Корреляция Длинного счёта"))
         correlationInput = EditText(this).apply {
@@ -92,7 +111,6 @@ class MainActivity : Activity() {
             setSingleLine(true)
         }
         root.addView(correlationInput, fullWidth())
-
         root.addView(paragraph(
             "По умолчанию: GMT 584283. Можно ввести любое целое значение корреляции."
         ))
@@ -106,15 +124,47 @@ class MainActivity : Activity() {
         )
         root.addView(colorSpinner, fullWidth())
 
+        root.addView(section("Подпись местоположения"))
+        showLocationCheck = CheckBox(this).apply {
+            text = "Отображать текущий город и страну (English)"
+        }
+        root.addView(showLocationCheck, fullWidth())
+
         root.addView(section("Местоположение"))
         locationText = paragraph("")
         root.addView(locationText)
 
         val updateLocation = Button(this).apply {
-            text = "Обновить местоположение"
+            text = "Обновить местоположение и данные"
             setOnClickListener { ensureLocationPermissionAndRefresh() }
         }
         root.addView(updateLocation, fullWidth())
+
+        root.addView(section("Астрономические данные"))
+        dataText = paragraph("")
+        root.addView(dataText)
+
+        val updateData = Button(this).apply {
+            text = "Обновить данные сейчас"
+            setOnClickListener {
+                val settings = WidgetPrefs.load(this@MainActivity)
+                if (!settings.hasLocationFix) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Сначала обновите местоположение.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    AstroSyncJobService.schedule(this@MainActivity)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Обновление USNO запрошено. При наличии интернета данные загрузятся автоматически.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+        root.addView(updateData, fullWidth())
 
         val save = Button(this).apply {
             text = "Сохранить и обновить виджет"
@@ -124,13 +174,13 @@ class MainActivity : Activity() {
 
         root.addView(paragraph(
             "Солнце имеет приоритет: с восхода до захода показывается солнечная дуга. " +
-                "После захода Солнца виджет переключается на лунную. " +
-                "Если Луна ниже горизонта, её активный жирный луч не рисуется."
+                "После захода Солнца виджет переключается на лунную, даже если Луна ещё не взошла. " +
+                "Точка на дуге остаётся видимой при наличии данных восхода/захода, а жирный луч показывает движение тела, пока оно над горизонтом."
         ))
 
         root.addView(paragraph(
-            "Интернет-разрешение приложению не требуется. Астрономические расчёты выполняются " +
-                "библиотекой Astronomy Engine непосредственно на телефоне."
+            "После успешного обновления интернет для работы виджета не нужен. Через 72 часа система " +
+                "ставит обновление в очередь и выполнит его при первом доступном сетевом подключении."
         ))
 
         return scroll
@@ -141,7 +191,9 @@ class MainActivity : Activity() {
         modeSpinner.setSelection(modes.indexOfFirst { it.second == s.centerMode }.coerceAtLeast(0))
         correlationInput.setText(s.correlation.toString())
         colorSpinner.setSelection(colors.indexOfFirst { it.value == s.color }.coerceAtLeast(0))
+        showLocationCheck.isChecked = s.showLocationName
         renderLocation(s)
+        renderDataStatus(s)
     }
 
     private fun saveDisplaySettings() {
@@ -152,7 +204,13 @@ class MainActivity : Activity() {
             return
         }
         val color = colors[colorSpinner.selectedItemPosition].value
-        WidgetPrefs.saveDisplay(this, mode, correlation, color)
+        WidgetPrefs.saveDisplay(
+            this,
+            mode,
+            correlation,
+            color,
+            showLocationCheck.isChecked
+        )
         MayaWidgetProvider.updateAll(this)
         Toast.makeText(this, "Настройки сохранены.", Toast.LENGTH_SHORT).show()
     }
@@ -229,7 +287,11 @@ class MainActivity : Activity() {
             if (last != null) saveLocation(last)
             else {
                 locationText.text = "Координаты пока не получены."
-                Toast.makeText(this, "Не удалось получить координаты. Попробуйте ещё раз на открытом месте.", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    "Не удалось получить координаты. Попробуйте ещё раз на открытом месте.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         } catch (_: SecurityException) {
             locationText.text = "Нет доступа к местоположению."
@@ -243,10 +305,46 @@ class MainActivity : Activity() {
             location.longitude,
             if (location.hasAltitude()) location.altitude else 0.0
         )
+        SkyScheduleStore.clear(this)
+        resolveEnglishPlaceName(location)
+        AstroSyncJobService.schedule(this)
+
         val s = WidgetPrefs.load(this)
         renderLocation(s)
+        renderDataStatus(s)
         MayaWidgetProvider.updateAll(this)
-        Toast.makeText(this, "Местоположение обновлено.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            this,
+            "Местоположение сохранено. Данные USNO обновятся при доступном интернете.",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun resolveEnglishPlaceName(location: Location) {
+        Thread {
+            val address = runCatching {
+                if (!Geocoder.isPresent()) return@runCatching null
+                Geocoder(this, Locale.ENGLISH)
+                    .getFromLocation(location.latitude, location.longitude, 1)
+                    ?.firstOrNull()
+            }.getOrNull()
+
+            val city = address?.locality
+                ?: address?.subAdminArea
+                ?: address?.adminArea
+                ?: ""
+            val country = address?.countryName ?: ""
+
+            if (city.isNotBlank() || country.isNotBlank()) {
+                WidgetPrefs.saveLocationNames(this, city, country)
+                runOnUiThread {
+                    val s = WidgetPrefs.load(this)
+                    renderLocation(s)
+                    MayaWidgetProvider.updateAll(this)
+                }
+            }
+        }.start()
     }
 
     private fun renderLocation(s: WidgetSettings) {
@@ -256,14 +354,33 @@ class MainActivity : Activity() {
             s.latitude,
             s.longitude
         )
-        locationText.text =
-            if (s.hasLocationFix) {
-                val stamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                    .format(Date(s.locationUpdatedAt))
-                "Сохранённые координаты: $base\nОбновлено: $stamp"
-            } else {
-                "Координаты ещё не обновлялись. Временный стартовый ориентир: Москва ($base)."
+        locationText.text = if (s.hasLocationFix) {
+            val stamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                .format(Date(s.locationUpdatedAt))
+            val place = listOf(s.cityName, s.countryName)
+                .filter { it.isNotBlank() }
+                .joinToString(", ")
+            buildString {
+                if (place.isNotBlank()) append("$place\n")
+                append("Сохранённые координаты: $base\nОбновлено: $stamp")
             }
+        } else {
+            "Координаты ещё не обновлялись. Временный стартовый ориентир: Москва ($base)."
+        }
+    }
+
+    private fun renderDataStatus(s: WidgetSettings) {
+        val cache = SkyScheduleStore.load(this)
+        val zone = java.time.ZoneId.systemDefault()
+        dataText.text = if (cache != null && cache.matches(s, zone)) {
+            val fetched = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                .format(Date(cache.fetchedAtMillis))
+            val valid = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                .format(Date(cache.validUntilMillis))
+            "Источник: U.S. Naval Observatory (USNO)\nПолучено: $fetched\nАвтономно действительно до: $valid"
+        } else {
+            "Источник: U.S. Naval Observatory (USNO)\nДанные для текущих координат ещё не загружены."
+        }
     }
 
     private fun title(text: String, sp: Float): TextView = TextView(this).apply {
