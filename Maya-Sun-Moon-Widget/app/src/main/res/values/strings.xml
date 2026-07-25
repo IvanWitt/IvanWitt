@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Maya Sun/Moon</string>
+    <string name="widget_name">Maya Sun/Moon Widget</string>
+    <string name="widget_description">Солнце и Луна, майянские числа и календарные даты.</string>
+</resources>
