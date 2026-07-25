@@ -38,8 +38,6 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        drawLocationText(canvas, paint, w, h, settings)
-
         val sidePad = w * 0.10f
         val radius = min(w * 0.39f, h * 0.43f)
         val cx = w / 2f
@@ -53,14 +51,12 @@ object WidgetRenderer {
 
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // Preserve the original requirement: while the body is actually above the horizon,
-        // a thick ray marks the current position on the rise-to-set arc.
+        // While the body is actually above the horizon, a thick ray marks its current position.
         state.arcDegrees?.let {
             drawActiveRay(canvas, paint, cx, baselineY, radius, it, isSun)
         }
 
-        // New v0.2 marker: a clearly visible point sits on the arc continuously while rise/set
-        // data exist. It starts at the left horizon at rise and reaches the right horizon at set.
+        // A filled point remains on the arc whenever a rise-to-set interval is known.
         state.markerDegrees?.let {
             drawPositionDot(canvas, paint, cx, baselineY, radius, it)
         }
@@ -89,31 +85,17 @@ object WidgetRenderer {
             maxHeight = numeralHeight
         )
 
-        // The old small open circle used as a "Moon below horizon" indicator was removed because
-        // it visually merged with the Mayan numeral and could be mistaken for an extra digit.
-
-        drawCalendarText(canvas, paint, w, h, mayaDate)
+        drawCalendarText(
+            canvas = canvas,
+            paint = paint,
+            width = w,
+            height = h,
+            baselineY = baselineY,
+            radius = radius,
+            mayaDate = mayaDate,
+            settings = settings
+        )
         return bitmap
-    }
-
-    private fun drawLocationText(
-        canvas: Canvas,
-        paint: Paint,
-        width: Int,
-        height: Int,
-        settings: WidgetSettings
-    ) {
-        if (!settings.showLocationName) return
-        val label = listOf(settings.cityName.trim(), settings.countryName.trim())
-            .filter { it.isNotBlank() }
-            .joinToString(", ")
-        if (label.isBlank()) return
-
-        paint.style = Paint.Style.FILL
-        paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-        paint.textAlign = Paint.Align.CENTER
-        paint.textSize = max(14f, width * 0.027f)
-        canvas.drawText(label, width / 2f, height * 0.075f, paint)
     }
 
     private fun drawTicks(
@@ -271,18 +253,88 @@ object WidgetRenderer {
         paint: Paint,
         width: Int,
         height: Int,
-        mayaDate: MayaDate
+        baselineY: Float,
+        radius: Float,
+        mayaDate: MayaDate,
+        settings: WidgetSettings
     ) {
         paint.style = Paint.Style.FILL
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
 
-        paint.textSize = max(20f, width * 0.050f)
-        val y1 = height * 0.79f
-        canvas.drawText(mayaDate.longCount, width / 2f, y1, paint)
+        // The whole lower block is intentionally moved closer to the horizon line.
+        val longCountY = baselineY + height * 0.105f
+        val calendarRoundY = baselineY + height * 0.235f
+        val locationY = baselineY + height * 0.355f
 
-        paint.textSize = max(17f, width * 0.039f)
-        val y2 = height * 0.92f
-        canvas.drawText("${mayaDate.tzolkin}  /  ${mayaDate.haab}", width / 2f, y2, paint)
+        // Long Count should visually span almost the same width as the semicircle diameter.
+        val longTargetWidth = radius * 1.94f
+        drawTextAtTargetWidth(
+            canvas = canvas,
+            paint = paint,
+            text = mayaDate.longCount,
+            centerX = width / 2f,
+            baselineY = longCountY,
+            targetWidth = longTargetWidth,
+            preferredTextSize = max(30f, width * 0.095f),
+            minScaleX = 0.78f,
+            maxScaleX = 1.22f
+        )
+
+        // Tzolkin + Haab are taller and denser, while remaining narrower than Long Count.
+        val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
+        val roundTargetWidth = radius * 1.62f
+        drawTextAtTargetWidth(
+            canvas = canvas,
+            paint = paint,
+            text = roundText,
+            centerX = width / 2f,
+            baselineY = calendarRoundY,
+            targetWidth = roundTargetWidth,
+            preferredTextSize = max(27f, width * 0.067f),
+            minScaleX = 0.64f,
+            maxScaleX = 0.92f
+        )
+
+        if (settings.showLocationName) {
+            val label = listOf(settings.cityName.trim(), settings.countryName.trim())
+                .filter { it.isNotBlank() }
+                .joinToString(", ")
+            if (label.isNotBlank()) {
+                val locationTargetWidth = radius * 1.62f
+                drawTextAtTargetWidth(
+                    canvas = canvas,
+                    paint = paint,
+                    text = label,
+                    centerX = width / 2f,
+                    baselineY = locationY,
+                    targetWidth = locationTargetWidth,
+                    preferredTextSize = max(22f, width * 0.043f),
+                    minScaleX = 0.72f,
+                    maxScaleX = 1.0f
+                )
+            }
+        }
+
+        paint.textScaleX = 1f
+    }
+
+    private fun drawTextAtTargetWidth(
+        canvas: Canvas,
+        paint: Paint,
+        text: String,
+        centerX: Float,
+        baselineY: Float,
+        targetWidth: Float,
+        preferredTextSize: Float,
+        minScaleX: Float,
+        maxScaleX: Float
+    ) {
+        paint.textSize = preferredTextSize
+        paint.textScaleX = 1f
+        val measured = paint.measureText(text).coerceAtLeast(1f)
+        paint.textScaleX = (targetWidth / measured).coerceIn(minScaleX, maxScaleX)
+        canvas.drawText(text, centerX, baselineY, paint)
+        paint.textScaleX = 1f
     }
 }
