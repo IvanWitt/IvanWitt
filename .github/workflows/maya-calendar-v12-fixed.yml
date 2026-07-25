@@ -1,0 +1,103 @@
+name: Build Maya Calendar v1.2 Fixed
+
+on:
+  pull_request:
+    branches:
+      - build-base-v12
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore verified v1.2 sources
+        run: |
+          mkdir -p maya-calendar-android/project/app/src/main/assets
+          cat maya-calendar-android/v12final/html/00.b64 maya-calendar-android/v12final/html/01.b64 maya-calendar-android/v12final/html/02.b64 maya-calendar-android/v12final/html/03.b64 maya-calendar-android/v12final/html/04.b64 maya-calendar-android/v12final/html/05.b64 maya-calendar-android/v12final/html/06a.b64 maya-calendar-android/v12final/html/06b.b64 maya-calendar-android/v12final/html/06c.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
+          echo "953262d456a6c31f426db4c1384056c62f3c93245044de207b95eeaf18a9ad24  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+          mkdir -p maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar
+          cat maya-calendar-android/v12final/java/00a.b64 maya-calendar-android/v12final/java/00b.b64 maya-calendar-android/v12final/java/00c.b64 maya-calendar-android/v12final/java/00d.b64 maya-calendar-android/v12final/java/01.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          echo "45f707fa94468d34d1ab53e29e744a690d13161bd9ed37c3068128f40eeee5f0  maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java" | sha256sum -c -
+
+      - name: Apply and verify requested fixes
+        run: |
+          python3 maya-calendar-android/v12fix/apply_fixes.py
+          echo "afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+          echo "90ca2a8458f2ef3bab4ab9bde6e2a6b1b8fad9d20464a91a5b45551acd1c7adb  maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java" | sha256sum -c -
+          ! grep -q 'iwitt.ru' maya-calendar-android/project/app/src/main/assets/index.html
+          ! grep -q 'Автономный HTML' maya-calendar-android/project/app/src/main/assets/index.html
+          grep -q 'receiveImportedEventsJson' maya-calendar-android/project/app/src/main/assets/index.html
+          grep -q 'Календарь Майя v1.2' maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+
+      - name: Set Android version
+        run: |
+          cat > maya-calendar-android/project/app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'ru.ivwitt.mayacalendar'
+              compileSdk 35
+              defaultConfig {
+                  applicationId 'ru.ivwitt.mayacalendar'
+                  minSdk 23
+                  targetSdk 34
+                  versionCode 4
+                  versionName '1.2'
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
+          EOF
+
+      - name: Restore full-resolution splash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p maya-calendar-android/project/app/src/main/res/drawable-nodpi
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          url='https://api.github.com/repos/IvanWitt/IvanWitt/git/blobs/c708ab27e0731d47ab0ceb3b900404fc541f61e4'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req) as r: data=json.load(r)
+          open('maya-calendar-android/project/app/src/main/res/drawable-nodpi/splash_maya.webp','wb').write(base64.b64decode(data['content']))
+          PY
+          rm -f maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg maya-calendar-android/project/app/src/main/res/drawable/splash_maya.webp maya-calendar-android/project/app/src/main/res/drawable/splash_maya.png
+          echo "c40b642d0e4514a8a441515b2d7d8e45c6d708b8494c9806fecd8d1270d3126e  maya-calendar-android/project/app/src/main/res/drawable-nodpi/splash_maya.webp" | sha256sum -c -
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build APK
+        working-directory: maya-calendar-android/project
+        run: gradle --no-daemon assembleDebug
+
+      - name: Verify and prepare APK
+        run: |
+          unzip -p maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk assets/index.html | sha256sum | grep '^afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c'
+          unzip -l maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk | grep 'splash_maya'
+          mkdir -p /tmp/apk
+          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar-v1.2-fixed.apk
+          sha256sum /tmp/apk/MayaCalendar-v1.2-fixed.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2-fixed-APK
+          path: /tmp/apk/MayaCalendar-v1.2-fixed.apk
+          if-no-files-found: error
+          retention-days: 30
