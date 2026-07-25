@@ -23,24 +23,36 @@ jobs:
         with:
           ref: feature/maya-calendar-main-tzolkin-haab
 
-      - name: Restore exact UI source
+      - name: Restore exact UI source and Android import fix
         run: |
           cat ui-v123/00.b64 ui-v123/01.b64 ui-v123/02.b64 ui-v123/03.b64 ui-v123/04.b64 ui-v123/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('app/src/main/assets/index.html')
-          s=p.read_text('utf-8')
+          import re
+
+          html=Path('app/src/main/assets/index.html')
+          s=html.read_text('utf-8')
           old='return `${dayInMoon}/${customMonths[monthIndex]}/${state.y}`;'
           new='return `${dayInMoon}/${monthIndex+1}/${state.y}`;'
           if old not in s:
               raise SystemExit('13-moon numeric date patch target not found')
-          p.write_text(s.replace(old,new,1),'utf-8')
+          html.write_text(s.replace(old,new,1),'utf-8')
+
+          java=Path('app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java')
+          j=java.read_text('utf-8')
+          pattern=r'    private void deliverImportedJsonToWebView\(String json\) \{.*?\n    \}\n\n    private void exportJson'
+          replacement='''    private void deliverImportedJsonToWebView(String json) {\n        if (webView == null) return;\n        String quoted = org.json.JSONObject.quote(json);\n        webView.post(() -> webView.evaluateJavascript(\n                "if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;",\n                null\n        ));\n    }\n\n    private void exportJson'''
+          j2,n=re.subn(pattern,replacement,j,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit('Android import method patch target not found')
+          java.write_text(j2,'utf-8')
           PY
           echo '3a271fe1a3e954492964cd45c9079f56d0597880c8683f1d9de773cf88fa3dc6  app/src/main/assets/index.html' | sha256sum -c -
 
-      - name: Verify requested UI
+      - name: Verify requested UI and Android code
         run: |
           HTML=app/src/main/assets/index.html
+          JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           grep -q '>Главная<' "$HTML"
           grep -q 'На основании текущей даты рассчитываются Цолькин и Хааб' "$HTML"
           grep -q 'format13MoonDate' "$HTML"
@@ -49,6 +61,7 @@ jobs:
           grep -q 'tzolkinZoomButton' "$HTML"
           grep -q 'calendarDetailModal' "$HTML"
           grep -q 'haab-day' "$HTML"
+          grep -q 'org.json.JSONObject.quote(json)' "$JAVA"
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -58,14 +71,14 @@ jobs:
           PY
           node --check /tmp/maya.js
 
-      - name: Commit reconstructed source to feature branch
+      - name: Commit reconstructed sources to feature branch
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name 'ChatGPT Build'
           git config user.email 'actions@users.noreply.github.com'
-          git add app/src/main/assets/index.html
+          git add app/src/main/assets/index.html app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           if ! git diff --cached --quiet; then
-            git commit -m 'Update Maya Calendar main, Tzolkin and Haab UI'
+            git commit -m 'Update Maya Calendar main, Tzolkin, Haab and JSON import'
             git push origin HEAD:feature/maya-calendar-main-tzolkin-haab
           fi
 
