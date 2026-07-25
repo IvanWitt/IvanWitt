@@ -1086,7 +1086,7 @@
       if(day===365) return `1/День вне времени/${state.y}`;
       const monthIndex=Math.floor((day-1)/28);
       const dayInMoon=mod(day-1,28)+1;
-      return `${dayInMoon}/${customMonths[monthIndex]}/${state.y}`;
+      return `${dayInMoon}/${monthIndex+1}/${state.y}`;
     }
 
     function updateAll(){
