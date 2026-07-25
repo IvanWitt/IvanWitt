@@ -282,11 +282,11 @@ public class MainActivity extends Activity {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/json");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, n new String[]{"application/json", "text/json", "text/plain"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/json", "text/plain"});
         try {
             startActivityForResult(intent, OPEN_JSON_REQUEST);
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "Не найдено приложения для открытия JSON", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Не найдено приложение для открытия JSON", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -298,20 +298,37 @@ public class MainActivity extends Activity {
 
     public final class AndroidBridge {
         private final Activity activity;
-      AndroidBridge(Activity activity) { this.activity = activity; }
 
-        @JavaScriptInterface
-        public void saveEventsJson(String json, String filename) {
-            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(json, (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename));
+        AndroidBridge(Activity activity) {
+            this.activity = activity;
         }
 
-        JavaScriptInterface
-        public void exportJson(String json, String filename) { activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename)); }
+        @JavascriptInterface
+        public void saveEventsJson(String json, String filename) {
+            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(
+                    json,
+                    (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename
+            ));
+        }
 
-        @JavaScriptInterface
-        public void openEventsJson() { activity.runOnUiThread(MainActivity.this::openEventsJson); }
+        @JavascriptInterface
+        public void exportJson(String json, String filename) {
+            activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename));
+        }
 
-        JavaScriptInterface
-        public void printPage() { activity.runOnUiThread(MainActivity.this::printCurrentPage); }
+        @JavascriptInterface
+        public void importJson() {
+            activity.runOnUiThread(MainActivity.this::openEventsJson);
+        }
+
+        @JavascriptInterface
+        public void openEventsJson() {
+            activity.runOnUiThread(MainActivity.this::openEventsJson);
+        }
+
+        @JavascriptInterface
+        public void printPage() {
+            activity.runOnUiThread(MainActivity.this::printCurrentPage);
+        }
     }
 }
