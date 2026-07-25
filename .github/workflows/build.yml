@@ -18,8 +18,8 @@ jobs:
           cat exactsrc/java.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           echo 'afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  app/src/main/assets/index.html' | sha256sum -c -
           echo '90ca2a8458f2ef3bab4ab9bde6e2a6b1b8fad9d20464a91a5b45551acd1c7adb  app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java' | sha256sum -c -
-      - name: Verify splash exists
-        run: test -s app/src/main/res/drawable-nodpi/splash_maya.webp
+      - name: Verify sharp splash source
+        run: echo '9ea883fcd0e490b83a61b48a0377c1c14603ea76c7ce0d4829a797d49ae640bb  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
       - name: Verify HTML requirements
         run: |
           HTML=app/src/main/assets/index.html
