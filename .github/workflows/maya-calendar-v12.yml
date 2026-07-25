@@ -1,9 +1,9 @@
 name: Build Maya Calendar v1.2
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - agent/maya-calendar-apk
   workflow_dispatch:
 
 jobs:
