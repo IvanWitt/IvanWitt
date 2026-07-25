@@ -1,0 +1,86 @@
+name: Build Maya Calendar UI v1.2.3
+
+on:
+  push:
+    branches:
+      - feature/maya-calendar-main-tzolkin-haab
+    paths:
+      - 'ui-v123/**'
+      - '.github/workflows/maya-v123-ui-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/maya-calendar-main-tzolkin-haab
+
+      - name: Restore exact UI source
+        run: |
+          cat ui-v123/00.b64 ui-v123/01.b64 ui-v123/02.b64 ui-v123/03.b64 ui-v123/04.b64 ui-v123/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
+          echo 'a1d85f94c821ddbb62b6d363500a5530698fc2998df94e7f1946db8ce3f0169b  app/src/main/assets/index.html' | sha256sum -c -
+
+      - name: Verify requested UI
+        run: |
+          HTML=app/src/main/assets/index.html
+          grep -q '>Главная<' "$HTML"
+          grep -q 'На основании текущей даты рассчитываются Цолькин и Хааб' "$HTML"
+          grep -q 'format13MoonDate' "$HTML"
+          grep -q 'kinForToneAndSeal' "$HTML"
+          grep -q 'tzolkinZoomButton' "$HTML"
+          grep -q 'calendarDetailModal' "$HTML"
+          grep -q 'haab-day' "$HTML"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('app/src/main/assets/index.html').read_text('utf-8')
+          blocks=re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)
+          Path('/tmp/maya.js').write_text('\n'.join(blocks),'utf-8')
+          PY
+          node --check /tmp/maya.js
+
+      - name: Commit reconstructed source to feature branch
+        run: |
+          git config user.name 'ChatGPT Build'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/src/main/assets/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update Maya Calendar main, Tzolkin and Haab UI'
+            git push origin HEAD:feature/maya-calendar-main-tzolkin-haab
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Verify APK source
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -p "$APK" assets/index.html > /tmp/apk-index.html
+          echo 'a1d85f94c821ddbb62b6d363500a5530698fc2998df94e7f1946db8ce3f0169b  /tmp/apk-index.html' | sha256sum -c -
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.3-ui-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.3-ui-debug
+          path: /tmp/apk/MayaCalendar-v1.2.3-ui-debug.apk
+          if-no-files-found: error
