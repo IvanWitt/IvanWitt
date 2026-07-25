@@ -23,7 +23,7 @@ jobs:
         with:
           ref: feature/maya-calendar-main-tzolkin-haab
 
-      - name: Restore exact UI source and Android import fix
+      - name: Restore exact UI source and repair Android bridge
         run: |
           cat ui-v123/00.b64 ui-v123/01.b64 ui-v123/02.b64 ui-v123/03.b64 ui-v123/04.b64 ui-v123/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
           python3 - <<'PY'
@@ -40,11 +40,18 @@ jobs:
 
           java=Path('app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java')
           j=java.read_text('utf-8')
-          pattern=r'    private void deliverImportedJsonToWebView\(String json\) \{.*?\n    \}\n\n    private void exportJson'
-          replacement='''    private void deliverImportedJsonToWebView(String json) {\n        if (webView == null) return;\n        String quoted = org.json.JSONObject.quote(json);\n        webView.post(() -> webView.evaluateJavascript(\n                "if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;",\n                null\n        ));\n    }\n\n    private void exportJson'''
-          j2,n=re.subn(pattern,replacement,j,count=1,flags=re.S)
+
+          method_pattern=r'    private void deliverImportedJsonToWebView\(String json\) \{.*?\n    \}\n\n    private void exportJson'
+          method_replacement='''    private void deliverImportedJsonToWebView(String json) {\n        if (webView == null) return;\n        String quoted = org.json.JSONObject.quote(json);\n        webView.post(() -> webView.evaluateJavascript(\n                "if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;",\n                null\n        ));\n    }\n\n    private void exportJson'''
+          j,n=re.subn(method_pattern,method_replacement,j,count=1,flags=re.S)
           if n!=1:
-              raise SystemExit('Android import method patch target not found')
+              raise SystemExit('Android JSON delivery patch target not found')
+
+          tail_pattern=r'    private void openEventsJson\(\) \{.*?\n    \}\n\}'
+          tail_replacement='''    private void openEventsJson() {\n        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);\n        intent.addCategory(Intent.CATEGORY_OPENABLE);\n        intent.setType("application/json");\n        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/json", "text/plain"});\n        try {\n            startActivityForResult(intent, OPEN_JSON_REQUEST);\n        } catch (ActivityNotFoundException e) {\n            Toast.makeText(this, "Не найдено приложение для открытия JSON", Toast.LENGTH_LONG).show();\n        }\n    }\n\n    private void printCurrentPage() {\n        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);\n        String jobName = getString(R.string.app_name) + " — календарь";\n        printManager.print(jobName, webView.createPrintDocumentAdapter(jobName), new PrintAttributes.Builder().build());\n    }\n\n    public final class AndroidBridge {\n        private final Activity activity;\n\n        AndroidBridge(Activity activity) {\n            this.activity = activity;\n        }\n\n        @JavascriptInterface\n        public void saveEventsJson(String json, String filename) {\n            activity.runOnUiThread(() -> MainActivity.this.startJsonExportPicker(\n                    json,\n                    (filename == null || filename.trim().isEmpty()) ? "maya_calendar_events.json" : filename\n            ));\n        }\n\n        @JavascriptInterface\n        public void exportJson(String json, String filename) {\n            activity.runOnUiThread(() -> MainActivity.this.exportJson(json, filename));\n        }\n\n        @JavascriptInterface\n        public void importJson() {\n            activity.runOnUiThread(MainActivity.this::openEventsJson);\n        }\n\n        @JavascriptInterface\n        public void openEventsJson() {\n            activity.runOnUiThread(MainActivity.this::openEventsJson);\n        }\n\n        @JavascriptInterface\n        public void printPage() {\n            activity.runOnUiThread(MainActivity.this::printCurrentPage);\n        }\n    }\n}'''
+          j2,n=re.subn(tail_pattern,tail_replacement,j,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit('Android bridge tail patch target not found')
           java.write_text(j2,'utf-8')
           PY
           echo '3a271fe1a3e954492964cd45c9079f56d0597880c8683f1d9de773cf88fa3dc6  app/src/main/assets/index.html' | sha256sum -c -
@@ -62,6 +69,9 @@ jobs:
           grep -q 'calendarDetailModal' "$HTML"
           grep -q 'haab-day' "$HTML"
           grep -q 'org.json.JSONObject.quote(json)' "$JAVA"
+          grep -q 'public void importJson()' "$JAVA"
+          grep -q '@JavascriptInterface' "$JAVA"
+          ! grep -q 'n new String' "$JAVA"
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -78,7 +88,7 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add app/src/main/assets/index.html app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           if ! git diff --cached --quiet; then
-            git commit -m 'Update Maya Calendar main, Tzolkin, Haab and JSON import'
+            git commit -m 'Update Maya Calendar main, Tzolkin, Haab and Android bridge'
             git push origin HEAD:feature/maya-calendar-main-tzolkin-haab
           fi
 
