@@ -1,0 +1,93 @@
+name: Build Maya Calendar UI v1.2.4
+
+on:
+  push:
+    branches:
+      - feature/maya-calendar-main-tzolkin-haab
+  pull_request:
+    branches:
+      - maya-final-base
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/maya-calendar-main-tzolkin-haab
+
+      - name: Reconstruct verified v1.2.3 HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ui-v123/00.b64 ui-v123/01.b64 ui-v123/02.b64 ui-v123/03.b64 ui-v123/04.b64 ui-v123/05.b64 \
+            | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
+          echo '3a271fe1a3e954492964cd45c9079f56d0597880c8683f1d9de773cf88fa3dc6  app/src/main/assets/index.html' | sha256sum -c -
+
+      - name: Apply v1.2.4 Maya UI patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ui-v124/patch-00.b64 ui-v124/patch-01.b64 ui-v124/patch-02.b64 ui-v124/patch-03.b64 ui-v124/patch-04.b64 ui-v124/patch-05.b64 ui-v124/patch-06.b64 ui-v124/patch-07.b64 ui-v124/patch-08.b64 \
+            | tr -d '\n\r ' | base64 -d | gunzip > /tmp/v124.patch
+          patch -p1 < /tmp/v124.patch
+          echo '0182a547d6ab92a7041358409d68047e929fc232f255f31e388001756426ee78  app/src/main/assets/index.html' | sha256sum -c -
+
+      - name: Verify requested UI changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML=app/src/main/assets/index.html
+          JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          grep -q '>Главная<' "$HTML"
+          grep -q 'На основании текущей даты рассчитываются Цолькин и Хааб' "$HTML"
+          ! grep -q 'id="sCorrelation"' "$HTML"
+          grep -q 'Имиш' "$HTML"
+          grep -q 'Ахав' "$HTML"
+          grep -q 'tzolkinSealPaths' "$HTML"
+          grep -q 'haabMonthPaths' "$HTML"
+          grep -q 'Поп' "$HTML"
+          grep -q 'Вайеб' "$HTML"
+          grep -q 'calendar-detail-tile.tz-west .big-kin{color:#f5e5bd!important}' "$HTML"
+          grep -q 'font-size:16px!important' "$HTML"
+          grep -q 'public void importJson()' "$JAVA"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('app/src/main/assets/index.html').read_text('utf-8')
+          Path('/tmp/maya.js').write_text('\n'.join(re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)),'utf-8')
+          PY
+          node --check /tmp/maya.js
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build APK
+        run: gradle --no-daemon assembleDebug --stacktrace
+
+      - name: Verify APK contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -p "$APK" assets/index.html > /tmp/apk-index.html
+          echo '0182a547d6ab92a7041358409d68047e929fc232f255f31e388001756426ee78  /tmp/apk-index.html' | sha256sum -c -
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.4-ui-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.4-ui-debug
+          path: /tmp/apk/MayaCalendar-v1.2.4-ui-debug.apk
+          if-no-files-found: error
