@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Календарь Майя</title>
+  <style>
+    :root {
+      --blue-900: #2c4b3e;
+      --blue-800: #376456;
+      --blue-700: #447a6d;
+      --line: #d7dbd2;
+      --muted: #667085;
+      --cream: #f6f1e6;
+      --stone: #e2e7de;
+      --ochre: #c89b42;
+      --dark-red: #7f0000;
+      --maya-green: #23443f;
+      --maya-green-2: #2f5c53;
+      --maya-gold: #a87f3c;
+    }
+    * {box-sizing:border-box}
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      background:linear-gradient(180deg,#f8f7f2 0%,#f1ede4 100%);
+      color:#252a25;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    .appbar {
+      position:sticky; top:0; z-index:300; min-height:58px; height:calc(58px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; gap:12px;
+      box-sizing:border-box; padding:env(safe-area-inset-top, 0px) 14px 0 14px; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
+    }
+    .menu-button {
+      width:46px; height:46px; border:1px solid rgba(255,255,255,.35); border-radius:13px; background:rgba(255,255,255,.1); color:#fff; font-size:25px; font-weight:900; cursor:pointer;
+    }
+    .app-title { font-weight:850; font-size:clamp(16px,2.2vw,22px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .drawer {
+      position:fixed; top:calc(66px + env(safe-area-inset-top, 0px)); left:12px; z-index:450; width:min(310px,calc(100vw-24px)); padding:10px; background:rgba(255,255,255,.98); border:1px solid #cfd7cf; border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.25); display:none;
+    }
+    .drawer.open { display:block; }
+    .drawer button { width:100%; text-align:left; border:0; background:transparent; padding:13px 14px; border-radius:10px; font-size:15px; font-weight:750; color:#24302a; cursor:pointer; }
+    .drawer button:hover,.drawer button.active { background:#e9efea; color:#204f45; }
+
+    main { max-width:1400px; margin:0 auto; padding:25px 16px 60px; }
+    .app-page { display:noe; }
+    .app-page.active { display:block; }
+    .hero { background:linear-gradient(135deg,#2f5c53 0%,#23443f 100%); color:#fff; border-radius:20px 20px 0 0; padding:28px 32px; box-shadow:0 10px 30px rgba(36,48,42,.14); }
+    .hero h1 { margin:0; font-size:clamp(22px,4.8vw,42px); line-height:1.1; }
+    .hero p { margin:18px 0 0; color:rgba(255,255,255,.86); font-size:clamp(14px,2.2vw,18px); }
+
+    section { background:rgba(255,255,255,.94); border:1px solid #d8ddd5; border-radius:20px; margin-top:24px; box-shadow:0 10px 30px rgba(32,40,34,.08); overflow:hidden; }
+    .section-head { padding:22px 26px; background:#2f5c53; color:#fff; }
+    .section-head h2 { margin:0; font-size:30px; }
+    .section-head p { margin:10px 0 0; font-size:16px; color:#edf4f0; }
+    .section-body { paddin:20px; }
+    .section-note { margin-bottom:14px; color:#6b332f; font-weight:750; }
+
+    .summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .card { border:1px solid #d6dbd2; border-radius:16px; overflow:hidden; background:#fff; }
+    .card h3 { margin:0; padding:14px 16px; background:#e8ede7; font-size:17px; }
+    .card .big { padding:20px; font-size:26px; font-weight:800; text-align:center; }
+    .card .desc { padding:16px; color:#667085; line-height:1.45; }
+
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:18px; }
+    .field { display:grid; gap:6px; min-width:170px; }
+    .field label { font-weight:700; color:#656963; }
+    input[type="number"],input[type="date"],textarea { width:100%; box-sizing:border-box; padding:13px 14px; border:1px solid #bfcfc6; border-radius:12px; font-size:17px; background:#fff; }
+    button { font-family:inherit; }
+    .btn { border:0; border-radius:12px; padding:13px 20px; font-weight:800; font-size:16px; cursor:pointer; }
+    .btn.primary { background:#2f5c53; color:#fff; }
+    .btn.secondary { background:#e9ede7; color:#24302a; }
+    .btn.danger { background:#b42418; color:#fff; }
+
+    .table-wrap { overflow:auto; }
+    table { border-collapse:collapse; width:100%; }
+    th,td { border:1px solid #d8ddde; padding:10px; vertical-align:top; }
+    th { background:#5a86a9; color:#fff; position:sticky; top:0; z-index:1; }
+
+    .tzolkin-wrap { overflow:auto; }
+    .tzolkin-table { min-width:900px; }
+    .tz-cell { min-width:42px; height:60px; text-align:center; font-size:11px; }
+    .tz-current { outline:3px solid #7f0000; outline-offset:-3px; }
+
+    .haab-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .haab-month { border:1px solid #d7dbd2; border-radius:14px; overflow:hidden; }
+    .haab-month h4 { margin:0; padding:11px 12px; background:#e9ede7; }
+    .haab-month ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .haab-month li { padding:8px; border-top:1px solid #e1e6de; border-right:1px solid #e1e6de; text-align:center; }
+
+    .custom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .custom-month { border:1px solid #d7dbd2; border-radius:14px; overflow:hidden; background:#fff; }
+    .custom-month h4 { margin:0; padding:14px; text-align:center; background:#e7ed7b; font-size:20px; }
+    .custom-month table { width:100%; table-layout:fixed; }
+    .custom-month th,.custom-month td { padding:9px 4px; text-align:center; font-size:14px; }
+    .custom-month .red-day { background:#e9ebe9; }
+    .custom-month .event-day { cursor:pointer; font-weight:800; }
+    .custom-month .current-day { outline:3px solid #7f0000; outline-offset:-3px; }
+
+    .events-scroll { max-height:680px; overflow:auto; }
+    .events-table { min-width:800px; }
+    .events-table textarea { min-height:54px; resize:vertical; }
+
+    .gear-stage { position:relative; aspect-ratio:1060/660; background:#f3efe8; border-radius:18px; overflow:hidden; }
+    .gear-svg { width:100%; height:100%; display:block; touch-action:none; user-select:none; }
+    .gear-controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .gear-junction-card { position:absolute; left:47%; top:50%; transform:translate(-50%,-50%); width:min(210px,24%); min-width:150px; background:rgba(255,255,255,.96); border:3px solid #9c0006; border-radius:16px; padding:10px 12px; text-align:center; box-shadow:0 9px 24px rgba(48,31,20,.22); pointer-events:none; z-index:4; }
+    .gear-junction-card small { display:block; color:#7f0000; font-weight:850; letter-spacing:.02em; }
+    .gear-junction-card strong { display:block; margin:3px 0; color:#17365d; font-size:clamp(14px,1.7vw,21px); line-height:1.15; }
+    .gear-junction-card span { display:block; color:#667085; font-size:12px; font-weight:700; }
+    .gear-help { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:13px; }
+    .gear-help div { border:1px solid #d8ddde; border-radius:10px; background:#f8fafc; padding:10px 12px; font-size:13px; }
+
+    .about-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .about-card { border:1px solid #d7dbd2; border-radius:14px; padding:16px; background:#fff; }
+    .about-card h3 { margin:0 0 8px; color:#2f5c53; }
+    .meta-list { display:grid; gap:8px; margin-top:12px; }
+    .meta-list div { display:flex; justify-content:space-between; gap:12px; border-top:1px solid #e5e9e2; padding-top:8px; }
+    .meta-list span { color:#667085; }
+
+    .event-toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:800; width:min(90%,480px); background:#23443f; color:#fff; padding:14px 16px; border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.28); display:none; font-weight:700; text-align:center; }
+    .event-toast.show { display:block; animation:toastIn .15s ease-out; }
+    @keyframes toastIn { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
+
+    @media (max-width:1150px) {
+      .haab-grid { grid-template-columns:repeat(2,minmax(240px,1fr)); }
+      .custom-grid { grid-template-columns:1fr; }
+      .about-grid { grid-template-columns:1fr; }
+    }
+    @media (max-width:760px) {
+      main { padding:16px 10px 48px; }
+      .appbar { min-height:56px; height:calc(56px + env(safe-area-inset-top, 0px)); padding:env(safe-area-inset-top, 0px) 10px 0; }
+      .menu-button { width:42px; height:42px; }
+      .hero { padding:20px; border-radius:16px 16px 0 0; }
+      .section-head { padding:18px 20px; }
+      .section-head h2 { font-size:24px; }
+      .section-body { padding:14px; }
+      .summary-grid,.haab-grid,.about-grid { grid-template-columns:1fr; }
+      .custom-grid { grid-template-columns:1fr; gap:11px; }
+      .custom-month { overflow:hidden; }
+      .custom-month table { width:100%; min-width:0; table-layout:fixed; }
+      .custom-month th,.custom-month td { font-size:12px; padding:8px 2px; }
+      .custom-month th:first-child,.custom-month td:first-child { width:19%; }
+      .custom-month th:not(:first-child),.custom-month td:not(:first-child) { width:11.5%; }
+      .gear-help { grid-template-columns:1fr; }
+      .gear-junction-card { width:136px; min-width:0; padding:7px 8px; border-width:2px; }
+      .events-table { min-width:680px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="appbar">
+    <button class="menu-button" id="menuButton" aria-label="Меню">☱</button>
+    <div class="app-title" id="appTitle">Сводный календарь</div>
+  </div>
+  <div class="drawer" id="drawer">
+    <button data-page="summary">Сводный</button>
+    <button data-page="tzolkin">Цолькин</button>
+    <button data-page="haab">Хааб</button>
+    <button data-page="custom">Календарь 13 лун</button>
+    <buttton data-page="events">События</button>
+    <button data-page="gears">Шестерёнки</button>
+    <button data-page="about">О приложении</button>
+  </div>
+
+  <main>
+    <div id="page-summary" class="app-page active">
+      <div class="hero">
+        <h1>Сводный календарь</h1>
+        <p>По умолчанию используется корреляция GMT 584283</p>
+      </div>
+      <section>
+        <div class="section-body">
+          <div class="toolbar">
+            <div class="field">
+              <label for="correlation">Корреляция</label>
+              <input id="correlation" type="number" value="584283">
+            </div>
+            <div class="field">
+              <label for="gregorianDate">Григорианская дата</label>
+              <input id="gregorianDate" type="date">
+            </div>
+            <button class="btn secondary" id="todayBtn">Сегодня</button>
+            <button class="btn secondary" id="printBtn">Печать</button>
+          </div>
+          <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="page-tzolkin" class="app-page">
+      <div class="hero">
+        <h1>Календарь Цолькин</h1>
+        <p>Классический период 260 дней от тукущей даты</p>
+      </div>
+      <section>
+        <div class="section-body">
+          <div class="tzolkin-wrap"><table class="tzolkin-table" id="tzolkinTable"></table></div>
+        </div>
+      </section>
+    </div>
+    <div id="page-haab" class="app-page">
+      <div class="hero">
+        <h1>Календарь ҅ааб</h1>
+        <p>18 месяцев по 20 дней и отдельный период ВѰйеб из 5 дней</p>
+      </div>
+      <section><div class="section-body"><div class="haab-grid" id="haabGrid"></div></div></section>
+    </div>
+
+    <div id="page-custom" class="app-page">
+      <div class="hero">
+        <h1>Календарь 13 лун</h1>
+        <p>День 1 совпадает с 0 Pop Хааба</p>
+      </div>
+      <section>
+        <div class="section-body">
+          <div class="section-note">Текущий день отмечается тёмно-красной рамкой. Праздники окрашиваются цветом, выбранным в таблице событий.</div>
+          <div class="custom-grid" id="customGrid"></div>
+        </div>
+      </section>
+    </div>
+    <div id="page-events" class="app-page">
+      <div class="hero">
+        <h1>Праздники и особые дни</h1>
+        <p>Данные автоматически сохраняются в приложении</p>
+      </div>
+      <section>
+        <div class="section-body">
+          <div class="toolbar">
+            <button class="btn secondary" id="exportEventsBtn">Скачать праздники JSON</button>
+            <button class="btn secondary" id="importEventsBtn">Загрузить праздники JSON</button>
+            <button class="btn danger" id="clearEventsBtn">Очистить праздники</button>
+            <input type="file" id="importEventsFile" accept=".��'j�e�ƭ�����'�']z݊�b��Z�
