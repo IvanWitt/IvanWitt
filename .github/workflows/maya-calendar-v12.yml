@@ -15,38 +15,51 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore verified v1.1 HTML
+      - name: Restore and verify final HTML
         run: |
           mkdir -p maya-calendar-android/project/app/src/main/assets
-          cat maya-calendar-android/v4/00.b64 maya-calendar-android/v4/01.b64 maya-calendar-android/v4/02.b64 maya-calendar-android/v4/03.b64 maya-calendar-android/v4/04.b64 maya-calendar-android/v4/05.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
-          echo "a5b01698abe380e339525e4d5379022c32bb08605c32a5e831f430bd0f6495b6  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
-
-      - name: Apply verified HTML changes for v1.2
-        run: |
-          cat maya-calendar-android/v12/patch64/00.b64 maya-calendar-android/v12/patch64/01.b64 maya-calendar-android/v12/patch64/02.b64 maya-calendar-android/v12/patch64/03.b64 maya-calendar-android/v12/patch64/04.b64 maya-calendar-android/v12/patch64/05.b64 maya-calendar-android/v12/patch64/06.b64 | tr -d '\n\r ' | base64 -d > /tmp/v12.patch
-          echo "ef1a006b9dd63d8e0e2376b14e13c3a51ee8a7b15feefb6df23612f7fef3cefe  /tmp/v12.patch" | sha256sum -c -
-          python3 - <<'PY'
-          from pathlib import Path
-          patch = Path('/tmp/v12.patch').read_text(encoding='utf-8')
-          marker = '--- maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java'
-          html_patch = patch.split(marker, 1)[0]
-          Path('/tmp/v12-html.patch').write_text(html_patch, encoding='utf-8')
-          PY
-          patch -p0 < /tmp/v12-html.patch
+          cat maya-calendar-android/v12final/html/00.b64 maya-calendar-android/v12final/html/01.b64 maya-calendar-android/v12final/html/02.b64 maya-calendar-android/v12final/html/03.b64 maya-calendar-android/v12final/html/04.b64 maya-calendar-android/v12final/html/05.b64 maya-calendar-android/v12final/html/06a.b64 maya-calendar-android/v12final/html/06b.b64 maya-calendar-android/v12final/html/06c.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
           echo "953262d456a6c31f426db4c1384056c62f3c93245044de207b95eeaf18a9ad24  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+
+      - name: Restore and verify final MainActivity
+        run: |
+          mkdir -p maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar
+          cat maya-calendar-android/v12final/java/00a.b64 maya-calendar-android/v12final/java/00b.b64 maya-calendar-android/v12final/java/00c.b64 maya-calendar-android/v12final/java/00d.b64 maya-calendar-android/v12final/java/01.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          echo "45f707fa94468d34d1ab53e29e744a690d13161bd9ed37c3068128f40eeee5f0  maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java" | sha256sum -c -
+
+      - name: Set app version
+        run: |
+          cat > maya-calendar-android/project/app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'ru.ivwitt.mayacalendar'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'ru.ivwitt.mayacalendar'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 3
+                  versionName '1.2.0'
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
+          EOF
 
       - name: Restore and verify splash image
         run: |
           mkdir -p maya-calendar-android/project/app/src/main/res/drawable
           tr -d '\n\r ' < maya-calendar-android/v12/splash_small.jpg.b64 | base64 -d > maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg
           echo "6514758df55de2f963c5363ba6de633252a19ef24238a6faa2b1ea3563682ea8  maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg" | sha256sum -c -
-
-      - name: Verify v1.2 Android source
-        run: |
-          grep -q "versionCode 3" maya-calendar-android/project/app/build.gradle
-          grep -q "versionName '1.2.0'" maya-calendar-android/project/app/build.gradle
-          grep -q "OPEN_JSON_REQUEST = 1003" maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
-          grep -q "splash_maya" maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
