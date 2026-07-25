@@ -1,4 +1,4 @@
-name: Build Maya Calendar v1.2
+name: Build Maya Calendar v1.2 Fixed
 
 on:
   pull_request:
@@ -15,19 +15,142 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore and verify final HTML
+      - name: Restore verified v1.2 sources
         run: |
           mkdir -p maya-calendar-android/project/app/src/main/assets
           cat maya-calendar-android/v12final/html/00.b64 maya-calendar-android/v12final/html/01.b64 maya-calendar-android/v12final/html/02.b64 maya-calendar-android/v12final/html/03.b64 maya-calendar-android/v12final/html/04.b64 maya-calendar-android/v12final/html/05.b64 maya-calendar-android/v12final/html/06a.b64 maya-calendar-android/v12final/html/06b.b64 maya-calendar-android/v12final/html/06c.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/assets/index.html
           echo "953262d456a6c31f426db4c1384056c62f3c93245044de207b95eeaf18a9ad24  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
-
-      - name: Restore and verify final MainActivity
-        run: |
           mkdir -p maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar
           cat maya-calendar-android/v12final/java/00a.b64 maya-calendar-android/v12final/java/00b.b64 maya-calendar-android/v12final/java/00c.b64 maya-calendar-android/v12final/java/00d.b64 maya-calendar-android/v12final/java/01.b64 | tr -d '\n\r ' | base64 -d | gunzip > maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           echo "45f707fa94468d34d1ab53e29e744a690d13161bd9ed37c3068128f40eeee5f0  maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java" | sha256sum -c -
 
-      - name: Set app version
+      - name: Apply final fixes and verify
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('maya-calendar-android/project/app/src/main/assets/index.html')
+          s=p.read_text('utf-8')
+          s=s.replace('content="width=device-width, initial-scale=1.0"','content="width=device-width, initial-scale=1.0, viewport-fit=cover"')
+          s=s.replace("""    .appbar {
+            position:sticky; top:0; z-index:300; height:58px; display:flex; align-items:center; gap:12px;
+            padding:0 14px; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
+          }""", """    .appbar {
+            position:sticky; top:0; z-index:300; min-height:58px; height:calc(58px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; gap:12px;
+            box-sizing:border-box; padding:env(safe-area-inset-top, 0px) 14px 0; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
+          }""")
+          s=s.replace('top:66px; left:12px;', 'top:calc(66px + env(safe-area-inset-top, 0px)); left:12px;')
+          s=s.replace('<div><span>Версия</span><strong>1.2.0</strong></div>', '<div><span>Версия</span><strong>1.2</strong></div>')
+          s=s.replace('            <div><span>Сайт</span><a href="https://iwitt.ru">iwitt.ru</a></div>\n','')
+          s=s.replace('    <footer>Автономный HTML-файл. Для работы расчётов подключение к интернету не требуется.</footer>\n','')
+          s=s.replace('    function applyImportedEventsJson(text){\n', '    function importEventsJsonText(text){\n')
+          s=s.replace('      const count=applyImportedEventsJson(text);\n', '      const count=importEventsJsonText(text);\n')
+          s=s.replace('    window.applyImportedEventsJson=function(text){\n', '    window.receiveImportedEventsJson=function(text){\n')
+          s=s.replace('      applyImportedEventsJson(text);\n', '      importEventsJsonText(text);\n')
+          s=s.replace('      const parsed=JSON.parse(text);\n', "      const cleanText=String(text ?? '').replace(/^\\uFEFF/, '').trim();\n      if(!cleanText) throw new Error('Файл пуст');\n      const parsed=JSON.parse(cleanText);\n")
+          p.write_text(s,'utf-8')
+
+          jp=Path('maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java')
+          j=jp.read_text('utf-8')
+          j=j.replace('import android.view.ViewGroup;\nimport android.view.WindowInsets;\n', 'import android.view.Gravity;\nimport android.view.ViewGroup;\nimport android.view.Window;\n')
+          j=j.replace('import android.widget.ImageView;\nimport android.widget.Toast;\n', 'import android.widget.ImageView;\nimport android.widget.TextView;\nimport android.widget.Toast;\n')
+          j=j.replace('''        getWindow().setStatusBarColor(Color.rgb(35, 68, 63));
+        getWindow().setNavigationBarColor(Color.rgb(35, 68, 63));
+
+        rootView = new FrameLayout(this);''', '''        Window window = getWindow();
+        window.setStatusBarColor(Color.rgb(35, 68, 63));
+        window.setNavigationBarColor(Color.rgb(35, 68, 63));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(true);
+        }
+
+        rootView = new FrameLayout(this);''')
+          old='''        splashView = new ImageView(this);
+        splashView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        splashView.setImageResource(R.drawable.splash_maya);
+        splashView.setBackgroundColor(Color.rgb(31, 45, 38));
+        rootView.addView(splashView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        setContentView(rootView);
+
+        // Android 15 enforces edge-to-edge for targetSdk 35.
+        // Insets are applied to the WebView so the app bar stays below the phone status area.
+        webView.setOnApplyWindowInsetsListener((view, insets) -> {
+            int top = insets.getSystemWindowInsetTop();
+            int bottom = insets.getSystemWindowInsetBottom();
+            view.setPadding(0, top, 0, bottom);
+            return insets;
+        });
+        webView.requestApplyInsets();
+'''
+          new='''        FrameLayout splashLayer = new FrameLayout(this);
+        splashLayer.setBackgroundColor(Color.rgb(31, 45, 38));
+
+        splashView = new ImageView(this);
+        splashView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        splashView.setAdjustViewBounds(false);
+        splashView.setImageResource(R.drawable.splash_maya);
+        splashLayer.addView(splashView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
+        TextView splashCaption = new TextView(this);
+        splashCaption.setText("Календарь Майя v1.2");
+        splashCaption.setTextColor(Color.WHITE);
+        splashCaption.setTextSize(20);
+        splashCaption.setGravity(Gravity.CENTER);
+        splashCaption.setShadowLayer(5f, 0f, 2f, Color.BLACK);
+        splashCaption.setPadding(dp(18), dp(9), dp(18), dp(9));
+        splashCaption.setBackgroundColor(Color.argb(125, 17, 25, 20));
+        FrameLayout.LayoutParams captionParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+        );
+        captionParams.bottomMargin = dp(28);
+        splashLayer.addView(splashCaption, captionParams);
+
+        rootView.addView(splashLayer, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        setContentView(rootView);
+'''
+          if old not in j: raise SystemExit('splash block not found')
+          j=j.replace(old,new)
+          a=j.index('    private void dismissSplashWhenReady()')
+          b=j.index('\n    @Override\n    protected void onSaveInstanceState', a)
+          repl='''    private void dismissSplashWhenReady() {
+        if (splashDismissed || splashView == null) return;
+        splashDismissed = true;
+        final android.view.View splashLayer = (android.view.View) splashView.getParent();
+        splashView.postDelayed(() -> splashLayer.animate()
+                .alpha(0f)
+                .setDuration(350)
+                .withEndAction(() -> {
+                    if (splashLayer.getParent() == rootView) rootView.removeView(splashLayer);
+                    splashView = null;
+                }).start(), 900);
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+'''
+          j=j[:a]+repl+j[b:]
+          j=j.replace('webView.evaluateJavascript("window.applyImportedEventsJson(" + quoted + ")", null);', 'webView.evaluateJavascript("if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;", null);')
+          jp.write_text(j,'utf-8')
+          PY
+          echo "afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  maya-calendar-android/project/app/src/main/assets/index.html" | sha256sum -c -
+          echo "90ca2a8458f2ef3bab4ab9bde6e2a6b1b8fad9d20464a91a5b45551acd1c7adb  maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java" | sha256sum -c -
+          ! grep -q 'iwitt.ru' maya-calendar-android/project/app/src/main/assets/index.html
+          ! grep -q 'Автономный HTML' maya-calendar-android/project/app/src/main/assets/index.html
+          grep -q 'receiveImportedEventsJson' maya-calendar-android/project/app/src/main/assets/index.html
+          grep -q 'Календарь Майя v1.2' maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+
+      - name: Set version and Android system bar behavior
         run: |
           cat > maya-calendar-android/project/app/build.gradle <<'EOF'
           plugins {
@@ -41,9 +164,9 @@ jobs:
               defaultConfig {
                   applicationId 'ru.ivwitt.mayacalendar'
                   minSdk 23
-                  targetSdk 35
-                  versionCode 3
-                  versionName '1.2.0'
+                  targetSdk 34
+                  versionCode 4
+                  versionName '1.2'
               }
 
               buildTypes {
@@ -54,12 +177,23 @@ jobs:
               }
           }
           EOF
+          grep -q 'targetSdk 34' maya-calendar-android/project/app/build.gradle
+          grep -q "versionName '1.2'" maya-calendar-android/project/app/build.gradle
 
-      - name: Restore and verify splash image
+      - name: Restore full-resolution splash image
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p maya-calendar-android/project/app/src/main/res/drawable
-          tr -d '\n\r ' < maya-calendar-android/v12/splash_small.jpg.b64 | base64 -d > maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg
-          echo "6514758df55de2f963c5363ba6de633252a19ef24238a6faa2b1ea3563682ea8  maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg" | sha256sum -c -
+          mkdir -p maya-calendar-android/project/app/src/main/res/drawable-nodpi
+          python3 - <<'PY'
+          import base64, json, os, urllib.request
+          url='https://api.github.com/repos/IvanWitt/IvanWitt/git/blobs/c708ab27e0731d47ab0ceb3b900404fc541f61e4'
+          req=urllib.request.Request(url, headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req) as r: data=json.load(r)
+          open('maya-calendar-android/project/app/src/main/res/drawable-nodpi/splash_maya.webp','wb').write(base64.b64decode(data['content']))
+          PY
+          rm -f maya-calendar-android/project/app/src/main/res/drawable/splash_maya.jpg maya-calendar-android/project/app/src/main/res/drawable/splash_maya.webp maya-calendar-android/project/app/src/main/res/drawable/splash_maya.png
+          echo "c40b642d0e4514a8a441515b2d7d8e45c6d708b8494c9806fecd8d1270d3126e  maya-calendar-android/project/app/src/main/res/drawable-nodpi/splash_maya.webp" | sha256sum -c -
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -82,16 +216,21 @@ jobs:
         working-directory: maya-calendar-android/project
         run: gradle --no-daemon assembleDebug
 
+      - name: Verify APK contents
+        run: |
+          unzip -p maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk assets/index.html | sha256sum | grep '^afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c'
+          unzip -l maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk | grep 'res/.*splash_maya'
+
       - name: Prepare APK
         run: |
           mkdir -p /tmp/apk
-          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar-v1.2.apk
-          sha256sum /tmp/apk/MayaCalendar-v1.2.apk
+          cp maya-calendar-android/project/app/build/outputs/apk/debug/app-debug.apk /tmp/apk/MayaCalendar-v1.2-fixed.apk
+          sha256sum /tmp/apk/MayaCalendar-v1.2-fixed.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MayaCalendar-v1.2-APK
-          path: /tmp/apk/MayaCalendar-v1.2.apk
+          name: MayaCalendar-v1.2-fixed-APK
+          path: /tmp/apk/MayaCalendar-v1.2-fixed.apk
           if-no-files-found: error
           retention-days: 30
