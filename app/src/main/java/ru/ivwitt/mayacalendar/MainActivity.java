@@ -229,15 +229,11 @@ public class MainActivity extends Activity {
 
     private void deliverImportedJsonToWebView(String json) {
         if (webView == null) return;
-        String quoted;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            quoted = android.webkit.Json.quote(json);
-        } else {
-            quoted = "\"" + json.replace("\\\", "\\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
-        }
-        webView.post(() -> {
-            webView.evaluateJavascript("if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;", null);
-        });
+        String quoted = org.json.JSONObject.quote(json);
+        webView.post(() -> webView.evaluateJavascript(
+                "if(window.receiveImportedEventsJson){window.receiveImportedEventsJson(" + quoted + ");}void 0;",
+                null
+        ));
     }
 
     private void exportJson(String json, String filename) {
