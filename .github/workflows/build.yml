@@ -12,21 +12,26 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Verify requirements
+      - name: Verify splash
+        run: echo 'c40b642d0e4514a8a441515b2d7d8e45c6d708b8494c9806fecd8d1270d3126e  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
+      - name: Verify HTML requirements
         run: |
           HTML=app/src/main/assets/index.html
-          JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
-          echo 'c40b642d0e4514a8a441515b2d7d8e45c6d708b8494c9806fecd8d1270d3126e  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
           ! grep -q 'iwitt.ru' "$HTML"
           ! grep -q 'Автономный HTML' "$HTML"
           ! grep -q 'window.applyImportedEventsJson' "$HTML"
           grep -q 'receiveImportedEventsJson' "$HTML"
+      - name: Verify Android requirements
+        run: |
+          JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
           grep -q 'ACTION_OPEN_DOCUMENT' "$JAVA"
           grep -q 'setDecorFitsSystemWindows(true)' "$JAVA"
           grep -q 'Календарь Майя v1.2' "$JAVA"
           grep -q 'Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL' "$JAVA"
           grep -q 'targetSdk 34' app/build.gradle
           grep -q "versionName '1.2'" app/build.gradle
+      - name: Verify JavaScript syntax
+        run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
