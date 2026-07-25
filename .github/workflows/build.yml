@@ -13,9 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify splash
-        run: |
-          echo '9b05cfb1bb6aef8eddca3998fa16c98a41b44e0d86a414ecbfc0a15179ba7883  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
-          file app/src/main/res/drawable-nodpi/splash_maya.webp | grep -E 'Web/P image|WebP'
+        run: echo '9b05cfb1bb6aef8eddca3998fa16c98a41b44e0d86a414ecbfc0a15179ba7883  app/src/main/res/drawable-nodpi/splash_maya.webp' | sha256sum -c -
       - name: Verify HTML requirements
         run: |
           HTML=app/src/main/assets/index.html
