@@ -1,0 +1,173 @@
+--- maya-calendar-android/project/app/src/main/assets/index.html
++++ maya-calendar-android/project/app/src/main/assets/index.html
+@@ -7,18 +7,20 @@
+   <title>Календарь Цолькин, Хааб и 13 месяцев</title>
+   <style>
+     :root {
+-      --blue-900:#17365d;
+-      --blue-800:#1f4e78;
+-      --blue-600:#5b9bd5;
+-      --blue-100:#d9eaf7;
+-      --paper:#f4f7fa;
+-      --card:#ffffff;
+-      --ink:#1f2937;
+-      --muted:#667085;
+-      --line:#d8e0e8;
+-      --yellow:#fff2cc;
+-      --today:#9c0006;
+-      --shadow:0 8px 24px rgba(31,78,120,.10);
++      --blue-900:#23443f;
++      --blue-800:#315b52;
++      --blue-600:#718f7f;
++      --blue-100:#e4ece6;
++      --paper:#f3efe6;
++      --card:#fffdf8;
++      --ink:#2f342f;
++      --muted:#6f716a;
++      --line:#d7cfbf;
++      --yellow:#f4e7b7;
++      --today:#8b2f28;
++      --gold:#a78345;
++      --clay:#8b6548;
++      --shadow:0 8px 24px rgba(72,63,46,.11);
+       --radius:16px;
+     }
+ 
+@@ -26,7 +28,7 @@
+     html { scroll-behavior:smooth; }
+     body {
+       margin:0;
+-      background:linear-gradient(180deg,#eef4f9 0,#f8fafc 320px,#f4f7fa 100%);
++      background:linear-gradient(180deg,#e9e4d8 0,#f8f5ee 320px,#f3efe6 100%);
+       color:var(--ink);
+       font-family:Inter,Segoe UI,Arial,sans-serif;
+       line-height:1.45;
+@@ -71,7 +73,7 @@
+ 
+     main { max-width:1700px; margin:0 auto; padding:24px 18px 60px; }
+     .hero {
+-      background:linear-gradient(135deg,var(--blue-800),#326fa0);
++      background:linear-gradient(135deg,var(--blue-800),#6f7d63);
+       color:white;
+       border-radius:22px;
+       padding:26px;
+@@ -79,7 +81,7 @@
+       margin-bottom:22px;
+     }
+     .hero h1 { margin:0 0 8px; font-size:clamp(25px,4vw,42px); line-height:1.12; }
+-    .hero p { max-width:950px; margin:0; color:#eaf4ff; }
++    .hero p { max-width:950px; margin:0; color:#f2eee3; }
+ 
+     section {
+       scroll-margin-top:78px;
+@@ -136,7 +138,7 @@
+       color:white;
+     }
+     .btn:hover { filter:brightness(1.08); }
+-    .btn.secondary { background:#e8eef4; color:#24364a; }
++    .btn.secondary { background:#eee9df; color:#3b463e; }
+     .btn.danger { background:#b42318; }
+ 
+     .summary-grid {
+@@ -149,7 +151,7 @@
+     .summary-grid > div { padding:12px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+     .summary-grid > div:nth-child(3n) { border-right:0; }
+     .summary-grid .hdr { background:var(--blue-600); color:white; font-weight:800; text-align:center; }
+-    .summary-grid .label { background:#eaf2f8; font-weight:800; }
++    .summary-grid .label { background:#e9ede6; font-weight:800; }
+     .summary-grid .value { font-weight:800; text-align:center; font-size:17px; }
+     .summary-grid .help { color:#5c6673; font-size:13px; }
+     .status-note {
+@@ -418,7 +420,7 @@
+       .haab-grid { grid-template-columns:1fr; }
+       .custom-grid { grid-template-columns:1fr; }
+       .custom-month { overflow:auto; }
+-      .custom-month table { min-width:560px; }
++      .custom-month table { min-width:0; width:100%; }
+       .gear-stage { min-height:300px; aspect-ratio:1060 / 660; overflow:hidden; }
+       .gear-svg { min-width:0; }
+       .gear-ring-label { display:none; }
+@@ -436,7 +438,7 @@
+     /* Navigation between independent app pages. */
+     .appbar {
+       position:sticky; top:0; z-index:300; height:58px; display:flex; align-items:center; gap:12px;
+-      padding:0 14px; background:rgba(23,54,93,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
++      padding:0 14px; background:rgba(35,68,63,.98); color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18); backdrop-filter:blur(8px);
+     }
+     .menu-button {
+       width:42px; height:42px; flex:0 0 42px; border:1px solid rgba(255,255,255,.28); border-radius:12px;
+@@ -445,14 +447,14 @@
+     .appbar-title { font-weight:850; font-size:17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+     .popup-menu {
+       position:fixed; z-index:420; top:66px; left:12px; width:min(360px,calc(100vw - 24px)); display:none;
+-      padding:8px; border:1px solid #cad7e4; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(20,43,70,.28);
++      padding:8px; border:1px solid #d7cfbf; border-radius:16px; background:#fff; box-shadow:0 18px 45px rgba(55,45,31,.25);
+     }
+     .popup-menu.open { display:grid; gap:4px; }
+     .popup-menu button {
+       width:100%; min-height:46px; border:0; border-radius:11px; background:transparent; color:#24364a; text-align:left;
+       padding:11px 13px; font:inherit; font-weight:780; cursor:pointer; -webkit-tap-highlight-color:transparent;
+     }
+-    .popup-menu button:hover,.popup-menu button.active { background:#e9f2fb; color:#17365d; }
++    .popup-menu button:hover,.popup-menu button.active { background:#efe9dc; color:#315b52; }
+     .menu-backdrop { position:fixed; z-index:410; inset:0; background:rgba(10,24,40,.30); }
+     .app-page { display:none; margin-top:14px; }
+     .app-page.active { display:block; animation:pageIn .16s ease-out; }
+@@ -472,6 +474,38 @@
+     .event-modal-card h3 { margin:7px 36px 8px 0; color:#17365d; font-size:20px; }
+     .event-modal-card p { margin:0; font-size:16px; white-space:pre-wrap; }
+ 
++
++    /* Сдержанная стилизация в духе камня, нефрита и тёплой охры. */
++    section { border-color:#d7cfbf; }
++    .section-head { border-bottom:2px solid rgba(167,131,69,.32); }
++    .menu-button { border-color:rgba(214,191,143,.55); }
++    .custom-day.weekend { background:#f0efeb; }
++    .custom-month th.weekend-head { background:#678171; }
++    .about-card { max-width:760px; margin:0 auto; }
++    .about-card p { margin:0 0 16px; }
++    .about-meta {
++      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
++      margin-top:20px; padding-top:16px; border-top:1px solid var(--line);
++    }
++    .about-meta div {
++      display:grid; gap:3px; padding:11px 12px; border:1px solid var(--line);
++      border-radius:10px; background:#f7f3ea;
++    }
++    .about-meta span { font-size:12px; color:var(--muted); font-weight:700; }
++    .about-meta a { color:var(--blue-800); font-weight:800; text-decoration:none; }
++
++    @media (max-width:760px) {
++      .custom-grid { grid-template-columns:1fr; gap:12px; }
++      .custom-month { overflow:hidden; width:100%; }
++      .custom-month table { min-width:0 !important; width:100%; table-layout:fixed; }
++      .custom-month th,.custom-month td { padding:6px 1px; font-size:12px; }
++      .custom-month th:first-child,.week-label { width:58px !important; }
++      .week-label { font-size:10px; line-height:1.15; padding:4px 1px !important; }
++      .custom-day { height:42px; min-width:0; }
++      .about-meta { grid-template-columns:1fr; }
++      .section-head h2 { font-size:19px; }
++    }
++
+     @media print {
+       .topbar,.appbar,.popup-menu,.menu-backdrop,.toolbar,.events-toolbar,.section-note { display:none !important; }
+       body { background:white; }
+@@ -497,10 +531,11 @@
+     <button type="button" data-page="summary">Сводный календарь</button>
+     <button type="button" data-page="tzolkin">Цолькин</button>
+     <button type="button" data-page="haab">Хааб</button>
+-    <button type="button" data-page="custom">Мой календарь — 13 × 28 + 1</button>
++    <button type="button" data-page="custom">Календарь 13 лун</button>
+     <button type="button" data-page="events">События</button>
+     <button type="button" data-page="gears">Календарный круг</button>
+     <button type="button" data-page="references">Справочники</button>
++    <button type="button" data-page="about">О приложении</button>
+   </nav>
+ 
+   <main>
+@@ -564,7 +599,7 @@
+ 
+     <section id="custom" class="app-page">
+       <div class="section-head">
+-        <h2>Мой календарь — 13 × 28 + 1</h2>
++        <h2>Календарь 13 лун</h2>

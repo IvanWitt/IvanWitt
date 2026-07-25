@@ -1,0 +1,117 @@
+        <p class="section-note">День 1 совпадает с 0 Pop Хааба</p>
+       </div>
+       <div class="section-body">
+@@ -576,13 +611,13 @@
+     <section id="events" class="app-page">
+       <div class="section-head">
+         <h2>Праздники и особые дни</h2>
+-        <p class="section-note">Данные автоматически сохраняются в браузере</p>
++        <p class="section-note">Данные автоматически сохраняются в приложении</p>
+       </div>
+       <div class="section-body">
+         <div class="events-toolbar">
+           <button class="btn secondary" id="exportEvents" type="button">Скачать события JSON</button>
+-          <label class="btn secondary" for="importEvents" style="display:inline-flex;align-items:center">Загрузить события JSON</label>
+-          <input id="importEvents" type="file" accept="application/json,.json" hidden>
++          <button class="btn secondary" id="importEventsButton" type="button">Загрузить события JSON</button>
++          <input id="importEvents" type="file" accept="application/json,.json,text/plain" hidden>
+           <button class="btn danger" id="clearEvents" type="button">Очистить события</button>
+         </div>
+         <div class="file-status" id="eventsFileStatus" role="status" aria-live="polite"></div>
+@@ -632,6 +667,26 @@
+     </section>
+ 
+ 
++    <section id="about" class="app-page">
++      <div class="section-head">
++        <h2>О приложении</h2>
++        <p class="section-note">Календарные циклы майя в одном приложении</p>
++      </div>
++      <div class="section-body">
++        <div class="about-card">
++          <p><strong>Календари майя</strong> — система взаимосвязанных циклов счёта времени. Цолькин представляет 260-дневный ритуальный цикл, а Хааб — 365-дневный солнечный календарь. Их сочетание образует Календарный круг. Эти системы использовались для организации календарного и ритуального времени и датировки событий.</p>
++          <p>Отдельно в приложении представлен <strong>Календарь 13 лун</strong> — пользовательский календарь из 13 периодов по 28 дней и одного дня вне времени.</p>
++          <div class="about-meta">
++            <div><span>Версия</span><strong>1.2.0</strong></div>
++            <div><span>Дата версии</span><strong>25.07.2026</strong></div>
++            <div><span>Автор</span><strong>Ivan Witt</strong></div>
++            <div><span>Служебная почта</span><a href="mailto:svc.witt@gmail.com">svc.witt@gmail.com</a></div>
++            <div><span>Сайт</span><a href="https://iwitt.ru">iwitt.ru</a></div>
++          </div>
++        </div>
++      </div>
++    </section>
++
+     <section id="gears" class="app-page">
+       <div class="section-head">
+         <h2>Календарный круг — Цолькин и Хааб как шестерёнки</h2>
+@@ -755,8 +810,8 @@
+       'Mak','K’ank’in','Muwan','Pax','K’ayab','Kumk’u','Wayeb'
+     ];
+     const customMonths = [
+-      'Январь','Февраль','Март','Апрель','Май','Июнь','Июль',
+-      'Август','Сентябрь','Октябрь','Ноябрь','Декабрь','Sol'
++      'Первая луна','Вторая луна','Третья луна','Четвёртая луна','Пятая луна','Шестая луна','Седьмая луна',
++      'Восьмая луна','Девятая луна','Десятая луна','Одиннадцатая луна','Двенадцатая луна','Тринадцатая луна'
+     ];
+     const weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+     const monthPalette = [
+@@ -913,14 +968,14 @@
+         const article=document.createElement('article'); article.className='custom-month';
+         const h=document.createElement('h3'); h.textContent=`${m+1}. ${month}`; h.style.background=customPalette[m];
+         const table=document.createElement('table');
+-        table.innerHTML=`<thead><tr><th></th>${weekdays.map(w=>`<th>${w}</th>`).join('')}</tr></thead>`;
++        table.innerHTML=`<thead><tr><th></th>${weekdays.map((wd,i)=>`<th class="${i>=5?'weekend-head':''}">${wd}</th>`).join('')}</tr></thead>`;
+         const tbody=document.createElement('tbody');
+         for(let w=0;w<4;w++){
+           const tr=document.createElement('tr');
+-          const label=document.createElement('td'); label.className='week-label'; label.textContent=`Неделя ${w+1}`; tr.appendChild(label);
++          const label=document.createElement('td'); label.className='week-label'; label.textContent=`Нед. ${w+1}`; tr.appendChild(label);
+           for(let d=0;d<7;d++){
+             const day=m*28+w*7+d+1;
+-            const td=document.createElement('td'); td.className='custom-day'; td.dataset.day=day; td.textContent=day; tr.appendChild(td);
++            const td=document.createElement('td'); td.className='custom-day'+(d>=5?' weekend':''); td.dataset.day=day; td.textContent=day; tr.appendChild(td);
+           }
+           tbody.appendChild(tr);
+         }
+@@ -944,7 +999,7 @@
+     function openEventModal(day){
+       const data=events[day];
+       if(!data || !data.name) return;
+-      document.getElementById('eventModalDay').textContent=`День ${day} моего календаря`;
++      document.getElementById('eventModalDay').textContent=`День ${day} календаря 13 лун`;
+       document.getElementById('eventModalTitle').textContent=data.name;
+       document.getElementById('eventModalText').textContent='';
+       document.getElementById('eventModal').hidden=false;
+@@ -1262,7 +1317,7 @@
+       else window.print();
+     }
+ 
+-    const APP_PAGES={summary:'Сводный календарь',tzolkin:'Цолькин',haab:'Хааб',custom:'Мой календарь — 13 × 28 + 1',events:'События',gears:'Календарный круг',references:'Справочники'};
++    const APP_PAGES={summary:'Сводный календарь',tzolkin:'Цолькин',haab:'Хааб',custom:'Календарь 13 лун',events:'События',gears:'Календарный круг',references:'Справочники',about:'О приложении'};
+     function closePopupMenu(){
+       const menu=document.getElementById('popupMenu');
+       menu.classList.remove('open'); menu.setAttribute('aria-hidden','true');
+@@ -1295,11 +1350,47 @@
+       document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePopupMenu(); closeEventModal(); } });
+       showAppPage(location.hash.slice(1)||'summary',false);
+     }
++    function normalizeImportedEvents(incoming){
++      if(!incoming || typeof incoming!=='object' || Array.isArray(incoming)) throw new Error('Файл не содержит события');
++      const normalized={};
++      Object.entries(incoming).forEach(([key,value])=>{
++        const day=Number(key);
++        if(!Number.isInteger(day) || day<1 || day>365) return;
++        if(typeof value==='string'){
++          if(value.trim()) normalized[day]={name:value.trim(),color:''};
++        } else if(value && typeof value==='object'){
++          const name=String(value.name ?? value.title ?? '').trim();
++          const color=String(value.color ?? '').trim();
++          if(name || color) normalized[day]={name,color};
++        }
++      });
++      return normalized;
++    }
++    function applyImportedEventsJson(text){
++      const parsed=JSON.parse(text);
++      const incoming=parsed && parsed.events ? parsed.events : parsed;
