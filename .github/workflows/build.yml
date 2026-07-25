@@ -12,6 +12,12 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Restore exact final sources
+        run: |
+          cat exactsrc/html0.b64 exactsrc/html1.b64 exactsrc/html2.b64 exactsrc/html3.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
+          cat exactsrc/java.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          echo 'afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  app/src/main/assets/index.html' | sha256sum -c -
+          echo '90ca2a8458f2ef3bab4ab9bde6e2a6b1b8fad9d20464a91a5b45551acd1c7adb  app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java' | sha256sum -c -
       - name: Verify splash exists
         run: test -s app/src/main/res/drawable-nodpi/splash_maya.webp
       - name: Verify HTML requirements
@@ -55,6 +61,7 @@ jobs:
         run: |
           APK=app/build/outputs/apk/debug/app-debug.apk
           unzip -p "$APK" assets/index.html > /tmp/final-index.html
+          echo 'afc86548df83e13f65e14fd37efb4a15a8ef73751ea9438d6211afc78279572c  /tmp/final-index.html' | sha256sum -c -
           ! grep -q 'iwitt.ru' /tmp/final-index.html
           ! grep -q 'Автономный HTML' /tmp/final-index.html
           grep -q 'receiveImportedEventsJson' /tmp/final-index.html
