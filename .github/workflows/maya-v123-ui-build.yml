@@ -7,6 +7,9 @@ on:
     paths:
       - 'ui-v123/**'
       - '.github/workflows/maya-v123-ui-build.yml'
+  pull_request:
+    branches:
+      - maya-final-base
   workflow_dispatch:
 
 permissions:
@@ -45,6 +48,7 @@ jobs:
           node --check /tmp/maya.js
 
       - name: Commit reconstructed source to feature branch
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name 'ChatGPT Build'
           git config user.email 'actions@users.noreply.github.com'
