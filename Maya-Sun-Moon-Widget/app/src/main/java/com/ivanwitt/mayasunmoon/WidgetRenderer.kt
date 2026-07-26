@@ -36,14 +36,15 @@ object WidgetRenderer {
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             isFilterBitmap = true
+            isDither = true
+            isSubpixelText = true
         }
 
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
         // The outer orbit is 1.34R and the Sun is the larger artwork (0.54R wide).
-        // Reserve enough room for orbit + half the body on every side so neither Sun nor Moon can
-        // ever be clipped at the top, bottom, left or right of the widget bitmap.
+        // Reserve enough room for orbit + half the body on every side so neither body is clipped.
         val outerExtentFactor = 1.34f + 0.54f / 2f
         val safeRadiusByWidth = w * 0.485f / outerExtentFactor
         val safeRadiusByHeight = h * 0.485f / outerExtentFactor
@@ -145,6 +146,7 @@ object WidgetRenderer {
         val half = size / 2f
         val dst = RectF(x - half, y - half, x + half, y + half)
         val imagePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            isDither = true
             alpha = if (state.visible) 255 else (255 * 0.40f).roundToInt()
         }
         canvas.drawBitmap(bitmap, null, dst, imagePaint)
@@ -267,54 +269,65 @@ object WidgetRenderer {
         settings: WidgetSettings
     ) {
         paint.style = Paint.Style.FILL
-        paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
         paint.color = settings.color
         paint.alpha = 255
+        paint.isSubpixelText = true
 
-        val longTargetWidth = radius * 1.94f
+        // Geometry measured from the supplied reference screenshot. These ratios keep the Long Count
+        // essentially the diameter of the circle and the Tzolkin/Haab row distinctly narrower.
+        val longTargetWidth = radius * 1.96f
         val roundTargetWidth = radius * 1.62f
         val locationTargetWidth = radius * 1.70f
-        val longTextSize = max(30f, width * 0.095f)
-        val roundTextSize = max(27f, width * 0.067f)
-        val locationTextSize = max(22f, width * 0.043f)
 
-        // Move Long Count noticeably closer to the horizon while retaining a small clear gap.
-        val topGap = max(2f, height * 0.006f)
-        // Font metrics include invisible descent/leading. A small negative metric gap brings the visible
-        // Long Count and Tzolkin/Haab rows closer without making their glyphs overlap.
-        val calendarGap = -max(4f, roundTextSize * 0.10f)
-        val locationGap = max(2f, height * 0.006f)
+        val titleTextSize = max(22f, radius * 0.165f)
+        val longTextSize = max(30f, radius * 0.285f)
+        val roundTextSize = max(24f, radius * 0.185f)
+        val locationTextSize = max(20f, radius * 0.125f)
 
+        // In the reference the author/title sits directly across the horizon line with the line
+        // visible behind it. Ivan Witt replaces the old Maya Sun/Moon label without changing style.
+        paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+        paint.textSize = titleTextSize
+        paint.textScaleX = 1f
+        paint.setShadowLayer(max(1.5f, radius * 0.008f), 0f, max(1f, radius * 0.004f), Color.argb(150, 0, 0, 0))
+        val titleY = baselineY + titleTextSize * 0.36f
+        canvas.drawText("Ivan Witt", width / 2f, titleY, paint)
+        paint.clearShadowLayer()
+
+        // Reference spacing: Long Count begins about 0.10R below the horizon; the second row follows
+        // with a compact but visible gap. Font metrics are used so this remains stable at every size.
+        paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
         paint.textSize = longTextSize
         paint.textScaleX = 1f
         val longMetrics = paint.fontMetrics
-        val longTop = baselineY + topGap
+        val longTop = baselineY + radius * 0.105f
         val longCountY = longTop - longMetrics.top
         val longBottom = longCountY + longMetrics.bottom
 
         paint.textSize = roundTextSize
         val roundMetrics = paint.fontMetrics
-        val roundTop = longBottom + calendarGap
+        val roundTop = longBottom + radius * 0.035f
         val calendarRoundY = roundTop - roundMetrics.top
         val roundBottom = calendarRoundY + roundMetrics.bottom
 
         paint.textSize = locationTextSize
         val locationMetrics = paint.fontMetrics
-        val desiredLocationTop = roundBottom + locationGap
+        val desiredLocationTop = roundBottom + radius * 0.055f
         val bottomPadding = max(5f, height * 0.018f)
         val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
         val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
 
         drawTextAtTargetWidth(
             canvas, paint, mayaDate.longCount, width / 2f, longCountY,
-            longTargetWidth, longTextSize, 0.78f, 1.22f
+            longTargetWidth, longTextSize, 0.88f, 1.12f
         )
 
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
         drawTextAtTargetWidth(
             canvas, paint, roundText, width / 2f, calendarRoundY,
-            roundTargetWidth, roundTextSize, 0.64f, 0.92f
+            roundTargetWidth, roundTextSize, 0.82f, 1.08f
         )
 
         if (settings.showLocationName) {
@@ -324,7 +337,7 @@ object WidgetRenderer {
             if (label.isNotBlank()) {
                 drawTextAtTargetWidth(
                     canvas, paint, label, width / 2f, locationY,
-                    locationTargetWidth, locationTextSize, 0.72f, 1.0f
+                    locationTargetWidth, locationTextSize, 0.80f, 1.0f
                 )
             }
         }
@@ -334,6 +347,7 @@ object WidgetRenderer {
         paint.style = Paint.Style.FILL
         paint.textScaleX = 1f
         paint.textAlign = Paint.Align.CENTER
+        paint.clearShadowLayer()
     }
 
     private fun drawTextAtTargetWidth(

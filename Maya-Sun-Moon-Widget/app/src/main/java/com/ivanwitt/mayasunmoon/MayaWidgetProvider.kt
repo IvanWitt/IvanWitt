@@ -94,13 +94,12 @@ class MayaWidgetProvider : AppWidgetProvider() {
         private const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
         private const val TAG = "MayaWidgetProvider"
 
-        // Classic v0.2.11 artwork is now the only renderer.  The frame is drawn directly at the
-        // resolution that is sent to RemoteViews, so there is no extra downscale pass that blurs
-        // text, circle strokes, Sun or Moon.  The pixel budget stays below the Android Binder limit.
-        private const val MAX_PUBLISH_PIXELS = 220_000.0
-        private const val MAX_PUBLISH_WIDTH = 620
-        private const val MAX_PUBLISH_HEIGHT = 460
-        private const val FALLBACK_PIXELS = 125_000.0
+        // v0.3.4 restores the same native-density render strategy that produced the sharp classic
+        // reference frame. We publish the real widget pixel size first. Only if the launcher rejects
+        // that payload do we retry with the smaller safe bitmap.
+        private const val FALLBACK_PIXELS = 220_000.0
+        private const val FALLBACK_MAX_WIDTH = 620
+        private const val FALLBACK_MAX_HEIGHT = 460
 
         fun updateAll(context: Context) {
             val appContext = context.applicationContext
@@ -133,11 +132,16 @@ class MayaWidgetProvider : AppWidgetProvider() {
 
             ids.forEach { id ->
                 val options = manager.getAppWidgetOptions(id)
-                val (renderWidth, renderHeight) = chooseRenderSize(options)
+                val density = context.resources.displayMetrics.density
+                val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300)
+                val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190)
+
+                // Match the proven pre-cloud renderer: draw at the actual physical pixel size instead
+                // of rendering a small 620x460 image and asking the launcher to enlarge it.
+                val renderWidth = (widthDp * density).roundToInt().coerceAtLeast(480)
+                val renderHeight = (heightDp * density).roundToInt().coerceAtLeast(300)
 
                 val frameResult = runCatching {
-                    // Render the proven classic widget directly at publication resolution.
-                    // No DynamicScenery, no cloud artwork and no intermediate bitmap scaling.
                     WidgetRenderer.render(
                         width = renderWidth,
                         height = renderHeight,
@@ -162,26 +166,6 @@ class MayaWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun chooseRenderSize(options: android.os.Bundle): Pair<Int, Int> {
-            val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300).coerceAtLeast(120)
-            val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190).coerceAtLeast(90)
-            val aspect = (widthDp.toDouble() / heightDp.toDouble()).coerceIn(0.75, 2.60)
-
-            var width = sqrt(MAX_PUBLISH_PIXELS * aspect).roundToInt()
-            var height = sqrt(MAX_PUBLISH_PIXELS / aspect).roundToInt()
-
-            if (width > MAX_PUBLISH_WIDTH) {
-                width = MAX_PUBLISH_WIDTH
-                height = (width / aspect).roundToInt()
-            }
-            if (height > MAX_PUBLISH_HEIGHT) {
-                height = MAX_PUBLISH_HEIGHT
-                width = (height * aspect).roundToInt()
-            }
-
-            return width.coerceAtLeast(320) to height.coerceAtLeast(220)
-        }
-
         private fun publishFrame(
             context: Context,
             manager: AppWidgetManager,
@@ -196,15 +180,28 @@ class MayaWidgetProvider : AppWidgetProvider() {
                 manager.updateAppWidget(id, views)
             }
 
-            val normal = runCatching { publish(frame) }
-            if (normal.isSuccess) return Result.success(Unit)
+            val nativeResult = runCatching { publish(frame) }
+            if (nativeResult.isSuccess) return Result.success(Unit)
 
-            Log.w(TAG, "HQ RemoteViews publish failed; retrying with smaller classic frame", normal.exceptionOrNull())
+            Log.w(TAG, "Native-density RemoteViews publish failed; retrying safe HQ payload", nativeResult.exceptionOrNull())
             return runCatching {
-                val aspect = frame.width.toDouble() / frame.height.toDouble()
-                val fallbackWidth = sqrt(FALLBACK_PIXELS * aspect).roundToInt().coerceAtLeast(320)
-                val fallbackHeight = (fallbackWidth / aspect).roundToInt().coerceAtLeast(200)
-                val smaller = Bitmap.createScaledBitmap(frame, fallbackWidth, fallbackHeight, true)
+                val aspect = (frame.width.toDouble() / frame.height.toDouble()).coerceIn(0.75, 2.60)
+                var fallbackWidth = sqrt(FALLBACK_PIXELS * aspect).roundToInt()
+                var fallbackHeight = sqrt(FALLBACK_PIXELS / aspect).roundToInt()
+                if (fallbackWidth > FALLBACK_MAX_WIDTH) {
+                    fallbackWidth = FALLBACK_MAX_WIDTH
+                    fallbackHeight = (fallbackWidth / aspect).roundToInt()
+                }
+                if (fallbackHeight > FALLBACK_MAX_HEIGHT) {
+                    fallbackHeight = FALLBACK_MAX_HEIGHT
+                    fallbackWidth = (fallbackHeight * aspect).roundToInt()
+                }
+                val smaller = Bitmap.createScaledBitmap(
+                    frame,
+                    fallbackWidth.coerceAtLeast(320),
+                    fallbackHeight.coerceAtLeast(220),
+                    true
+                )
                 publish(smaller)
             }
         }
