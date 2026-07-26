@@ -38,16 +38,27 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        val sidePad = w * 0.10f
         val radius = min(w * 0.39f, h * 0.43f)
         val cx = w / 2f
         val baselineY = h * 0.57f
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(3f, w * 0.006f)
-        canvas.drawLine(sidePad, baselineY, w - sidePad, baselineY, paint)
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
+
+        // Keep only short, symmetric horizon tails outside the circle.
+        val horizonTail = radius * 0.10f
+        val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
+        val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
+
+        // Main horizon and upper semicircle keep the original stroke weight.
+        val mainStroke = max(3f, w * 0.006f)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = mainStroke
+        canvas.drawLine(horizonStartX, baselineY, horizonEndX, baselineY, paint)
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
+
+        // Close the shape with a lower semicircle. It is deliberately two times thinner and is
+        // drawn before all text, so the calendar labels remain visually in the foreground.
+        paint.strokeWidth = mainStroke / 2f
+        canvas.drawArc(arcRect, 0f, 180f, false, paint)
 
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
@@ -73,8 +84,7 @@ object WidgetRenderer {
             }
         }.coerceAtLeast(0)
 
-        // Keep the Mayan numeral anchored to a stable visual center inside the semicircle.
-        // This position matches the user's marked target and does not depend on the value/digit count.
+        // Keep the Mayan numeral anchored to a stable visual center inside the upper semicircle.
         val numeralY = baselineY - radius * 0.42f
         val numeralHeight = radius * 0.52f
         drawMayanNumber(
@@ -262,83 +272,73 @@ object WidgetRenderer {
     ) {
         paint.style = Paint.Style.FILL
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        paint.textAlign = Paint.Align.CENTER
 
-        val longText = mayaDate.longCount
-        val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
+        // Restore the typography and spacing of the earlier reference layout: a large Long Count,
+        // a slightly narrower Tzolkin + Haab row, then City, Country. Only the whole block is shifted
+        // downward so the first row has a clear empty gap below the horizon.
+        val longTargetWidth = radius * 1.94f
+        val roundTargetWidth = radius * 1.62f
+        val locationTargetWidth = radius * 1.62f
+        val longTextSize = max(30f, width * 0.095f)
+        val roundTextSize = max(27f, width * 0.067f)
+        val locationTextSize = max(22f, width * 0.043f)
 
-        // v0.2.5: exactly 20% larger than the v0.2.4 calendar labels.
-        val longTextSize = max(28.8f, width * 0.0804f)
-        val roundTextSize = max(26.4f, width * 0.066f)
-
-        // Stretch the complete calendar row along almost the whole horizon line while preserving
-        // an explicit protected gap between Long Count and Tzolkin + Haab.
-        val rowMaxWidth = width * 0.76f
-        val requiredGap = max(width * 0.050f, radius * 0.15f)
-
+        paint.textSize = longTextSize
         paint.textScaleX = 1f
-        paint.textAlign = Paint.Align.LEFT
-        paint.textSize = longTextSize
-        val longNaturalWidth = paint.measureText(longText).coerceAtLeast(1f)
-        paint.textSize = roundTextSize
-        val roundNaturalWidth = paint.measureText(roundText).coerceAtLeast(1f)
-
-        // Use the available line length as fully as possible. If the enlarged text is wider than
-        // the row, both labels are reduced by the same horizontal factor; otherwise they are allowed
-        // to expand modestly. The protected gap itself is never scaled away.
-        val availableForText = (rowMaxWidth - requiredGap).coerceAtLeast(1f)
-        val fitScale = availableForText / (longNaturalWidth + roundNaturalWidth)
-        val commonScale = fitScale.coerceAtMost(1.18f)
-        val longWidth = longNaturalWidth * commonScale
-        val roundWidth = roundNaturalWidth * commonScale
-        val totalWidth = longWidth + requiredGap + roundWidth
-        val startX = width / 2f - totalWidth / 2f
-
-        // Keep the top of the enlarged letters safely below the horizon line.
-        paint.textSize = longTextSize
         val longMetrics = paint.fontMetrics
-        val safeTop = baselineY + max(height * 0.055f, radius * 0.13f)
-        val rowBaseline = safeTop - longMetrics.top
+        val topGap = max(height * 0.030f, radius * 0.075f)
+        val longCountY = baselineY + topGap - longMetrics.top
 
-        paint.textScaleX = commonScale
-        paint.textSize = longTextSize
-        canvas.drawText(longText, startX, rowBaseline, paint)
+        // Preserve approximately the same vertical rhythm as the old screenshot.
+        val calendarRoundY = longCountY + height * 0.130f
+        val locationY = calendarRoundY + height * 0.120f
 
-        paint.textSize = roundTextSize
-        canvas.drawText(roundText, startX + longWidth + requiredGap, rowBaseline, paint)
+        drawTextAtTargetWidth(
+            canvas = canvas,
+            paint = paint,
+            text = mayaDate.longCount,
+            centerX = width / 2f,
+            baselineY = longCountY,
+            targetWidth = longTargetWidth,
+            preferredTextSize = longTextSize,
+            minScaleX = 0.78f,
+            maxScaleX = 1.22f
+        )
 
-        // Place City, Country on its own centered row below the calendar row with another
-        // guaranteed vertical gap.
+        val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
+        drawTextAtTargetWidth(
+            canvas = canvas,
+            paint = paint,
+            text = roundText,
+            centerX = width / 2f,
+            baselineY = calendarRoundY,
+            targetWidth = roundTargetWidth,
+            preferredTextSize = roundTextSize,
+            minScaleX = 0.64f,
+            maxScaleX = 0.92f
+        )
+
         if (settings.showLocationName) {
             val label = listOf(settings.cityName.trim(), settings.countryName.trim())
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
             if (label.isNotBlank()) {
-                paint.textScaleX = 1f
-                paint.textAlign = Paint.Align.CENTER
-                val locationTextSize = max(23f, width * 0.047f)
-                paint.textSize = locationTextSize
-                val locationMetrics = paint.fontMetrics
-                val rowBottom = rowBaseline + max(longMetrics.bottom, paint.fontMetrics.bottom)
-                val locationTop = rowBottom + max(height * 0.035f, radius * 0.09f)
-                val locationBaseline = locationTop - locationMetrics.top
-
-                val locationTargetWidth = radius * 1.70f
                 drawTextAtTargetWidth(
                     canvas = canvas,
                     paint = paint,
                     text = label,
                     centerX = width / 2f,
-                    baselineY = locationBaseline,
+                    baselineY = locationY,
                     targetWidth = locationTargetWidth,
                     preferredTextSize = locationTextSize,
-                    minScaleX = 0.68f,
+                    minScaleX = 0.72f,
                     maxScaleX = 1.0f
                 )
             }
         }
 
         paint.textScaleX = 1f
-        paint.textAlign = Paint.Align.CENTER
     }
 
     private fun drawTextAtTargetWidth(
