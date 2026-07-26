@@ -262,65 +262,82 @@ object WidgetRenderer {
     ) {
         paint.style = Paint.Style.FILL
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-        paint.textAlign = Paint.Align.CENTER
 
-        // Long Count and Tzolkin + Haab share one centered row directly below the horizon.
-        val calendarRowY = baselineY + height * 0.135f
-        val locationY = baselineY + height * 0.275f
-        val rowTargetWidth = radius * 1.94f
-        val rowGap = radius * 0.07f
-        val longTargetWidth = radius * 0.82f
-        val roundTargetWidth = rowTargetWidth - rowGap - longTargetWidth
-        val rowStartX = width / 2f - rowTargetWidth / 2f
-        val longCenterX = rowStartX + longTargetWidth / 2f
-        val roundCenterX = rowStartX + longTargetWidth + rowGap + roundTargetWidth / 2f
-
-        drawTextAtTargetWidth(
-            canvas = canvas,
-            paint = paint,
-            text = mayaDate.longCount,
-            centerX = longCenterX,
-            baselineY = calendarRowY,
-            targetWidth = longTargetWidth,
-            preferredTextSize = max(21f, width * 0.058f),
-            minScaleX = 0.70f,
-            maxScaleX = 1.20f
-        )
-
+        val longText = mayaDate.longCount
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
-        drawTextAtTargetWidth(
-            canvas = canvas,
-            paint = paint,
-            text = roundText,
-            centerX = roundCenterX,
-            baselineY = calendarRowY,
-            targetWidth = roundTargetWidth,
-            preferredTextSize = max(19f, width * 0.047f),
-            minScaleX = 0.55f,
-            maxScaleX = 1.0f
-        )
 
+        // Make both calendar labels noticeably larger than v0.2.3.
+        val longTextSize = max(24f, width * 0.067f)
+        val roundTextSize = max(22f, width * 0.055f)
+
+        // Keep a mandatory visual gap between the two labels. The complete row may use a little
+        // more than the semicircle diameter, but remains centered under it.
+        val rowMaxWidth = min(width * 0.86f, radius * 2.18f)
+        val requiredGap = max(width * 0.050f, radius * 0.15f)
+
+        paint.textScaleX = 1f
+        paint.textAlign = Paint.Align.LEFT
+        paint.textSize = longTextSize
+        val longNaturalWidth = paint.measureText(longText).coerceAtLeast(1f)
+        paint.textSize = roundTextSize
+        val roundNaturalWidth = paint.measureText(roundText).coerceAtLeast(1f)
+
+        // A common horizontal scale preserves the relative typography and guarantees that the
+        // texts can never collide: their measured widths plus the fixed gap always fit the row.
+        val availableForText = (rowMaxWidth - requiredGap).coerceAtLeast(1f)
+        val commonScale = min(1f, availableForText / (longNaturalWidth + roundNaturalWidth))
+        val longWidth = longNaturalWidth * commonScale
+        val roundWidth = roundNaturalWidth * commonScale
+        val totalWidth = longWidth + requiredGap + roundWidth
+        val startX = width / 2f - totalWidth / 2f
+
+        // Use the actual font metrics to guarantee a clear gap below the horizon line, instead of
+        // relying on a baseline percentage that can intersect the line on different widget sizes.
+        paint.textSize = longTextSize
+        val longMetrics = paint.fontMetrics
+        val safeTop = baselineY + max(height * 0.050f, radius * 0.12f)
+        val rowBaseline = safeTop - longMetrics.top
+
+        paint.textScaleX = commonScale
+        paint.textSize = longTextSize
+        canvas.drawText(longText, startX, rowBaseline, paint)
+
+        paint.textSize = roundTextSize
+        canvas.drawText(roundText, startX + longWidth + requiredGap, rowBaseline, paint)
+
+        // Place City, Country on its own centered row below the calendar row with another
+        // guaranteed vertical gap.
         if (settings.showLocationName) {
             val label = listOf(settings.cityName.trim(), settings.countryName.trim())
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
             if (label.isNotBlank()) {
-                val locationTargetWidth = radius * 1.55f
+                paint.textScaleX = 1f
+                paint.textAlign = Paint.Align.CENTER
+                val locationTextSize = max(23f, width * 0.047f)
+                paint.textSize = locationTextSize
+                val locationMetrics = paint.fontMetrics
+                val rowBottom = rowBaseline + max(longMetrics.bottom, paint.fontMetrics.bottom)
+                val locationTop = rowBottom + max(height * 0.035f, radius * 0.09f)
+                val locationBaseline = locationTop - locationMetrics.top
+
+                val locationTargetWidth = radius * 1.70f
                 drawTextAtTargetWidth(
                     canvas = canvas,
                     paint = paint,
                     text = label,
                     centerX = width / 2f,
-                    baselineY = locationY,
+                    baselineY = locationBaseline,
                     targetWidth = locationTargetWidth,
-                    preferredTextSize = max(22f, width * 0.043f),
-                    minScaleX = 0.72f,
+                    preferredTextSize = locationTextSize,
+                    minScaleX = 0.68f,
                     maxScaleX = 1.0f
                 )
             }
         }
 
         paint.textScaleX = 1f
+        paint.textAlign = Paint.Align.CENTER
     }
 
     private fun drawTextAtTargetWidth(
