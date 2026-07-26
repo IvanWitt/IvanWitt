@@ -32,6 +32,7 @@ object WidgetRenderer {
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = settings.color
+            alpha = 255
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
         }
@@ -39,17 +40,26 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        val radius = min(w * 0.39f, h * 0.43f)
+        // Keep enough room above for the external indicator and below for all three text rows.
+        // This avoids the clipped fragments that appeared at the bottom of short widget sizes.
+        val radius = min(w * 0.39f, h * 0.40f)
         val cx = w / 2f
-        val baselineY = h * 0.57f
+        val baselineY = h * 0.51f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
 
-        // Slightly longer but still symmetric horizon tails outside the circle.
+        // Symmetric short horizon tails outside the upper semicircle.
         val horizonTail = radius * 0.14f
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
 
-        // Main horizon and upper semicircle use the selected widget color.
+        // Lower half: a 30%-opacity neutral gray background with no outline.
+        // Draw it first so all text and the horizon stay crisp above it.
+        paint.style = Paint.Style.FILL
+        paint.color = Color.GRAY
+        paint.alpha = (255 * 0.30f).roundToInt()
+        canvas.drawArc(arcRect, 0f, 180f, true, paint)
+
+        // Restore the selected widget color and full opacity before all foreground elements.
         val mainStroke = max(3f, w * 0.006f)
         paint.style = Paint.Style.STROKE
         paint.color = settings.color
@@ -58,20 +68,9 @@ object WidgetRenderer {
         canvas.drawLine(horizonStartX, baselineY, horizonEndX, baselineY, paint)
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
 
-        // The lower semicircle is now a neutral gray guide at 30% opacity.
-        // It stays behind the text and keeps the lighter half-stroke from the previous design.
-        paint.color = Color.GRAY
-        paint.alpha = (255 * 0.30f).roundToInt()
-        paint.strokeWidth = mainStroke / 2f
-        canvas.drawArc(arcRect, 0f, 180f, false, paint)
-
-        // Restore the normal widget color before drawing ticks and numerals.
-        paint.color = settings.color
-        paint.alpha = 255
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // One indicator only: a small outlined white ring outside the upper arc.
-        // It follows the same rise-to-set progress previously represented by the filled dot.
+        // One position indicator only: a larger outlined white ring outside the upper arc.
         state.markerDegrees?.let {
             drawPositionRing(canvas, paint, cx, baselineY, radius, it)
         }
@@ -88,7 +87,6 @@ object WidgetRenderer {
             }
         }.coerceAtLeast(0)
 
-        // Keep the Mayan numeral anchored to a stable visual center inside the upper semicircle.
         val numeralY = baselineY - radius * 0.42f
         val numeralHeight = radius * 0.52f
         drawMayanNumber(
@@ -123,6 +121,8 @@ object WidgetRenderer {
         isSun: Boolean
     ) {
         paint.style = Paint.Style.STROKE
+        paint.color = paint.color
+        paint.alpha = 255
         paint.strokeWidth = max(2f, radius * 0.012f)
 
         for (deg in 0..180 step 15) {
@@ -150,8 +150,6 @@ object WidgetRenderer {
         degrees: Double
     ) {
         val theta = PI - degrees.coerceIn(0.0, 180.0) * PI / 180.0
-
-        // Put the marker clearly outside the semicircle, close to the distance marked on the screenshot.
         val indicatorRadius = radius * 1.18f
         val x = cx + (indicatorRadius * cos(theta)).toFloat()
         val y = baselineY - (indicatorRadius * sin(theta)).toFloat()
@@ -164,8 +162,8 @@ object WidgetRenderer {
         paint.color = Color.WHITE
         paint.alpha = 255
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(3f, radius * 0.018f)
-        val ringRadius = max(7f, radius * 0.035f)
+        paint.strokeWidth = max(3.5f, radius * 0.020f)
+        val ringRadius = max(9f, radius * 0.050f)
         canvas.drawCircle(x, y, ringRadius, paint)
 
         paint.color = oldColor
@@ -203,6 +201,8 @@ object WidgetRenderer {
         width: Float,
         height: Float
     ) {
+        paint.color = paint.color
+        paint.alpha = 255
         paint.style = Paint.Style.FILL
 
         if (digit == 0) {
@@ -274,24 +274,37 @@ object WidgetRenderer {
         paint.color = settings.color
         paint.alpha = 255
 
-        // Keep the established typography, but move the complete text block just a little closer
-        // to the horizon while preserving a visible gap above the Long Count.
         val longTargetWidth = radius * 1.94f
         val roundTargetWidth = radius * 1.62f
-        val locationTargetWidth = radius * 1.62f
+        val locationTargetWidth = radius * 1.70f
         val longTextSize = max(30f, width * 0.095f)
         val roundTextSize = max(27f, width * 0.067f)
         val locationTextSize = max(22f, width * 0.043f)
 
+        // Position rows from their actual font metrics, not fixed baselines. This keeps every glyph
+        // inside the bitmap and removes the small clipped white fragments at the bottom.
+        val topGap = max(height * 0.016f, radius * 0.040f)
+        val rowGap = max(2f, height * 0.006f)
+
         paint.textSize = longTextSize
         paint.textScaleX = 1f
         val longMetrics = paint.fontMetrics
-        val topGap = max(height * 0.022f, radius * 0.055f)
-        val longCountY = baselineY + topGap - longMetrics.top
+        val longTop = baselineY + topGap
+        val longCountY = longTop - longMetrics.top
+        val longBottom = longCountY + longMetrics.bottom
 
-        // Preserve the existing vertical rhythm between all three rows.
-        val calendarRoundY = longCountY + height * 0.130f
-        val locationY = calendarRoundY + height * 0.120f
+        paint.textSize = roundTextSize
+        val roundMetrics = paint.fontMetrics
+        val roundTop = longBottom + rowGap
+        val calendarRoundY = roundTop - roundMetrics.top
+        val roundBottom = calendarRoundY + roundMetrics.bottom
+
+        paint.textSize = locationTextSize
+        val locationMetrics = paint.fontMetrics
+        val desiredLocationTop = roundBottom + rowGap
+        val bottomPadding = max(5f, height * 0.018f)
+        val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
+        val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
 
         drawTextAtTargetWidth(
             canvas = canvas,
@@ -337,7 +350,11 @@ object WidgetRenderer {
             }
         }
 
+        paint.color = settings.color
+        paint.alpha = 255
+        paint.style = Paint.Style.FILL
         paint.textScaleX = 1f
+        paint.textAlign = Paint.Align.CENTER
     }
 
     private fun drawTextAtTargetWidth(
@@ -351,6 +368,8 @@ object WidgetRenderer {
         minScaleX: Float,
         maxScaleX: Float
     ) {
+        paint.alpha = 255
+        paint.style = Paint.Style.FILL
         paint.textSize = preferredTextSize
         paint.textScaleX = 1f
         val measured = paint.measureText(text).coerceAtLeast(1f)
