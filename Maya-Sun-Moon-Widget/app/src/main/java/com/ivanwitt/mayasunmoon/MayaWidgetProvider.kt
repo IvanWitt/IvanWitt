@@ -14,6 +14,8 @@ import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class MayaWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
@@ -92,12 +94,13 @@ class MayaWidgetProvider : AppWidgetProvider() {
         private const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
         private const val TAG = "MayaWidgetProvider"
 
-        // RemoteViews transports Bitmaps through the launcher process. Keep the published payload safely
-        // below the sizes that caused the v0.3.1 placeholder to remain on some Android launchers.
-        private const val PUBLISH_WIDTH = 420
-        private const val PUBLISH_HEIGHT = 263
-        private const val FALLBACK_PUBLISH_WIDTH = 320
-        private const val FALLBACK_PUBLISH_HEIGHT = 200
+        // Classic v0.2.11 artwork is now the only renderer.  The frame is drawn directly at the
+        // resolution that is sent to RemoteViews, so there is no extra downscale pass that blurs
+        // text, circle strokes, Sun or Moon.  The pixel budget stays below the Android Binder limit.
+        private const val MAX_PUBLISH_PIXELS = 220_000.0
+        private const val MAX_PUBLISH_WIDTH = 620
+        private const val MAX_PUBLISH_HEIGHT = 460
+        private const val FALLBACK_PIXELS = 125_000.0
 
         fun updateAll(context: Context) {
             val appContext = context.applicationContext
@@ -129,35 +132,25 @@ class MayaWidgetProvider : AppWidgetProvider() {
             val mayaDate = MayaCalendar.fromGregorian(localDate, settings.correlation)
 
             ids.forEach { id ->
-                // initialLayout already provides a visible placeholder while this background render runs.
-                // Do not overwrite an existing good frame with the placeholder on every refresh.
+                val options = manager.getAppWidgetOptions(id)
+                val (renderWidth, renderHeight) = chooseRenderSize(options)
+
                 val frameResult = runCatching {
-                    val foreground = WidgetRenderer.render(
-                        width = 480,
-                        height = 300,
+                    // Render the proven classic widget directly at publication resolution.
+                    // No DynamicScenery, no cloud artwork and no intermediate bitmap scaling.
+                    WidgetRenderer.render(
+                        width = renderWidth,
+                        height = renderHeight,
                         settings = settings,
                         snapshot = snapshot,
                         mayaDate = mayaDate,
                         nowMillis = now,
                         zone = zone
                     )
-
-                    // If the new scenery layer fails for any device-specific reason, preserve the proven
-                    // v0.2.11 foreground instead of leaving the widget blank/placeholder-only.
-                    runCatching {
-                        DynamicScenery.compose(
-                            width = 480,
-                            height = 300,
-                            snapshot = snapshot,
-                            foreground = foreground
-                        )
-                    }.onFailure {
-                        Log.e(TAG, "Dynamic scenery failed; using classic foreground", it)
-                    }.getOrElse { foreground }
                 }
 
-                frameResult.onSuccess { fullFrame ->
-                    val publishResult = publishFrame(context, manager, id, fullFrame)
+                frameResult.onSuccess { frame ->
+                    val publishResult = publishFrame(context, manager, id, frame)
                     if (publishResult.isFailure) {
                         Log.e(TAG, "Unable to publish rendered widget $id", publishResult.exceptionOrNull())
                         showErrorPlaceholder(context, manager, id)
@@ -169,11 +162,31 @@ class MayaWidgetProvider : AppWidgetProvider() {
             }
         }
 
+        private fun chooseRenderSize(options: android.os.Bundle): Pair<Int, Int> {
+            val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300).coerceAtLeast(120)
+            val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190).coerceAtLeast(90)
+            val aspect = (widthDp.toDouble() / heightDp.toDouble()).coerceIn(0.75, 2.60)
+
+            var width = sqrt(MAX_PUBLISH_PIXELS * aspect).roundToInt()
+            var height = sqrt(MAX_PUBLISH_PIXELS / aspect).roundToInt()
+
+            if (width > MAX_PUBLISH_WIDTH) {
+                width = MAX_PUBLISH_WIDTH
+                height = (width / aspect).roundToInt()
+            }
+            if (height > MAX_PUBLISH_HEIGHT) {
+                height = MAX_PUBLISH_HEIGHT
+                width = (height * aspect).roundToInt()
+            }
+
+            return width.coerceAtLeast(320) to height.coerceAtLeast(220)
+        }
+
         private fun publishFrame(
             context: Context,
             manager: AppWidgetManager,
             id: Int,
-            fullFrame: Bitmap
+            frame: Bitmap
         ): Result<Unit> {
             fun publish(bitmap: Bitmap) {
                 val views = RemoteViews(context.packageName, R.layout.maya_widget)
@@ -183,21 +196,16 @@ class MayaWidgetProvider : AppWidgetProvider() {
                 manager.updateAppWidget(id, views)
             }
 
-            val normal = runCatching {
-                val safe = Bitmap.createScaledBitmap(fullFrame, PUBLISH_WIDTH, PUBLISH_HEIGHT, true)
-                publish(safe)
-            }
+            val normal = runCatching { publish(frame) }
             if (normal.isSuccess) return Result.success(Unit)
 
-            Log.w(TAG, "Normal RemoteViews bitmap publish failed; retrying smaller payload", normal.exceptionOrNull())
+            Log.w(TAG, "HQ RemoteViews publish failed; retrying with smaller classic frame", normal.exceptionOrNull())
             return runCatching {
-                val tiny = Bitmap.createScaledBitmap(
-                    fullFrame,
-                    FALLBACK_PUBLISH_WIDTH,
-                    FALLBACK_PUBLISH_HEIGHT,
-                    true
-                )
-                publish(tiny)
+                val aspect = frame.width.toDouble() / frame.height.toDouble()
+                val fallbackWidth = sqrt(FALLBACK_PIXELS * aspect).roundToInt().coerceAtLeast(320)
+                val fallbackHeight = (fallbackWidth / aspect).roundToInt().coerceAtLeast(200)
+                val smaller = Bitmap.createScaledBitmap(frame, fallbackWidth, fallbackHeight, true)
+                publish(smaller)
             }
         }
 
