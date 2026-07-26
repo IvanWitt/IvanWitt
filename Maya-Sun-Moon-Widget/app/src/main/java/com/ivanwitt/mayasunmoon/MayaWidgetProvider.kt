@@ -91,11 +91,9 @@ class MayaWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "com.ivanwitt.mayasunmoon.REFRESH_WIDGET"
         private const val REQUEST_REFRESH = 4107
-        private const val NORMAL_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
-        private const val TIME_REFRESH_INTERVAL_MS = 60 * 1000L
+        private const val REFRESH_INTERVAL_MS = 60 * 1000L
         private const val TAG = "MayaWidgetProvider"
 
-        // Native-density rendering preserves the sharp typography approved in v0.3.4.
         private const val FALLBACK_PIXELS = 220_000.0
         private const val FALLBACK_MAX_WIDTH = 620
         private const val FALLBACK_MAX_HEIGHT = 460
@@ -228,16 +226,12 @@ class MayaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun scheduleNext(context: Context) {
-            val settings = WidgetPrefs.load(context)
-            val interval = if (settings.secondaryLineMode == SecondaryLineMode.TIME) {
-                TIME_REFRESH_INTERVAL_MS
-            } else {
-                NORMAL_REFRESH_INTERVAL_MS
-            }
+            val now = System.currentTimeMillis()
+            val untilNextMinute = REFRESH_INTERVAL_MS - (now % REFRESH_INTERVAL_MS)
             val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarm.set(
                 AlarmManager.ELAPSED_REALTIME,
-                SystemClock.elapsedRealtime() + interval,
+                SystemClock.elapsedRealtime() + untilNextMinute,
                 refreshPendingIntent(context)
             )
         }
