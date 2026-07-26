@@ -266,13 +266,13 @@ object WidgetRenderer {
         val longText = mayaDate.longCount
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
 
-        // Make both calendar labels noticeably larger than v0.2.3.
-        val longTextSize = max(24f, width * 0.067f)
-        val roundTextSize = max(22f, width * 0.055f)
+        // v0.2.5: exactly 20% larger than the v0.2.4 calendar labels.
+        val longTextSize = max(28.8f, width * 0.0804f)
+        val roundTextSize = max(26.4f, width * 0.066f)
 
-        // Keep a mandatory visual gap between the two labels. The complete row may use a little
-        // more than the semicircle diameter, but remains centered under it.
-        val rowMaxWidth = min(width * 0.86f, radius * 2.18f)
+        // Stretch the complete calendar row along almost the whole horizon line while preserving
+        // an explicit protected gap between Long Count and Tzolkin + Haab.
+        val rowMaxWidth = width * 0.76f
         val requiredGap = max(width * 0.050f, radius * 0.15f)
 
         paint.textScaleX = 1f
@@ -282,20 +282,21 @@ object WidgetRenderer {
         paint.textSize = roundTextSize
         val roundNaturalWidth = paint.measureText(roundText).coerceAtLeast(1f)
 
-        // A common horizontal scale preserves the relative typography and guarantees that the
-        // texts can never collide: their measured widths plus the fixed gap always fit the row.
+        // Use the available line length as fully as possible. If the enlarged text is wider than
+        // the row, both labels are reduced by the same horizontal factor; otherwise they are allowed
+        // to expand modestly. The protected gap itself is never scaled away.
         val availableForText = (rowMaxWidth - requiredGap).coerceAtLeast(1f)
-        val commonScale = min(1f, availableForText / (longNaturalWidth + roundNaturalWidth))
+        val fitScale = availableForText / (longNaturalWidth + roundNaturalWidth)
+        val commonScale = fitScale.coerceAtMost(1.18f)
         val longWidth = longNaturalWidth * commonScale
         val roundWidth = roundNaturalWidth * commonScale
         val totalWidth = longWidth + requiredGap + roundWidth
         val startX = width / 2f - totalWidth / 2f
 
-        // Use the actual font metrics to guarantee a clear gap below the horizon line, instead of
-        // relying on a baseline percentage that can intersect the line on different widget sizes.
+        // Keep the top of the enlarged letters safely below the horizon line.
         paint.textSize = longTextSize
         val longMetrics = paint.fontMetrics
-        val safeTop = baselineY + max(height * 0.050f, radius * 0.12f)
+        val safeTop = baselineY + max(height * 0.055f, radius * 0.13f)
         val rowBaseline = safeTop - longMetrics.top
 
         paint.textScaleX = commonScale
