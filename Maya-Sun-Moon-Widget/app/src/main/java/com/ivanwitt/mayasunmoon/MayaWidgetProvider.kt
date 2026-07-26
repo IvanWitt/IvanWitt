@@ -89,7 +89,10 @@ class MayaWidgetProvider : AppWidgetProvider() {
                 val widthPx = (widthDp * density).toInt().coerceAtLeast(480)
                 val heightPx = (heightDp * density).toInt().coerceAtLeast(300)
 
-                val bitmap = WidgetRenderer.render(
+                // Keep the existing clock/calendar renderer untouched as the foreground.  The new
+                // scenery is composed underneath it, so v0.2.11 remains easy to restore and the
+                // day/night experiment is isolated from the proven layout/astronomy code.
+                val foreground = WidgetRenderer.render(
                     width = widthPx,
                     height = heightPx,
                     settings = settings,
@@ -97,6 +100,12 @@ class MayaWidgetProvider : AppWidgetProvider() {
                     mayaDate = mayaDate,
                     nowMillis = now,
                     zone = zone
+                )
+                val bitmap = DynamicScenery.compose(
+                    width = widthPx,
+                    height = heightPx,
+                    snapshot = snapshot,
+                    foreground = foreground
                 )
 
                 val views = RemoteViews(context.packageName, R.layout.maya_widget)
