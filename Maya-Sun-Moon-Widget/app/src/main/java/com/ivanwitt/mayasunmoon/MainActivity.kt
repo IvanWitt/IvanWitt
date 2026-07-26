@@ -20,7 +20,6 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -159,11 +158,8 @@ class MainActivity : Activity() {
             setSingleLine(true)
         }
         root.addView(correlationInput, fullWidth())
-        root.addView(paragraph(
-            "По умолчанию: GMT 584283. Можно ввести любое целое значение корреляции."
-        ))
+        root.addView(paragraph("По умолчанию: GMT 584283. Можно ввести любое целое значение корреляции."))
 
-        // All purely visual options are grouped here as requested.
         root.addView(section("Дизайн"))
         root.addView(paragraph(
             "Нулевая позиция бегунков размера соответствует размерам текста на эталонном скриншоте. " +
@@ -185,13 +181,15 @@ class MainActivity : Activity() {
             setSingleLine(true)
         }
         root.addView(titleInput, fullWidth())
-        val titleColorRow = paletteRow(
-            label = "Цвет верхней подписи",
-            initialColor = selectedTitleColor,
-            onPreviewReady = { titleColorPreview = it },
-            onSelected = { selectedTitleColor = it }
+        root.addView(
+            paletteRow(
+                label = "Цвет верхней подписи",
+                initialColor = selectedTitleColor,
+                onPreviewReady = { titleColorPreview = it },
+                onSelected = { selectedTitleColor = it }
+            ),
+            fullWidth()
         )
-        root.addView(titleColorRow, fullWidth())
         val titleSize = sizeControl()
         titleSizeLabel = titleSize.first
         titleSizeSeek = titleSize.second
@@ -227,13 +225,15 @@ class MainActivity : Activity() {
         root.addView(secondarySizeSeek, fullWidth())
 
         root.addView(designLabel("Нижняя полуокружность"))
-        val lowerPanelColorRow = paletteRow(
-            label = "Цвет нижней полуокружности",
-            initialColor = selectedLowerPanelColor,
-            onPreviewReady = { lowerPanelColorPreview = it },
-            onSelected = { selectedLowerPanelColor = it }
+        root.addView(
+            paletteRow(
+                label = "Цвет нижней полуокружности",
+                initialColor = selectedLowerPanelColor,
+                onPreviewReady = { lowerPanelColorPreview = it },
+                onSelected = { selectedLowerPanelColor = it }
+            ),
+            fullWidth()
         )
-        root.addView(lowerPanelColorRow, fullWidth())
         lowerPanelTransparencyLabel = TextView(this).apply {
             textSize = 15f
             setPadding(0, dp(8), 0, 0)
@@ -273,11 +273,7 @@ class MainActivity : Activity() {
             setOnClickListener {
                 val settings = WidgetPrefs.load(this@MainActivity)
                 if (!settings.hasLocationFix) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Сначала обновите местоположение.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@MainActivity, "Сначала обновите местоположение.", Toast.LENGTH_LONG).show()
                 } else {
                     AstroSyncJobService.schedule(this@MainActivity)
                     Toast.makeText(
@@ -343,13 +339,12 @@ class MainActivity : Activity() {
             return
         }
 
-        val color = colors[colorSpinner.selectedItemPosition].value
         WidgetPrefs.saveDisplay(
-            this,
-            mode,
-            correlation,
-            color,
-            showLocationCheck.isChecked
+            context = this,
+            mode = mode,
+            correlation = correlation,
+            color = colors[colorSpinner.selectedItemPosition].value,
+            showLocationName = showLocationCheck.isChecked
         )
         WidgetPrefs.saveDesign(
             context = this,
@@ -378,74 +373,83 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(6), 0, dp(6))
         }
-        val text = TextView(this).apply {
-            this.text = label
-            textSize = 15f
-        }
-        row.addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(
+            TextView(this).apply {
+                text = label
+                textSize = 15f
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
 
         val preview = TextView(this).apply {
             contentDescription = "Выбранный цвет"
         }
         setPreviewColor(preview, initialColor)
-        row.addView(preview, LinearLayout.LayoutParams(dp(36), dp(36)).apply {
-            marginEnd = dp(8)
-        })
+        row.addView(
+            preview,
+            LinearLayout.LayoutParams(dp(36), dp(36)).apply {
+                setMargins(0, 0, dp(8), 0)
+            }
+        )
         onPreviewReady(preview)
 
-        val palette = Button(this).apply {
-            text = "🎨"
-            textSize = 20f
-            contentDescription = "Открыть палитру"
-            setOnClickListener {
-                showColorPalette(label) { color ->
-                    setPreviewColor(preview, color)
-                    onSelected(color)
+        row.addView(
+            Button(this).apply {
+                text = "🎨"
+                textSize = 20f
+                contentDescription = "Открыть палитру"
+                setOnClickListener {
+                    showColorPalette(label) { color ->
+                        setPreviewColor(preview, color)
+                        onSelected(color)
+                    }
                 }
-            }
-        }
-        row.addView(palette, LinearLayout.LayoutParams(dp(64), dp(48)))
+            },
+            LinearLayout.LayoutParams(dp(64), dp(48))
+        )
         return row
     }
 
     private fun showColorPalette(title: String, onSelected: (Int) -> Unit) {
-        val grid = GridLayout(this).apply {
-            columnCount = 4
-            setPadding(dp(12), dp(12), dp(12), dp(12))
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
-        lateinit var dialog: AlertDialog
+        val scroller = ScrollView(this).apply { addView(list) }
+        var dialog: AlertDialog? = null
+
         colors.forEach { choice ->
-            val cell = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(dp(4), dp(6), dp(4), dp(6))
-            }
-            val swatch = TextView(this).apply {
-                contentDescription = choice.label
-                background = colorDrawable(choice.value, dp(10), true)
+            val button = Button(this).apply {
+                text = choice.label
+                textSize = 14f
+                setTextColor(contrastTextColor(choice.value))
+                background = colorDrawable(choice.value, dp(8), true)
                 setOnClickListener {
                     onSelected(choice.value)
-                    dialog.dismiss()
+                    dialog?.dismiss()
                 }
             }
-            cell.addView(swatch, LinearLayout.LayoutParams(dp(48), dp(48)))
-            cell.addView(TextView(this).apply {
-                text = choice.label
-                textSize = 11f
-                gravity = Gravity.CENTER
-                maxLines = 2
-            }, LinearLayout.LayoutParams(dp(76), ViewGroup.LayoutParams.WRAP_CONTENT))
-            grid.addView(cell, GridLayout.LayoutParams().apply {
-                width = dp(82)
-                height = ViewGroup.LayoutParams.WRAP_CONTENT
+            list.addView(button, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(48)
+            ).apply {
+                setMargins(0, dp(3), 0, dp(3))
             })
         }
+
         dialog = AlertDialog.Builder(this)
             .setTitle(title)
-            .setView(grid)
+            .setView(scroller)
             .setNegativeButton("Отмена", null)
             .create()
         dialog.show()
+    }
+
+    private fun contrastTextColor(background: Int): Int {
+        val luminance = 0.299 * Color.red(background) +
+            0.587 * Color.green(background) +
+            0.114 * Color.blue(background)
+        return if (luminance > 150) Color.BLACK else Color.WHITE
     }
 
     private fun sizeControl(): Pair<TextView, SeekBar> {
@@ -459,7 +463,7 @@ class MainActivity : Activity() {
             progress = 50
             setOnSeekBarChangeListener(simpleSeekListener { value ->
                 val offset = value - 50
-                label.text = "Размер: ${if (offset > 0) "+" else ""}$offset%"
+                label.text = "Размер: ${formatSignedPercent(offset)}"
             })
         }
         return label to seek
@@ -468,18 +472,22 @@ class MainActivity : Activity() {
     private fun setSizeControl(seek: SeekBar, label: TextView, offset: Int) {
         val safe = offset.coerceIn(-50, 50)
         seek.progress = safe + 50
-        label.text = "Размер: ${if (safe > 0) "+" else ""}$safe%"
+        label.text = "Размер: ${formatSignedPercent(safe)}"
     }
+
+    private fun formatSignedPercent(value: Int): String =
+        (if (value > 0) "+" else "") + value + "%"
 
     private fun sizeOffset(seek: SeekBar): Int = (seek.progress - 50).coerceIn(-50, 50)
 
-    private fun simpleSeekListener(onChanged: (Int) -> Unit) = object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-            onChanged(progress)
+    private fun simpleSeekListener(onChanged: (Int) -> Unit): SeekBar.OnSeekBarChangeListener =
+        object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                onChanged(progress)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         }
-        override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
-        override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
-    }
 
     private fun setPreviewColor(view: TextView, color: Int) {
         view.background = colorDrawable(color, dp(8), false)
