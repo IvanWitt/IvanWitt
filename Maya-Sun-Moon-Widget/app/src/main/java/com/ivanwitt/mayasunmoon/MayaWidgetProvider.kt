@@ -7,13 +7,13 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.math.min
 
 class MayaWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
@@ -21,8 +21,16 @@ class MayaWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        updateWidgets(context, appWidgetManager, appWidgetIds)
         scheduleNext(context)
+        val pending = goAsync()
+        val appContext = context.applicationContext
+        Thread {
+            try {
+                renderWidgets(appContext, appWidgetManager, appWidgetIds)
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -32,7 +40,15 @@ class MayaWidgetProvider : AppWidgetProvider() {
         newOptions: android.os.Bundle
     ) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
-        updateWidgets(context, appWidgetManager, intArrayOf(appWidgetId))
+        val pending = goAsync()
+        val appContext = context.applicationContext
+        Thread {
+            try {
+                renderWidgets(appContext, appWidgetManager, intArrayOf(appWidgetId))
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 
     override fun onEnabled(context: Context) {
@@ -54,8 +70,16 @@ class MayaWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                updateAll(context)
                 scheduleNext(context)
+                val pending = goAsync()
+                val appContext = context.applicationContext
+                Thread {
+                    try {
+                        renderAllNow(appContext)
+                    } finally {
+                        pending.finish()
+                    }
+                }.start()
                 return
             }
         }
@@ -68,14 +92,26 @@ class MayaWidgetProvider : AppWidgetProvider() {
         private const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
         private const val TAG = "MayaWidgetProvider"
 
+        // RemoteViews transports Bitmaps through the launcher process. Keep the published payload safely
+        // below the sizes that caused the v0.3.1 placeholder to remain on some Android launchers.
+        private const val PUBLISH_WIDTH = 420
+        private const val PUBLISH_HEIGHT = 263
+        private const val FALLBACK_PUBLISH_WIDTH = 320
+        private const val FALLBACK_PUBLISH_HEIGHT = 200
+
         fun updateAll(context: Context) {
+            val appContext = context.applicationContext
+            Thread { renderAllNow(appContext) }.start()
+        }
+
+        private fun renderAllNow(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, MayaWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
-            updateWidgets(context, manager, ids)
+            renderWidgets(context, manager, ids)
         }
 
-        private fun updateWidgets(
+        private fun renderWidgets(
             context: Context,
             manager: AppWidgetManager,
             ids: IntArray
@@ -93,64 +129,88 @@ class MayaWidgetProvider : AppWidgetProvider() {
             val mayaDate = MayaCalendar.fromGregorian(localDate, settings.correlation)
 
             ids.forEach { id ->
-                // Important for launchers that enter placement mode before the first expensive render:
-                // publish a visible RemoteViews immediately, so the widget is never an invisible drag target.
-                showPlaceholder(context, manager, id)
-
-                val options = manager.getAppWidgetOptions(id)
-                val density = context.resources.displayMetrics.density
-                val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300)
-                val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190)
-
-                // The launcher scales the bitmap to the widget bounds. Capping render resolution makes the
-                // first placement fast and avoids oversized RemoteViews bitmap payloads on high-density phones.
-                val requestedWidthPx = (widthDp * density).toInt().coerceAtLeast(480)
-                val requestedHeightPx = (heightDp * density).toInt().coerceAtLeast(300)
-                val widthPx = min(requestedWidthPx, 760)
-                val heightPx = min(requestedHeightPx, 520)
-
-                val bitmapResult = runCatching {
+                // initialLayout already provides a visible placeholder while this background render runs.
+                // Do not overwrite an existing good frame with the placeholder on every refresh.
+                val frameResult = runCatching {
                     val foreground = WidgetRenderer.render(
-                        width = widthPx,
-                        height = heightPx,
+                        width = 480,
+                        height = 300,
                         settings = settings,
                         snapshot = snapshot,
                         mayaDate = mayaDate,
                         nowMillis = now,
                         zone = zone
                     )
-                    DynamicScenery.compose(
-                        width = widthPx,
-                        height = heightPx,
-                        snapshot = snapshot,
-                        foreground = foreground
-                    )
+
+                    // If the new scenery layer fails for any device-specific reason, preserve the proven
+                    // v0.2.11 foreground instead of leaving the widget blank/placeholder-only.
+                    runCatching {
+                        DynamicScenery.compose(
+                            width = 480,
+                            height = 300,
+                            snapshot = snapshot,
+                            foreground = foreground
+                        )
+                    }.onFailure {
+                        Log.e(TAG, "Dynamic scenery failed; using classic foreground", it)
+                    }.getOrElse { foreground }
                 }
 
-                bitmapResult.onSuccess { bitmap ->
-                    val views = RemoteViews(context.packageName, R.layout.maya_widget)
-                    views.setImageViewBitmap(R.id.widget_image, bitmap)
-                    views.setViewVisibility(R.id.widget_loading, View.GONE)
-                    attachSettingsClick(context, views, id)
-                    manager.updateAppWidget(id, views)
+                frameResult.onSuccess { fullFrame ->
+                    val publishResult = publishFrame(context, manager, id, fullFrame)
+                    if (publishResult.isFailure) {
+                        Log.e(TAG, "Unable to publish rendered widget $id", publishResult.exceptionOrNull())
+                        showErrorPlaceholder(context, manager, id)
+                    }
                 }.onFailure { error ->
                     Log.e(TAG, "Unable to render widget $id", error)
-                    // Leave the visible placeholder on the desktop instead of making the widget disappear.
-                    val views = RemoteViews(context.packageName, R.layout.maya_widget)
-                    views.setViewVisibility(R.id.widget_loading, View.VISIBLE)
-                    views.setTextViewText(R.id.widget_loading, "Maya Sun/Moon\nНажмите для настроек")
-                    attachSettingsClick(context, views, id)
-                    manager.updateAppWidget(id, views)
+                    showErrorPlaceholder(context, manager, id)
                 }
             }
         }
 
-        private fun showPlaceholder(context: Context, manager: AppWidgetManager, id: Int) {
-            val views = RemoteViews(context.packageName, R.layout.maya_widget)
-            views.setViewVisibility(R.id.widget_loading, View.VISIBLE)
-            views.setTextViewText(R.id.widget_loading, "Maya Sun/Moon")
-            attachSettingsClick(context, views, id)
-            manager.updateAppWidget(id, views)
+        private fun publishFrame(
+            context: Context,
+            manager: AppWidgetManager,
+            id: Int,
+            fullFrame: Bitmap
+        ): Result<Unit> {
+            fun publish(bitmap: Bitmap) {
+                val views = RemoteViews(context.packageName, R.layout.maya_widget)
+                views.setImageViewBitmap(R.id.widget_image, bitmap)
+                views.setViewVisibility(R.id.widget_loading, View.GONE)
+                attachSettingsClick(context, views, id)
+                manager.updateAppWidget(id, views)
+            }
+
+            val normal = runCatching {
+                val safe = Bitmap.createScaledBitmap(fullFrame, PUBLISH_WIDTH, PUBLISH_HEIGHT, true)
+                publish(safe)
+            }
+            if (normal.isSuccess) return Result.success(Unit)
+
+            Log.w(TAG, "Normal RemoteViews bitmap publish failed; retrying smaller payload", normal.exceptionOrNull())
+            return runCatching {
+                val tiny = Bitmap.createScaledBitmap(
+                    fullFrame,
+                    FALLBACK_PUBLISH_WIDTH,
+                    FALLBACK_PUBLISH_HEIGHT,
+                    true
+                )
+                publish(tiny)
+            }
+        }
+
+        private fun showErrorPlaceholder(context: Context, manager: AppWidgetManager, id: Int) {
+            runCatching {
+                val views = RemoteViews(context.packageName, R.layout.maya_widget)
+                views.setViewVisibility(R.id.widget_loading, View.VISIBLE)
+                views.setTextViewText(R.id.widget_loading, "Maya Sun/Moon\nНажмите для настроек")
+                attachSettingsClick(context, views, id)
+                manager.updateAppWidget(id, views)
+            }.onFailure {
+                Log.e(TAG, "Unable to publish even the fallback placeholder", it)
+            }
         }
 
         private fun attachSettingsClick(context: Context, views: RemoteViews, id: Int) {
