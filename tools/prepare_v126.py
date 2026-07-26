@@ -43,9 +43,10 @@ while '#startupSplash' in s:
 while 'function initStartupSplash(){' in s:
     fn_start=s.find('function initStartupSplash(){')
     line_start=s.rfind('\n',0,fn_start)+1
-    fn_end=s.find('async function importEvents(file){',fn_start)
-    if fn_end==-1:
-        raise SystemExit('Could not find importEvents after startup splash function')
+    candidates=[x for x in [s.find('async function importEvents(file){',fn_start),s.find("document.addEventListener('DOMContentLoaded'",fn_start)] if x!=-1]
+    if not candidates:
+        raise SystemExit('Could not find a safe boundary after startup splash function')
+    fn_end=min(candidates)
     fn_end=s.rfind('\n',0,fn_end)+1
     s=s[:line_start]+s[fn_end:]
 s=s.replace('initStartupSplash();','')
