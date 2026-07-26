@@ -31,7 +31,7 @@ data class WidgetSettings(
     val secondaryLineMode: SecondaryLineMode,
     val secondarySizeOffsetPercent: Int,
     val lowerPanelColor: Int,
-    val lowerPanelOpacityPercent: Int,
+    val lowerPanelTransparencyPercent: Int,
     val latitude: Double,
     val longitude: Double,
     val elevationMeters: Double,
@@ -56,7 +56,7 @@ object WidgetPrefs {
     private const val KEY_SECONDARY_MODE = "design_secondary_mode"
     private const val KEY_SECONDARY_SIZE = "design_secondary_size_offset"
     private const val KEY_LOWER_PANEL_COLOR = "design_lower_panel_color"
-    private const val KEY_LOWER_PANEL_OPACITY = "design_lower_panel_opacity"
+    private const val KEY_LOWER_PANEL_TRANSPARENCY = "design_lower_panel_transparency"
 
     private const val KEY_LAT = "latitude"
     private const val KEY_LON = "longitude"
@@ -75,8 +75,6 @@ object WidgetPrefs {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val rawMode = p.getString(KEY_MODE, CenterMode.VISIBLE_HOURS.name)
         val mode = when (rawMode) {
-            // Migration from v0.1: the old month/15th-day mode is replaced by the
-            // actual rise-to-set visibility interval requested for v0.2.
             "MONTH_VISIBLE_HOURS" -> CenterMode.VISIBLE_HOURS
             else -> runCatching { CenterMode.valueOf(rawMode ?: CenterMode.VISIBLE_HOURS.name) }
                 .getOrDefault(CenterMode.VISIBLE_HOURS)
@@ -108,7 +106,7 @@ object WidgetPrefs {
             secondaryLineMode = secondaryMode,
             secondarySizeOffsetPercent = p.getInt(KEY_SECONDARY_SIZE, 0).coerceIn(-50, 50),
             lowerPanelColor = p.getInt(KEY_LOWER_PANEL_COLOR, Color.rgb(45, 45, 45)),
-            lowerPanelOpacityPercent = p.getInt(KEY_LOWER_PANEL_OPACITY, 50).coerceIn(0, 100),
+            lowerPanelTransparencyPercent = p.getInt(KEY_LOWER_PANEL_TRANSPARENCY, 50).coerceIn(0, 100),
             latitude = Double.fromBits(p.getLong(KEY_LAT, DEFAULT_LAT.toBits())),
             longitude = Double.fromBits(p.getLong(KEY_LON, DEFAULT_LON.toBits())),
             elevationMeters = Double.fromBits(p.getLong(KEY_ELEV, 0.0.toBits())),
@@ -146,7 +144,7 @@ object WidgetPrefs {
         secondaryLineMode: SecondaryLineMode,
         secondarySizeOffsetPercent: Int,
         lowerPanelColor: Int,
-        lowerPanelOpacityPercent: Int
+        lowerPanelTransparencyPercent: Int
     ) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -158,7 +156,7 @@ object WidgetPrefs {
             .putString(KEY_SECONDARY_MODE, secondaryLineMode.name)
             .putInt(KEY_SECONDARY_SIZE, secondarySizeOffsetPercent.coerceIn(-50, 50))
             .putInt(KEY_LOWER_PANEL_COLOR, lowerPanelColor)
-            .putInt(KEY_LOWER_PANEL_OPACITY, lowerPanelOpacityPercent.coerceIn(0, 100))
+            .putInt(KEY_LOWER_PANEL_TRANSPARENCY, lowerPanelTransparencyPercent.coerceIn(0, 100))
             .apply()
     }
 
@@ -170,7 +168,6 @@ object WidgetPrefs {
             .putLong(KEY_ELEV, elevationMeters.toBits())
             .putLong(KEY_LOCATION_UPDATED, System.currentTimeMillis())
             .putBoolean(KEY_HAS_FIX, true)
-            // Do not display a place name belonging to the previous coordinates.
             .putString(KEY_CITY_NAME, "")
             .putString(KEY_COUNTRY_NAME, "")
             .apply()
