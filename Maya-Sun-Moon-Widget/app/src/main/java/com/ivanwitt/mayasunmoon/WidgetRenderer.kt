@@ -2,6 +2,7 @@ package com.ivanwitt.mayasunmoon
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -43,33 +44,36 @@ object WidgetRenderer {
         val baselineY = h * 0.57f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
 
-        // Keep only short, symmetric horizon tails outside the circle.
-        val horizonTail = radius * 0.10f
+        // Slightly longer but still symmetric horizon tails outside the circle.
+        val horizonTail = radius * 0.14f
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
 
-        // Main horizon and upper semicircle keep the original stroke weight.
+        // Main horizon and upper semicircle use the selected widget color.
         val mainStroke = max(3f, w * 0.006f)
         paint.style = Paint.Style.STROKE
+        paint.color = settings.color
+        paint.alpha = 255
         paint.strokeWidth = mainStroke
         canvas.drawLine(horizonStartX, baselineY, horizonEndX, baselineY, paint)
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
 
-        // Close the shape with a lower semicircle. It is deliberately two times thinner and is
-        // drawn before all text, so the calendar labels remain visually in the foreground.
+        // The lower semicircle is now a neutral gray guide at 30% opacity.
+        // It stays behind the text and keeps the lighter half-stroke from the previous design.
+        paint.color = Color.GRAY
+        paint.alpha = (255 * 0.30f).roundToInt()
         paint.strokeWidth = mainStroke / 2f
         canvas.drawArc(arcRect, 0f, 180f, false, paint)
 
+        // Restore the normal widget color before drawing ticks and numerals.
+        paint.color = settings.color
+        paint.alpha = 255
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // While the body is actually above the horizon, a thick ray marks its current position.
-        state.arcDegrees?.let {
-            drawActiveRay(canvas, paint, cx, baselineY, radius, it, isSun)
-        }
-
-        // A filled point remains on the arc whenever a rise-to-set interval is known.
+        // One indicator only: a small outlined white ring outside the upper arc.
+        // It follows the same rise-to-set progress previously represented by the filled dot.
         state.markerDegrees?.let {
-            drawPositionDot(canvas, paint, cx, baselineY, radius, it)
+            drawPositionRing(canvas, paint, cx, baselineY, radius, it)
         }
 
         val centerValue = when (settings.centerMode) {
@@ -137,30 +141,7 @@ object WidgetRenderer {
         }
     }
 
-    private fun drawActiveRay(
-        canvas: Canvas,
-        paint: Paint,
-        cx: Float,
-        baselineY: Float,
-        radius: Float,
-        degrees: Double,
-        isSun: Boolean
-    ) {
-        val theta = PI - degrees.coerceIn(0.0, 180.0) * PI / 180.0
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(7f, radius * 0.035f)
-
-        val inner = if (isSun) radius * 0.86f else radius * 0.72f
-        val outer = if (isSun) radius * 1.17f else radius * 0.99f
-
-        val x1 = cx + (inner * cos(theta)).toFloat()
-        val y1 = baselineY - (inner * sin(theta)).toFloat()
-        val x2 = cx + (outer * cos(theta)).toFloat()
-        val y2 = baselineY - (outer * sin(theta)).toFloat()
-        canvas.drawLine(x1, y1, x2, y2, paint)
-    }
-
-    private fun drawPositionDot(
+    private fun drawPositionRing(
         canvas: Canvas,
         paint: Paint,
         cx: Float,
@@ -169,11 +150,28 @@ object WidgetRenderer {
         degrees: Double
     ) {
         val theta = PI - degrees.coerceIn(0.0, 180.0) * PI / 180.0
-        val x = cx + (radius * cos(theta)).toFloat()
-        val y = baselineY - (radius * sin(theta)).toFloat()
-        val dotRadius = max(9f, radius * 0.045f)
-        paint.style = Paint.Style.FILL
-        canvas.drawCircle(x, y, dotRadius, paint)
+
+        // Put the marker clearly outside the semicircle, close to the distance marked on the screenshot.
+        val indicatorRadius = radius * 1.18f
+        val x = cx + (indicatorRadius * cos(theta)).toFloat()
+        val y = baselineY - (indicatorRadius * sin(theta)).toFloat()
+
+        val oldColor = paint.color
+        val oldAlpha = paint.alpha
+        val oldStyle = paint.style
+        val oldStrokeWidth = paint.strokeWidth
+
+        paint.color = Color.WHITE
+        paint.alpha = 255
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = max(3f, radius * 0.018f)
+        val ringRadius = max(7f, radius * 0.035f)
+        canvas.drawCircle(x, y, ringRadius, paint)
+
+        paint.color = oldColor
+        paint.alpha = oldAlpha
+        paint.style = oldStyle
+        paint.strokeWidth = oldStrokeWidth
     }
 
     private fun drawMayanNumber(
@@ -273,10 +271,11 @@ object WidgetRenderer {
         paint.style = Paint.Style.FILL
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
+        paint.color = settings.color
+        paint.alpha = 255
 
-        // Restore the typography and spacing of the earlier reference layout: a large Long Count,
-        // a slightly narrower Tzolkin + Haab row, then City, Country. Only the whole block is shifted
-        // downward so the first row has a clear empty gap below the horizon.
+        // Keep the established typography, but move the complete text block just a little closer
+        // to the horizon while preserving a visible gap above the Long Count.
         val longTargetWidth = radius * 1.94f
         val roundTargetWidth = radius * 1.62f
         val locationTargetWidth = radius * 1.62f
@@ -287,10 +286,10 @@ object WidgetRenderer {
         paint.textSize = longTextSize
         paint.textScaleX = 1f
         val longMetrics = paint.fontMetrics
-        val topGap = max(height * 0.030f, radius * 0.075f)
+        val topGap = max(height * 0.022f, radius * 0.055f)
         val longCountY = baselineY + topGap - longMetrics.top
 
-        // Preserve approximately the same vertical rhythm as the old screenshot.
+        // Preserve the existing vertical rhythm between all three rows.
         val calendarRoundY = longCountY + height * 0.130f
         val locationY = calendarRoundY + height * 0.120f
 
