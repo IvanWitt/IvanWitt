@@ -41,7 +41,13 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        val radius = min(w * 0.39f, h * 0.39f)
+        // The outer orbit is 1.34R and the Sun is the larger artwork (0.54R wide).
+        // Reserve enough room for orbit + half the body on every side so neither Sun nor Moon can
+        // ever be clipped at the top, bottom, left or right of the widget bitmap.
+        val outerExtentFactor = 1.34f + 0.54f / 2f
+        val safeRadiusByWidth = w * 0.485f / outerExtentFactor
+        val safeRadiusByHeight = h * 0.485f / outerExtentFactor
+        val radius = min(min(w * 0.39f, safeRadiusByWidth), safeRadiusByHeight)
         val cx = w / 2f
         val baselineY = h * 0.50f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
@@ -272,9 +278,12 @@ object WidgetRenderer {
         val longTextSize = max(30f, width * 0.095f)
         val roundTextSize = max(27f, width * 0.067f)
         val locationTextSize = max(22f, width * 0.043f)
-        val topGap = max(height * 0.016f, radius * 0.040f)
-        // Tighten only Long Count -> Tzolkin/Haab; keep the location row comfortably separate.
-        val calendarGap = max(0.5f, height * 0.0015f)
+
+        // Move Long Count noticeably closer to the horizon while retaining a small clear gap.
+        val topGap = max(2f, height * 0.006f)
+        // Font metrics include invisible descent/leading. A small negative metric gap brings the visible
+        // Long Count and Tzolkin/Haab rows closer without making their glyphs overlap.
+        val calendarGap = -max(4f, roundTextSize * 0.10f)
         val locationGap = max(2f, height * 0.006f)
 
         paint.textSize = longTextSize
