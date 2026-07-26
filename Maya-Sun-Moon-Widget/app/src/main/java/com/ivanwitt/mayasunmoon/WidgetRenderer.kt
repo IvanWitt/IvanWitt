@@ -73,7 +73,9 @@ object WidgetRenderer {
             }
         }.coerceAtLeast(0)
 
-        val numeralY = baselineY - radius * 0.52f
+        // Keep the Mayan numeral anchored to a stable visual center inside the semicircle.
+        // This position matches the user's marked target and does not depend on the value/digit count.
+        val numeralY = baselineY - radius * 0.42f
         val numeralHeight = radius * 0.52f
         drawMayanNumber(
             canvas = canvas,
@@ -262,12 +264,12 @@ object WidgetRenderer {
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
 
-        // The whole lower block is intentionally moved closer to the horizon line.
-        val longCountY = baselineY + height * 0.105f
-        val calendarRoundY = baselineY + height * 0.235f
-        val locationY = baselineY + height * 0.355f
+        // Keep every text row clearly below the horizon line with a visible gap.
+        val longCountY = baselineY + height * 0.125f
+        val calendarRoundY = baselineY + height * 0.255f
+        val locationY = baselineY + height * 0.375f
 
-        // Long Count should visually span almost the same width as the semicircle diameter.
+        // Keep the Long Count nearly as wide as the semicircle, but make its vertical size 25% smaller.
         val longTargetWidth = radius * 1.94f
         drawTextAtTargetWidth(
             canvas = canvas,
@@ -276,12 +278,12 @@ object WidgetRenderer {
             centerX = width / 2f,
             baselineY = longCountY,
             targetWidth = longTargetWidth,
-            preferredTextSize = max(30f, width * 0.095f),
-            minScaleX = 0.78f,
-            maxScaleX = 1.22f
+            preferredTextSize = max(22.5f, width * 0.07125f),
+            minScaleX = 0.90f,
+            maxScaleX = 1.66f
         )
 
-        // Tzolkin + Haab are taller and denser, while remaining narrower than Long Count.
+        // Tzolkin + Haab remain compact and narrower than the Long Count.
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
         val roundTargetWidth = radius * 1.62f
         drawTextAtTargetWidth(
