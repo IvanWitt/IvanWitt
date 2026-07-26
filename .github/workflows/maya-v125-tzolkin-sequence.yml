@@ -68,7 +68,21 @@ jobs:
           gradle-version: '8.13'
 
       - name: Build APK
-        run: gradle --no-daemon assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon assembleDebug --stacktrace > /tmp/gradle-build.log 2>&1
+          code=$?
+          tail -n 220 /tmp/gradle-build.log
+          exit $code
+
+      - name: Upload Gradle diagnostic log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log-v125
+          path: /tmp/gradle-build.log
+          if-no-files-found: error
 
       - name: Verify APK contents
         shell: bash
