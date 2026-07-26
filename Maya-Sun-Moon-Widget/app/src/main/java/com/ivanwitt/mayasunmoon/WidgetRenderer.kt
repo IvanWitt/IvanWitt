@@ -35,45 +35,56 @@ object WidgetRenderer {
             alpha = 255
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
+            isFilterBitmap = true
         }
 
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        // Keep enough room above for the external indicator and below for all three text rows.
-        // This avoids the clipped fragments that appeared at the bottom of short widget sizes.
-        val radius = min(w * 0.39f, h * 0.40f)
+        // Enough room for both realistic objects to travel slightly outside the complete circle.
+        val radius = min(w * 0.39f, h * 0.39f)
         val cx = w / 2f
-        val baselineY = h * 0.51f
+        val baselineY = h * 0.50f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
 
-        // Symmetric short horizon tails outside the upper semicircle.
         val horizonTail = radius * 0.14f
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
 
-        // Lower half: a 30%-opacity neutral gray background with no outline.
-        // Draw it first so all text and the horizon stay crisp above it.
+        // Lower half remains the 30%-opacity gray background for the invisible part of the cycle.
         paint.style = Paint.Style.FILL
         paint.color = Color.GRAY
         paint.alpha = (255 * 0.30f).roundToInt()
         canvas.drawArc(arcRect, 0f, 180f, true, paint)
 
-        // Restore the selected widget color and full opacity before all foreground elements.
-        val mainStroke = max(3f, w * 0.006f)
         paint.style = Paint.Style.STROKE
         paint.color = settings.color
         paint.alpha = 255
-        paint.strokeWidth = mainStroke
+        paint.strokeWidth = max(3f, w * 0.006f)
         canvas.drawLine(horizonStartX, baselineY, horizonEndX, baselineY, paint)
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
-
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // One position indicator only: a larger outlined white ring outside the upper arc.
-        state.markerDegrees?.let {
-            drawPositionRing(canvas, paint, cx, baselineY, radius, it)
-        }
+        // Both bodies are present at the same time. Above the horizon they are fully opaque;
+        // after set and until the next rise they continue across the lower half at 40% opacity.
+        drawCelestialBody(
+            canvas = canvas,
+            bitmap = CelestialAssets.sunBitmap(),
+            state = snapshot.sun,
+            cx = cx,
+            baselineY = baselineY,
+            radius = radius,
+            size = radius * 0.27f
+        )
+        drawCelestialBody(
+            canvas = canvas,
+            bitmap = CelestialAssets.moonBitmap(),
+            state = snapshot.moon,
+            cx = cx,
+            baselineY = baselineY,
+            radius = radius,
+            size = radius * 0.23f
+        )
 
         val centerValue = when (settings.centerMode) {
             CenterMode.ARC_DEGREES -> state.arcDegrees?.roundToInt()
@@ -112,6 +123,28 @@ object WidgetRenderer {
         return bitmap
     }
 
+    private fun drawCelestialBody(
+        canvas: Canvas,
+        bitmap: Bitmap,
+        state: BodyState,
+        cx: Float,
+        baselineY: Float,
+        radius: Float,
+        size: Float
+    ) {
+        val degrees = state.orbitDegrees ?: return
+        val theta = PI - degrees.coerceIn(0.0, 360.0) * PI / 180.0
+        val orbitRadius = radius * 1.08f
+        val x = cx + (orbitRadius * cos(theta)).toFloat()
+        val y = baselineY - (orbitRadius * sin(theta)).toFloat()
+        val half = size / 2f
+        val dst = RectF(x - half, y - half, x + half, y + half)
+        val imagePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            alpha = if (state.visible) 255 else (255 * 0.40f).roundToInt()
+        }
+        canvas.drawBitmap(bitmap, null, dst, imagePaint)
+    }
+
     private fun drawTicks(
         canvas: Canvas,
         paint: Paint,
@@ -129,47 +162,14 @@ object WidgetRenderer {
             val theta = PI - deg * PI / 180.0
             val major = deg % 45 == 0
             val tick = radius * if (major) 0.14f else 0.085f
-
             val r1 = if (isSun) radius + radius * 0.015f else radius - tick
             val r2 = if (isSun) radius + tick else radius - radius * 0.015f
-
             val x1 = cx + (r1 * cos(theta)).toFloat()
             val y1 = baselineY - (r1 * sin(theta)).toFloat()
             val x2 = cx + (r2 * cos(theta)).toFloat()
             val y2 = baselineY - (r2 * sin(theta)).toFloat()
             canvas.drawLine(x1, y1, x2, y2, paint)
         }
-    }
-
-    private fun drawPositionRing(
-        canvas: Canvas,
-        paint: Paint,
-        cx: Float,
-        baselineY: Float,
-        radius: Float,
-        degrees: Double
-    ) {
-        val theta = PI - degrees.coerceIn(0.0, 180.0) * PI / 180.0
-        val indicatorRadius = radius * 1.18f
-        val x = cx + (indicatorRadius * cos(theta)).toFloat()
-        val y = baselineY - (indicatorRadius * sin(theta)).toFloat()
-
-        val oldColor = paint.color
-        val oldAlpha = paint.alpha
-        val oldStyle = paint.style
-        val oldStrokeWidth = paint.strokeWidth
-
-        paint.color = Color.WHITE
-        paint.alpha = 255
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = max(3.5f, radius * 0.020f)
-        val ringRadius = max(9f, radius * 0.050f)
-        canvas.drawCircle(x, y, ringRadius, paint)
-
-        paint.color = oldColor
-        paint.alpha = oldAlpha
-        paint.style = oldStyle
-        paint.strokeWidth = oldStrokeWidth
     }
 
     private fun drawMayanNumber(
@@ -185,7 +185,6 @@ object WidgetRenderer {
         val digitGap = maxHeight * 0.08f
         val digitHeight = (maxHeight - digitGap * (digits.size - 1)) / digits.size
         val startY = centerY - maxHeight / 2f
-
         digits.forEachIndexed { index, digit ->
             val top = startY + index * (digitHeight + digitGap)
             drawMayanDigit(canvas, paint, digit, centerX, top, maxWidth, digitHeight)
@@ -223,7 +222,6 @@ object WidgetRenderer {
         val barH = max(4f, height * 0.075f)
         val gap = height * 0.075f
         val dotR = max(4f, height * 0.07f)
-
         val barBlockH = if (bars > 0) bars * barH + (bars - 1) * gap else 0f
         val dotBlockH = if (dots > 0) dotR * 2f else 0f
         val between = if (dots > 0 && bars > 0) height * 0.11f else 0f
@@ -234,12 +232,9 @@ object WidgetRenderer {
             val spacing = min(dotR * 2.7f, barW / max(1, dots).toFloat())
             val rowW = spacing * (dots - 1)
             val startX = cx - rowW / 2f
-            for (i in 0 until dots) {
-                canvas.drawCircle(startX + i * spacing, y + dotR, dotR, paint)
-            }
+            for (i in 0 until dots) canvas.drawCircle(startX + i * spacing, y + dotR, dotR, paint)
             y += dotBlockH + between
         }
-
         repeat(bars) {
             val rect = RectF(cx - barW / 2f, y, cx + barW / 2f, y + barH)
             canvas.drawRoundRect(rect, barH / 2f, barH / 2f, paint)
@@ -280,9 +275,6 @@ object WidgetRenderer {
         val longTextSize = max(30f, width * 0.095f)
         val roundTextSize = max(27f, width * 0.067f)
         val locationTextSize = max(22f, width * 0.043f)
-
-        // Position rows from their actual font metrics, not fixed baselines. This keeps every glyph
-        // inside the bitmap and removes the small clipped white fragments at the bottom.
         val topGap = max(height * 0.016f, radius * 0.040f)
         val rowGap = max(2f, height * 0.006f)
 
@@ -306,47 +298,20 @@ object WidgetRenderer {
         val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
         val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
 
-        drawTextAtTargetWidth(
-            canvas = canvas,
-            paint = paint,
-            text = mayaDate.longCount,
-            centerX = width / 2f,
-            baselineY = longCountY,
-            targetWidth = longTargetWidth,
-            preferredTextSize = longTextSize,
-            minScaleX = 0.78f,
-            maxScaleX = 1.22f
-        )
+        drawTextAtTargetWidth(canvas, paint, mayaDate.longCount, width / 2f, longCountY,
+            longTargetWidth, longTextSize, 0.78f, 1.22f)
 
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
-        drawTextAtTargetWidth(
-            canvas = canvas,
-            paint = paint,
-            text = roundText,
-            centerX = width / 2f,
-            baselineY = calendarRoundY,
-            targetWidth = roundTargetWidth,
-            preferredTextSize = roundTextSize,
-            minScaleX = 0.64f,
-            maxScaleX = 0.92f
-        )
+        drawTextAtTargetWidth(canvas, paint, roundText, width / 2f, calendarRoundY,
+            roundTargetWidth, roundTextSize, 0.64f, 0.92f)
 
         if (settings.showLocationName) {
             val label = listOf(settings.cityName.trim(), settings.countryName.trim())
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
             if (label.isNotBlank()) {
-                drawTextAtTargetWidth(
-                    canvas = canvas,
-                    paint = paint,
-                    text = label,
-                    centerX = width / 2f,
-                    baselineY = locationY,
-                    targetWidth = locationTargetWidth,
-                    preferredTextSize = locationTextSize,
-                    minScaleX = 0.72f,
-                    maxScaleX = 1.0f
-                )
+                drawTextAtTargetWidth(canvas, paint, label, width / 2f, locationY,
+                    locationTargetWidth, locationTextSize, 0.72f, 1.0f)
             }
         }
 
