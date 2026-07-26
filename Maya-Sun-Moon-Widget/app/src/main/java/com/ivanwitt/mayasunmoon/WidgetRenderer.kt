@@ -41,7 +41,6 @@ object WidgetRenderer {
         val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
 
-        // Enough room for both realistic objects to travel slightly outside the complete circle.
         val radius = min(w * 0.39f, h * 0.39f)
         val cx = w / 2f
         val baselineY = h * 0.50f
@@ -51,10 +50,10 @@ object WidgetRenderer {
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
 
-        // Lower half remains the 30%-opacity gray background for the invisible part of the cycle.
+        // Invisible half of the cycle: darker gray at 50% opacity, with no outline.
         paint.style = Paint.Style.FILL
-        paint.color = Color.GRAY
-        paint.alpha = (255 * 0.30f).roundToInt()
+        paint.color = Color.rgb(45, 45, 45)
+        paint.alpha = (255 * 0.50f).roundToInt()
         canvas.drawArc(arcRect, 0f, 180f, true, paint)
 
         paint.style = Paint.Style.STROKE
@@ -65,8 +64,8 @@ object WidgetRenderer {
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // Both bodies are present at the same time. Above the horizon they are fully opaque;
-        // after set and until the next rise they continue across the lower half at 40% opacity.
+        // Sun and Moon share one larger, perfectly concentric orbit around the existing circle.
+        // The orbit itself is intentionally not drawn: it is only their trajectory.
         drawCelestialBody(
             canvas = canvas,
             bitmap = CelestialAssets.sunBitmap(),
@@ -74,7 +73,7 @@ object WidgetRenderer {
             cx = cx,
             baselineY = baselineY,
             radius = radius,
-            size = radius * 0.27f
+            size = radius * 0.54f
         )
         drawCelestialBody(
             canvas = canvas,
@@ -83,7 +82,7 @@ object WidgetRenderer {
             cx = cx,
             baselineY = baselineY,
             radius = radius,
-            size = radius * 0.23f
+            size = radius * 0.46f
         )
 
         val centerValue = when (settings.centerMode) {
@@ -134,7 +133,7 @@ object WidgetRenderer {
     ) {
         val degrees = state.orbitDegrees ?: return
         val theta = PI - degrees.coerceIn(0.0, 360.0) * PI / 180.0
-        val orbitRadius = radius * 1.08f
+        val orbitRadius = radius * 1.34f
         val x = cx + (orbitRadius * cos(theta)).toFloat()
         val y = baselineY - (orbitRadius * sin(theta)).toFloat()
         val half = size / 2f
@@ -154,7 +153,6 @@ object WidgetRenderer {
         isSun: Boolean
     ) {
         paint.style = Paint.Style.STROKE
-        paint.color = paint.color
         paint.alpha = 255
         paint.strokeWidth = max(2f, radius * 0.012f)
 
@@ -200,7 +198,6 @@ object WidgetRenderer {
         width: Float,
         height: Float
     ) {
-        paint.color = paint.color
         paint.alpha = 255
         paint.style = Paint.Style.FILL
 
@@ -276,7 +273,9 @@ object WidgetRenderer {
         val roundTextSize = max(27f, width * 0.067f)
         val locationTextSize = max(22f, width * 0.043f)
         val topGap = max(height * 0.016f, radius * 0.040f)
-        val rowGap = max(2f, height * 0.006f)
+        // Tighten only Long Count -> Tzolkin/Haab; keep the location row comfortably separate.
+        val calendarGap = max(0.5f, height * 0.0015f)
+        val locationGap = max(2f, height * 0.006f)
 
         paint.textSize = longTextSize
         paint.textScaleX = 1f
@@ -287,31 +286,37 @@ object WidgetRenderer {
 
         paint.textSize = roundTextSize
         val roundMetrics = paint.fontMetrics
-        val roundTop = longBottom + rowGap
+        val roundTop = longBottom + calendarGap
         val calendarRoundY = roundTop - roundMetrics.top
         val roundBottom = calendarRoundY + roundMetrics.bottom
 
         paint.textSize = locationTextSize
         val locationMetrics = paint.fontMetrics
-        val desiredLocationTop = roundBottom + rowGap
+        val desiredLocationTop = roundBottom + locationGap
         val bottomPadding = max(5f, height * 0.018f)
         val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
         val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
 
-        drawTextAtTargetWidth(canvas, paint, mayaDate.longCount, width / 2f, longCountY,
-            longTargetWidth, longTextSize, 0.78f, 1.22f)
+        drawTextAtTargetWidth(
+            canvas, paint, mayaDate.longCount, width / 2f, longCountY,
+            longTargetWidth, longTextSize, 0.78f, 1.22f
+        )
 
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
-        drawTextAtTargetWidth(canvas, paint, roundText, width / 2f, calendarRoundY,
-            roundTargetWidth, roundTextSize, 0.64f, 0.92f)
+        drawTextAtTargetWidth(
+            canvas, paint, roundText, width / 2f, calendarRoundY,
+            roundTargetWidth, roundTextSize, 0.64f, 0.92f
+        )
 
         if (settings.showLocationName) {
             val label = listOf(settings.cityName.trim(), settings.countryName.trim())
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
             if (label.isNotBlank()) {
-                drawTextAtTargetWidth(canvas, paint, label, width / 2f, locationY,
-                    locationTargetWidth, locationTextSize, 0.72f, 1.0f)
+                drawTextAtTargetWidth(
+                    canvas, paint, label, width / 2f, locationY,
+                    locationTargetWidth, locationTextSize, 0.72f, 1.0f
+                )
             }
         }
 
