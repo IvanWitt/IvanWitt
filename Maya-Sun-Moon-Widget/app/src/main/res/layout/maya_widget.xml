@@ -13,4 +13,19 @@
         android:adjustViewBounds="true"
         android:contentDescription="@string/widget_name"
         android:scaleType="fitCenter" />
+
+    <TextView
+        android:id="@+id/widget_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="12dp"
+        android:text="Maya Sun/Moon"
+        android:textColor="#FFFFFFFF"
+        android:textSize="18sp"
+        android:shadowColor="#AA000000"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="3" />
+
 </FrameLayout>
