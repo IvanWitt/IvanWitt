@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Color
 
 enum class CenterMode {
-    ARC_DEGREES,
     VISIBLE_HOURS,
     CLOCK_12H
 }
@@ -67,7 +66,6 @@ object WidgetPrefs {
     private const val KEY_CITY_NAME = "city_name_en"
     private const val KEY_COUNTRY_NAME = "country_name_en"
 
-    // Moscow remains only as a visual fallback until an explicit location fix is saved.
     private const val DEFAULT_LAT = 55.7558
     private const val DEFAULT_LON = 37.6173
 
@@ -75,7 +73,7 @@ object WidgetPrefs {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val rawMode = p.getString(KEY_MODE, CenterMode.VISIBLE_HOURS.name)
         val mode = when (rawMode) {
-            "MONTH_VISIBLE_HOURS" -> CenterMode.VISIBLE_HOURS
+            "ARC_DEGREES", "MONTH_VISIBLE_HOURS" -> CenterMode.VISIBLE_HOURS
             else -> runCatching { CenterMode.valueOf(rawMode ?: CenterMode.VISIBLE_HOURS.name) }
                 .getOrDefault(CenterMode.VISIBLE_HOURS)
         }
