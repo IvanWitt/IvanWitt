@@ -33,6 +33,13 @@ jobs:
               p.write_text(s,'utf-8')
           PY
 
+      - name: Fix Android Javascript bridge method name
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/addJavaScriptInterface/addJavascriptInterface/g' app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          grep -q 'addJavascriptInterface' app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+
       - name: Verify Tzolkin chronology
         shell: bash
         run: |
