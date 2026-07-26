@@ -1,0 +1,108 @@
+name: Build Maya Calendar v1.2.5 Tzolkin Sequence
+
+on:
+  pull_request:
+    branches:
+      - feature/maya-calendar-stone-glyphs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tzolkin-kin-sequence
+
+      - name: Inject chronological Tzolkin sequence fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/assets/index.html')
+          s=p.read_text('utf-8')
+          tag='<script src="tzolkin-sequence-fix.js"></script>'
+          if tag not in s:
+              if '</body>' not in s:
+                  raise SystemExit('Missing </body>')
+              s=s.replace('</body>', tag+'\n</body>', 1)
+              p.write_text(s,'utf-8')
+          PY
+
+      - name: Fix Android Javascript bridge method name
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/addJavaScriptInterface/addJavascriptInterface/g' app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          grep -q 'addJavascriptInterface' app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+
+      - name: Verify Tzolkin chronology
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/src/main/assets/tzolkin-sequence-fix.js
+          grep -q 'tzolkin-sequence-fix.js' app/src/main/assets/index.html
+          python3 - <<'PY'
+          names=['Imix’','Ik’','Ak’b’al','K’an','Chikchan','Kimi','Manik’','Lamat','Muluk','Ok','Chuwen','Eb’','B’en','Ix','Men','K’ib’','Kab’an','Etz’nab’','Kawak','Ajaw']
+          cells=[]
+          for block in range(13):
+              for sign in range(20):
+                  kin=block*20+sign+1
+                  tone=(kin-1)%13+1
+                  seal=(kin-1)%20
+                  assert seal==sign
+                  cells.append((kin,tone,names[seal]))
+          assert [x[0] for x in cells] == list(range(1,261))
+          expected={1:(1,'Imix’'),2:(2,'Ik’'),13:(13,'B’en'),14:(1,'Ix'),20:(7,'Ajaw'),21:(8,'Imix’'),55:(3,'Men'),184:(2,'K’an'),185:(3,'Chikchan'),260:(13,'Ajaw')}
+          for kin,(tone,name) in expected.items():
+              actual=((kin-1)%13+1,names[(kin-1)%20])
+              assert actual==(tone,name),(kin,actual,(tone,name))
+          print('Verified KIN 1..260 chronological sequence')
+          PY
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set +e
+          gradle --no-daemon assembleDebug --stacktrace > /tmp/gradle-build.log 2>&1
+          code=$?
+          tail -n 220 /tmp/gradle-build.log
+          exit $code
+
+      - name: Upload Gradle diagnostic log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log-v125
+          path: /tmp/gradle-build.log
+          if-no-files-found: error
+
+      - name: Verify APK contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -p "$APK" assets/index.html | grep -q 'tzolkin-sequence-fix.js'
+          unzip -l "$APK" | grep -q 'assets/tzolkin-sequence-fix.js'
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.5-tzolkin-fixed.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.5-tzolkin-fixed
+          path: /tmp/apk/MayaCalendar-v1.2.5-tzolkin-fixed.apk
+          if-no-files-found: error
