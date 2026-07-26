@@ -1,0 +1,95 @@
+name: Build Maya Calendar v1.2.4 Stone Glyphs
+
+on:
+  push:
+    branches:
+      - feature/maya-calendar-stone-glyphs
+  pull_request:
+    branches:
+      - maya-final-base
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/maya-calendar-stone-glyphs
+
+      - name: Restore exact final HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat ui-v125/00.b64 ui-v125/01.b64 | tr -d '\n\r ' | base64 -d | gunzip > app/src/main/assets/index.html
+          echo 'fc595a486665e6eed427dd111ed8f7cff3d71b6d25d2b2b8437016874088abc6  app/src/main/assets/index.html' | sha256sum -c -
+
+      - name: Verify requested UI changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML=app/src/main/assets/index.html
+          grep -q '>Главная<' "$HTML"
+          grep -q 'На основании текущей даты рассчитываются Цолькин и Хааб' "$HTML"
+          ! grep -q 'id="sCorrelation"' "$HTML"
+          grep -q 'const dayNamesRu' "$HTML"
+          grep -q 'Имиш' "$HTML"
+          grep -q 'Чикчан' "$HTML"
+          grep -q 'Ахав' "$HTML"
+          grep -q 'const tzGlyphData' "$HTML"
+          grep -q 'const haabGlyphData' "$HTML"
+          grep -q 'Кумху' "$HTML"
+          grep -q 'Уайеб' "$HTML"
+          grep -q 'calendar-detail-tile.tz-west .big-kin' "$HTML"
+          grep -q 'color:#f5dfad!important' "$HTML"
+          grep -q 'direction-legend' "$HTML"
+          grep -q 'font-size:16px' "$HTML"
+          grep -q 'font-size:13px' "$HTML"
+          grep -q 'public void importJson()' app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+
+      - name: Verify JavaScript syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('app/src/main/assets/index.html').read_text('utf-8')
+          blocks=re.findall(r'<script[^>]*>(.*?)</script>',s,re.S)
+          Path('/tmp/maya.js').write_text('\n'.join(blocks),'utf-8')
+          PY
+          node --check /tmp/maya.js
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build APK
+        run: gradle --no-daemon assembleDebug --stacktrace
+
+      - name: Verify APK contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -p "$APK" assets/index.html > /tmp/apk-index.html
+          echo 'fc595a486665e6eed427dd111ed8f7cff3d71b6d25d2b2b8437016874088abc6  /tmp/apk-index.html' | sha256sum -c -
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.4-stone-debug.apk
+          sha256sum /tmp/apk/MayaCalendar-v1.2.4-stone-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.4-stone-debug
+          path: /tmp/apk/MayaCalendar-v1.2.4-stone-debug.apk
+          if-no-files-found: error
