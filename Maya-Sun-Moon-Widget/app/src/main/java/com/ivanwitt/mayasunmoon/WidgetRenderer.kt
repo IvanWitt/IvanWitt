@@ -8,6 +8,8 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -16,6 +18,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 object WidgetRenderer {
+    private val GREGORIAN_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM uuuu", Locale("ru", "RU"))
+    private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+
     fun render(
         width: Int,
         height: Int,
@@ -57,10 +62,13 @@ object WidgetRenderer {
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
 
-        // Invisible half of the cycle: darker gray at 50% opacity, with no outline.
+        // Lower half is a fill only. The design slider uses true transparency semantics:
+        // 0% = opaque, 100% = fully transparent.
         paint.style = Paint.Style.FILL
-        paint.color = Color.rgb(45, 45, 45)
-        paint.alpha = (255 * 0.50f).roundToInt()
+        paint.color = settings.lowerPanelColor
+        paint.alpha = (255f * (100 - settings.lowerPanelTransparencyPercent) / 100f)
+            .roundToInt()
+            .coerceIn(0, 255)
         canvas.drawArc(arcRect, 0f, 180f, true, paint)
 
         paint.style = Paint.Style.STROKE
@@ -71,8 +79,6 @@ object WidgetRenderer {
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
 
-        // Sun and Moon share one larger, perfectly concentric orbit around the existing circle.
-        // The orbit itself is intentionally not drawn: it is only their trajectory.
         drawCelestialBody(
             canvas = canvas,
             bitmap = CelestialAssets.sunBitmap(),
@@ -124,7 +130,9 @@ object WidgetRenderer {
             baselineY = baselineY,
             radius = radius,
             mayaDate = mayaDate,
-            settings = settings
+            settings = settings,
+            nowMillis = nowMillis,
+            zone = zone
         )
         return bitmap
     }
@@ -208,6 +216,7 @@ object WidgetRenderer {
     ) {
         paint.alpha = 255
         paint.style = Paint.Style.FILL
+        paint.color = paint.color
 
         if (digit == 0) {
             paint.style = Paint.Style.STROKE
@@ -266,39 +275,45 @@ object WidgetRenderer {
         baselineY: Float,
         radius: Float,
         mayaDate: MayaDate,
-        settings: WidgetSettings
+        settings: WidgetSettings,
+        nowMillis: Long,
+        zone: ZoneId
     ) {
         paint.style = Paint.Style.FILL
         paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
-        paint.color = settings.color
         paint.alpha = 255
         paint.isSubpixelText = true
 
-        // Geometry measured from the supplied reference screenshot. These ratios keep the Long Count
-        // essentially the diameter of the circle and the Tzolkin/Haab row distinctly narrower.
-        val longTargetWidth = radius * 1.96f
-        val roundTargetWidth = radius * 1.62f
+        // Zero-position defaults intentionally preserve the exact typography/spacing approved in v0.3.4.
+        val titleFactor = sizeFactor(settings.titleSizeOffsetPercent)
+        val primaryFactor = sizeFactor(settings.primarySizeOffsetPercent)
+        val secondaryFactor = sizeFactor(settings.secondarySizeOffsetPercent)
+
+        val longTargetWidth = radius * 1.96f * primaryFactor
+        val roundTargetWidth = radius * 1.62f * secondaryFactor
         val locationTargetWidth = radius * 1.70f
 
-        val titleTextSize = max(22f, radius * 0.165f)
-        val longTextSize = max(30f, radius * 0.285f)
-        val roundTextSize = max(24f, radius * 0.185f)
+        val titleTextSize = max(22f, radius * 0.165f) * titleFactor
+        val longTextSize = max(30f, radius * 0.285f) * primaryFactor
+        val roundTextSize = max(24f, radius * 0.185f) * secondaryFactor
         val locationTextSize = max(20f, radius * 0.125f)
 
-        // In the reference the author/title sits directly across the horizon line with the line
-        // visible behind it. Ivan Witt replaces the old Maya Sun/Moon label without changing style.
-        paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+        // Custom title occupies the same place and uses the same typeface as the approved reference.
+        paint.color = settings.titleColor
         paint.textSize = titleTextSize
         paint.textScaleX = 1f
-        paint.setShadowLayer(max(1.5f, radius * 0.008f), 0f, max(1f, radius * 0.004f), Color.argb(150, 0, 0, 0))
+        paint.setShadowLayer(
+            max(1.5f, radius * 0.008f),
+            0f,
+            max(1f, radius * 0.004f),
+            Color.argb(150, 0, 0, 0)
+        )
         val titleY = baselineY + titleTextSize * 0.36f
-        canvas.drawText("Ivan Witt", width / 2f, titleY, paint)
+        canvas.drawText(settings.titleText.ifBlank { "Ваш текст" }, width / 2f, titleY, paint)
         paint.clearShadowLayer()
 
-        // Reference spacing: Long Count begins about 0.10R below the horizon; the second row follows
-        // with a compact but visible gap. Font metrics are used so this remains stable at every size.
-        paint.typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+        paint.color = settings.color
         paint.textSize = longTextSize
         paint.textScaleX = 1f
         val longMetrics = paint.fontMetrics
@@ -319,14 +334,22 @@ object WidgetRenderer {
         val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
         val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
 
+        val instant = Instant.ofEpochMilli(nowMillis).atZone(zone)
+        val primaryText = when (settings.primaryLineMode) {
+            PrimaryLineMode.LONG_COUNT -> mayaDate.longCount
+            PrimaryLineMode.GREGORIAN_DATE -> instant.toLocalDate().format(GREGORIAN_FORMATTER)
+        }
         drawTextAtTargetWidth(
-            canvas, paint, mayaDate.longCount, width / 2f, longCountY,
+            canvas, paint, primaryText, width / 2f, longCountY,
             longTargetWidth, longTextSize, 0.88f, 1.12f
         )
 
-        val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
+        val secondaryText = when (settings.secondaryLineMode) {
+            SecondaryLineMode.TZOLKIN_HAAB -> "${mayaDate.tzolkin} / ${mayaDate.haab}"
+            SecondaryLineMode.TIME -> instant.toLocalTime().format(TIME_FORMATTER)
+        }
         drawTextAtTargetWidth(
-            canvas, paint, roundText, width / 2f, calendarRoundY,
+            canvas, paint, secondaryText, width / 2f, calendarRoundY,
             roundTargetWidth, roundTextSize, 0.82f, 1.08f
         )
 
@@ -349,6 +372,9 @@ object WidgetRenderer {
         paint.textAlign = Paint.Align.CENTER
         paint.clearShadowLayer()
     }
+
+    private fun sizeFactor(offsetPercent: Int): Float =
+        (1f + offsetPercent.coerceIn(-50, 50) / 100f).coerceIn(0.5f, 1.5f)
 
     private fun drawTextAtTargetWidth(
         canvas: Canvas,

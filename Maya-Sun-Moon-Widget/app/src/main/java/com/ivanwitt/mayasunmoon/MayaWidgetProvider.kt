@@ -91,18 +91,18 @@ class MayaWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "com.ivanwitt.mayasunmoon.REFRESH_WIDGET"
         private const val REQUEST_REFRESH = 4107
-        private const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+        private const val NORMAL_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
+        private const val TIME_REFRESH_INTERVAL_MS = 60 * 1000L
         private const val TAG = "MayaWidgetProvider"
 
-        // v0.3.4 restores the same native-density render strategy that produced the sharp classic
-        // reference frame. We publish the real widget pixel size first. Only if the launcher rejects
-        // that payload do we retry with the smaller safe bitmap.
+        // Native-density rendering preserves the sharp typography approved in v0.3.4.
         private const val FALLBACK_PIXELS = 220_000.0
         private const val FALLBACK_MAX_WIDTH = 620
         private const val FALLBACK_MAX_HEIGHT = 460
 
         fun updateAll(context: Context) {
             val appContext = context.applicationContext
+            scheduleNext(appContext)
             Thread { renderAllNow(appContext) }.start()
         }
 
@@ -136,8 +136,6 @@ class MayaWidgetProvider : AppWidgetProvider() {
                 val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300)
                 val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190)
 
-                // Match the proven pre-cloud renderer: draw at the actual physical pixel size instead
-                // of rendering a small 620x460 image and asking the launcher to enlarge it.
                 val renderWidth = (widthDp * density).roundToInt().coerceAtLeast(480)
                 val renderHeight = (heightDp * density).roundToInt().coerceAtLeast(300)
 
@@ -230,10 +228,16 @@ class MayaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun scheduleNext(context: Context) {
+            val settings = WidgetPrefs.load(context)
+            val interval = if (settings.secondaryLineMode == SecondaryLineMode.TIME) {
+                TIME_REFRESH_INTERVAL_MS
+            } else {
+                NORMAL_REFRESH_INTERVAL_MS
+            }
             val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             alarm.set(
                 AlarmManager.ELAPSED_REALTIME,
-                SystemClock.elapsedRealtime() + REFRESH_INTERVAL_MS,
+                SystemClock.elapsedRealtime() + interval,
                 refreshPendingIntent(context)
             )
         }
