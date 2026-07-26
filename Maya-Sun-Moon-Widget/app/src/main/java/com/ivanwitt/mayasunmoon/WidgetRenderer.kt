@@ -45,11 +45,7 @@ object WidgetRenderer {
             isSubpixelText = true
         }
 
-        val state = if (snapshot.activeBody == SkyBody.SUN) snapshot.sun else snapshot.moon
         val isSun = snapshot.activeBody == SkyBody.SUN
-
-        // The outer orbit is 1.34R and the Sun is the larger artwork (0.54R wide).
-        // Reserve enough room for orbit + half the body on every side so neither body is clipped.
         val outerExtentFactor = 1.34f + 0.54f / 2f
         val safeRadiusByWidth = w * 0.485f / outerExtentFactor
         val safeRadiusByHeight = h * 0.485f / outerExtentFactor
@@ -61,20 +57,22 @@ object WidgetRenderer {
         val horizonTail = radius * 0.14f
         val horizonStartX = (cx - radius - horizonTail).coerceAtLeast(w * 0.03f)
         val horizonEndX = (cx + radius + horizonTail).coerceAtMost(w * 0.97f)
+        val outlineWidth = max(3f, w * 0.006f)
 
-        // Lower half is a fill only. The design slider uses true transparency semantics:
-        // 0% = opaque, 100% = fully transparent.
+        // The visible upper outline extends half a stroke outside arcRect. Inflate the lower fill by the
+        // same amount so both semicircles have exactly the same perceived radius at the horizon.
+        val lowerFillRect = RectF(arcRect).apply { inset(-outlineWidth / 2f, -outlineWidth / 2f) }
         paint.style = Paint.Style.FILL
         paint.color = settings.lowerPanelColor
         paint.alpha = (255f * (100 - settings.lowerPanelTransparencyPercent) / 100f)
             .roundToInt()
             .coerceIn(0, 255)
-        canvas.drawArc(arcRect, 0f, 180f, true, paint)
+        canvas.drawArc(lowerFillRect, 0f, 180f, true, paint)
 
         paint.style = Paint.Style.STROKE
         paint.color = settings.color
         paint.alpha = 255
-        paint.strokeWidth = max(3f, w * 0.006f)
+        paint.strokeWidth = outlineWidth
         canvas.drawLine(horizonStartX, baselineY, horizonEndX, baselineY, paint)
         canvas.drawArc(arcRect, 180f, 180f, false, paint)
         drawTicks(canvas, paint, cx, baselineY, radius, isSun)
@@ -99,10 +97,9 @@ object WidgetRenderer {
         )
 
         val centerValue = when (settings.centerMode) {
-            CenterMode.ARC_DEGREES -> state.arcDegrees?.roundToInt()
-                ?: state.markerDegrees?.roundToInt()
-                ?: 0
-            CenterMode.VISIBLE_HOURS -> state.currentCycleHours?.roundToInt() ?: 0
+            // This value is always based on the Sun: daylight while the Sun is above the horizon,
+            // night duration (previous sunset -> next sunrise) while it is below the horizon.
+            CenterMode.VISIBLE_HOURS -> snapshot.sun.currentCycleHours?.roundToInt() ?: 0
             CenterMode.CLOCK_12H -> {
                 val hour = Instant.ofEpochMilli(nowMillis).atZone(zone).hour
                 val h12 = hour % 12
@@ -285,31 +282,30 @@ object WidgetRenderer {
         paint.alpha = 255
         paint.isSubpixelText = true
 
-        // Zero-position defaults intentionally preserve the exact typography/spacing approved in v0.3.4.
         val titleFactor = sizeFactor(settings.titleSizeOffsetPercent)
         val primaryFactor = sizeFactor(settings.primarySizeOffsetPercent)
         val secondaryFactor = sizeFactor(settings.secondarySizeOffsetPercent)
 
-        val longTargetWidth = radius * 1.96f * primaryFactor
-        val roundTargetWidth = radius * 1.62f * secondaryFactor
-        val locationTargetWidth = radius * 1.70f
+        // Proportions measured from the requested reference: the primary line is large but no longer
+        // stretched to the full diameter; the second row is clearly narrower and all three rows have
+        // deliberate vertical breathing room below the horizon.
+        val longTargetWidth = radius * 1.60f * primaryFactor
+        val roundTargetWidth = radius * 1.24f * secondaryFactor
+        val locationTargetWidth = radius * 1.60f
 
-        val titleTextSize = max(22f, radius * 0.165f) * titleFactor
-        val longTextSize = max(30f, radius * 0.285f) * primaryFactor
-        val roundTextSize = max(24f, radius * 0.185f) * secondaryFactor
-        val locationTextSize = max(20f, radius * 0.125f)
+        val titleTextSize = max(20f, radius * 0.145f) * titleFactor
+        val longTextSize = max(28f, radius * 0.255f) * primaryFactor
+        val roundTextSize = max(22f, radius * 0.165f) * secondaryFactor
+        val locationTextSize = max(18f, radius * 0.115f)
 
-        // Custom title occupies the same place and uses the same typeface as the approved reference.
         paint.color = settings.titleColor
         paint.textSize = titleTextSize
         paint.textScaleX = 1f
-        paint.setShadowLayer(
-            max(1.5f, radius * 0.008f),
-            0f,
-            max(1f, radius * 0.004f),
-            Color.argb(150, 0, 0, 0)
-        )
-        val titleY = baselineY + titleTextSize * 0.36f
+        paint.setShadowLayer(max(1f, radius * 0.005f), 0f, max(0.5f, radius * 0.002f), Color.argb(110, 0, 0, 0))
+        val titleMetrics = paint.fontMetrics
+        val titleTop = baselineY + radius * 0.055f
+        val titleY = titleTop - titleMetrics.top
+        val titleBottom = titleY + titleMetrics.bottom
         canvas.drawText(settings.titleText.ifBlank { "Ваш текст" }, width / 2f, titleY, paint)
         paint.clearShadowLayer()
 
@@ -317,19 +313,19 @@ object WidgetRenderer {
         paint.textSize = longTextSize
         paint.textScaleX = 1f
         val longMetrics = paint.fontMetrics
-        val longTop = baselineY + radius * 0.105f
+        val longTop = titleBottom + radius * 0.060f
         val longCountY = longTop - longMetrics.top
         val longBottom = longCountY + longMetrics.bottom
 
         paint.textSize = roundTextSize
         val roundMetrics = paint.fontMetrics
-        val roundTop = longBottom + radius * 0.035f
+        val roundTop = longBottom + radius * 0.070f
         val calendarRoundY = roundTop - roundMetrics.top
         val roundBottom = calendarRoundY + roundMetrics.bottom
 
         paint.textSize = locationTextSize
         val locationMetrics = paint.fontMetrics
-        val desiredLocationTop = roundBottom + radius * 0.055f
+        val desiredLocationTop = roundBottom + radius * 0.060f
         val bottomPadding = max(5f, height * 0.018f)
         val maxLocationBaseline = height - bottomPadding - locationMetrics.bottom
         val locationY = min(desiredLocationTop - locationMetrics.top, maxLocationBaseline)
@@ -341,7 +337,7 @@ object WidgetRenderer {
         }
         drawTextAtTargetWidth(
             canvas, paint, primaryText, width / 2f, longCountY,
-            longTargetWidth, longTextSize, 0.88f, 1.12f
+            longTargetWidth, longTextSize, 0.88f, 1.08f
         )
 
         val secondaryText = when (settings.secondaryLineMode) {
@@ -350,7 +346,7 @@ object WidgetRenderer {
         }
         drawTextAtTargetWidth(
             canvas, paint, secondaryText, width / 2f, calendarRoundY,
-            roundTargetWidth, roundTextSize, 0.82f, 1.08f
+            roundTargetWidth, roundTextSize, 0.84f, 1.06f
         )
 
         if (settings.showLocationName) {
