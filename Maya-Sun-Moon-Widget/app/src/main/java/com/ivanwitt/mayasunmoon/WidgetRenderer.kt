@@ -264,38 +264,40 @@ object WidgetRenderer {
         paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         paint.textAlign = Paint.Align.CENTER
 
-        // Keep every text row clearly below the horizon line with a visible gap.
-        val longCountY = baselineY + height * 0.125f
-        val calendarRoundY = baselineY + height * 0.255f
-        val locationY = baselineY + height * 0.375f
+        // Long Count and Tzolkin + Haab share one centered row directly below the horizon.
+        val calendarRowY = baselineY + height * 0.135f
+        val locationY = baselineY + height * 0.275f
+        val rowTargetWidth = radius * 1.94f
+        val rowGap = radius * 0.07f
+        val longTargetWidth = radius * 0.82f
+        val roundTargetWidth = rowTargetWidth - rowGap - longTargetWidth
+        val rowStartX = width / 2f - rowTargetWidth / 2f
+        val longCenterX = rowStartX + longTargetWidth / 2f
+        val roundCenterX = rowStartX + longTargetWidth + rowGap + roundTargetWidth / 2f
 
-        // Keep the Long Count nearly as wide as the semicircle, but make its vertical size 25% smaller.
-        val longTargetWidth = radius * 1.94f
         drawTextAtTargetWidth(
             canvas = canvas,
             paint = paint,
             text = mayaDate.longCount,
-            centerX = width / 2f,
-            baselineY = longCountY,
+            centerX = longCenterX,
+            baselineY = calendarRowY,
             targetWidth = longTargetWidth,
-            preferredTextSize = max(22.5f, width * 0.07125f),
-            minScaleX = 0.90f,
-            maxScaleX = 1.66f
+            preferredTextSize = max(21f, width * 0.058f),
+            minScaleX = 0.70f,
+            maxScaleX = 1.20f
         )
 
-        // Tzolkin + Haab remain compact and narrower than the Long Count.
         val roundText = "${mayaDate.tzolkin} / ${mayaDate.haab}"
-        val roundTargetWidth = radius * 1.62f
         drawTextAtTargetWidth(
             canvas = canvas,
             paint = paint,
             text = roundText,
-            centerX = width / 2f,
-            baselineY = calendarRoundY,
+            centerX = roundCenterX,
+            baselineY = calendarRowY,
             targetWidth = roundTargetWidth,
-            preferredTextSize = max(27f, width * 0.067f),
-            minScaleX = 0.64f,
-            maxScaleX = 0.92f
+            preferredTextSize = max(19f, width * 0.047f),
+            minScaleX = 0.55f,
+            maxScaleX = 1.0f
         )
 
         if (settings.showLocationName) {
@@ -303,7 +305,7 @@ object WidgetRenderer {
                 .filter { it.isNotBlank() }
                 .joinToString(", ")
             if (label.isNotBlank()) {
-                val locationTargetWidth = radius * 1.62f
+                val locationTargetWidth = radius * 1.55f
                 drawTextAtTargetWidth(
                     canvas = canvas,
                     paint = paint,
