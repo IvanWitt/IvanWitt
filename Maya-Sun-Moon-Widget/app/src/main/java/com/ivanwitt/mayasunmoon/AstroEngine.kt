@@ -21,6 +21,7 @@ data class BodyState(
     val visible: Boolean,
     val arcDegrees: Double?,
     val markerDegrees: Double?,
+    val orbitDegrees: Double?,
     val altitudeDegrees: Double,
     val azimuthDegrees: Double,
     val currentCycleHours: Double?
@@ -53,8 +54,7 @@ object AstroEngine {
         val sun = sunFromCache ?: bodyStateLocal(Body.Sun, SkyBody.SUN, observer, now, nowMillis)
         val moon = moonFromCache ?: bodyStateLocal(Body.Moon, SkyBody.MOON, observer, now, nowMillis)
 
-        // Sun always wins. The instant it is no longer above the horizon the widget becomes lunar,
-        // even when the Moon itself has not risen yet or has already set.
+        // The central Maya value still follows the established rule: Sun has priority while visible.
         val active = if (sun.visible) SkyBody.SUN else SkyBody.MOON
         return AstroSnapshot(
             activeBody = active,
@@ -83,10 +83,12 @@ object AstroEngine {
 
         val lastRise = rises.lastOrNull { it <= nowMillis }
         val lastSet = sets.lastOrNull { it <= nowMillis }
+        val nextRise = rises.firstOrNull { it > nowMillis }
         val visible = lastRise != null && (lastSet == null || lastRise > lastSet)
 
         var arc: Double? = null
         var marker: Double? = null
+        var orbit: Double? = null
         var cycleHours: Double? = null
 
         if (visible && lastRise != null) {
@@ -96,17 +98,23 @@ object AstroEngine {
                 arc = ((nowMillis - lastRise).toDouble() / (nextSet - lastRise).toDouble() * 180.0)
                     .coerceIn(0.0, 180.0)
                 marker = arc
+                orbit = arc
             }
         } else {
-            val nextRise = rises.firstOrNull { it > nowMillis }
             if (nextRise != null) {
                 val nextSet = sets.firstOrNull { it > nextRise }
                 if (nextSet != null && nextSet > nextRise) {
                     cycleHours = (nextSet - nextRise) / 3_600_000.0
                 }
             }
-            // Keep the marker on the horizon whenever rise/set data exist. After a set it remains
-            // at the right-hand horizon until the next rise, then starts again from the left.
+
+            // The invisible interval uses the whole lower semicircle. 180° is sunset/moonset on the
+            // right horizon; 360° is the next rise on the left horizon.
+            if (lastSet != null && nextRise != null && nextRise > lastSet) {
+                val hiddenProgress = (nowMillis - lastSet).toDouble() / (nextRise - lastSet).toDouble()
+                orbit = 180.0 + hiddenProgress.coerceIn(0.0, 1.0) * 180.0
+            }
+
             marker = when {
                 lastSet != null -> 180.0
                 nextRise != null -> 0.0
@@ -120,6 +128,7 @@ object AstroEngine {
             visible = visible,
             arcDegrees = arc,
             markerDegrees = marker,
+            orbitDegrees = orbit,
             altitudeDegrees = position.first,
             azimuthDegrees = position.second,
             currentCycleHours = cycleHours
@@ -147,6 +156,7 @@ object AstroEngine {
 
         var arc: Double? = null
         var marker: Double? = null
+        var orbit: Double? = null
         var cycleHours: Double? = null
 
         if (visible && lastRise != null) {
@@ -159,18 +169,28 @@ object AstroEngine {
                     arc = ((nowMillis - riseMs).toDouble() / (setMs - riseMs).toDouble() * 180.0)
                         .coerceIn(0.0, 180.0)
                     marker = arc
+                    orbit = arc
                 }
             }
         } else {
             val nextRise = searchRiseSet(body, observer, Direction.Rise, now, 3.0)
             if (nextRise != null) {
+                val nextRiseMs = nextRise.toMillisecondsSince1970()
                 val nextSet = searchRiseSet(body, observer, Direction.Set, nextRise.addDays(0.001), 3.0)
                 if (nextSet != null) {
-                    val riseMs = nextRise.toMillisecondsSince1970()
                     val setMs = nextSet.toMillisecondsSince1970()
-                    if (setMs > riseMs) cycleHours = (setMs - riseMs) / 3_600_000.0
+                    if (setMs > nextRiseMs) cycleHours = (setMs - nextRiseMs) / 3_600_000.0
+                }
+
+                if (lastSet != null) {
+                    val lastSetMs = lastSet.toMillisecondsSince1970()
+                    if (nextRiseMs > lastSetMs) {
+                        val hiddenProgress = (nowMillis - lastSetMs).toDouble() / (nextRiseMs - lastSetMs).toDouble()
+                        orbit = 180.0 + hiddenProgress.coerceIn(0.0, 1.0) * 180.0
+                    }
                 }
             }
+
             marker = when {
                 lastSet != null -> 180.0
                 nextRise != null -> 0.0
@@ -183,6 +203,7 @@ object AstroEngine {
             visible = visible,
             arcDegrees = arc,
             markerDegrees = marker,
+            orbitDegrees = orbit,
             altitudeDegrees = position.first,
             azimuthDegrees = position.second,
             currentCycleHours = cycleHours
