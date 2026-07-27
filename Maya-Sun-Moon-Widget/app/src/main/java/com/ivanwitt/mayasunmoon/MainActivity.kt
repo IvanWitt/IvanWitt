@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.location.Geocoder
 import android.location.Location
@@ -13,13 +14,11 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -36,37 +35,29 @@ class MainActivity : Activity() {
         "Современный час (1–12)" to CenterMode.CLOCK_12H
     )
 
-    private lateinit var mainRoot: LinearLayout
     private lateinit var modeSpinner: Spinner
     private lateinit var correlationInput: EditText
     private lateinit var locationText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.TRANSPARENT
+        window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        window.statusBarColor = Color.argb(105, 0, 0, 0)
+        window.navigationBarColor = Color.argb(105, 0, 0, 0)
         setContentView(buildContent())
         loadIntoUi()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (::mainRoot.isInitialized) {
-            mainRoot.visibility = View.VISIBLE
-            loadIntoUi()
-        }
     }
 
     private fun buildContent(): ScrollView {
         val scroll = ScrollView(this).apply {
             isFillViewport = true
-            background = colorDrawable(Color.argb(77, 9, 28, 24), 0f, 0)
+            background = colorDrawable(Color.argb(77, 4, 28, 23), 0f, 0)
         }
-        mainRoot = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(18), dp(18), dp(30))
         }
-        scroll.addView(mainRoot, ViewGroup.LayoutParams(
+        scroll.addView(root, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ))
@@ -81,19 +72,19 @@ class MainActivity : Activity() {
             } else {
                 @Suppress("DEPRECATION") insets.systemWindowInsetBottom
             }
-            mainRoot.setPadding(dp(18), top + dp(18), dp(18), bottom + dp(30))
+            root.setPadding(dp(18), top + dp(18), dp(18), bottom + dp(30))
             insets
         }
 
-        val header = glassCard().apply {
+        root.addView(glassCard().apply {
             addView(TextView(this@MainActivity).apply {
                 text = "Maya Sun/Moon"
-                textSize = 29f
+                textSize = 30f
                 setTextColor(IVORY)
                 typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL)
             })
             addView(TextView(this@MainActivity).apply {
-                text = "☼   остров времени   ✦   календарь Майя   ☾"
+                text = "☼  остров времени   ✦   календарь Майя   ☾"
                 textSize = 13f
                 setTextColor(MINT)
                 setPadding(0, dp(4), 0, 0)
@@ -104,96 +95,96 @@ class MainActivity : Activity() {
                 setTextColor(SOFT_TEXT)
                 setPadding(0, dp(10), 0, 0)
             })
-        }
-        mainRoot.addView(header, matchCardParams())
+        }, matchCardParams())
 
-        val displayCard = glassCard()
-        displayCard.addView(sectionTitle("Что показывает число в полукруге"))
-        modeSpinner = themedSpinner(modes.map { it.first })
-        displayCard.addView(modeSpinner, fieldParams())
-        displayCard.addView(TextView(this).apply {
-            text = "Днём — длительность от восхода до захода Солнца. После захода — длительность ночи от предыдущего захода до следующего восхода."
-            textSize = 13f
-            setTextColor(SOFT_TEXT)
-            setPadding(0, dp(8), 0, 0)
-        })
-        mainRoot.addView(displayCard, matchCardParams())
+        root.addView(glassCard().apply {
+            addView(sectionTitle("Что показывает число в полукруге"))
+            modeSpinner = themedSpinner(modes.map { it.first })
+            addView(modeSpinner, fieldParams())
+            addView(TextView(this@MainActivity).apply {
+                text = "Днём — длительность от восхода до захода Солнца. После захода — длительность ночи от предыдущего захода до следующего восхода."
+                textSize = 13f
+                setTextColor(SOFT_TEXT)
+                setPadding(0, dp(8), 0, 0)
+            })
+        }, matchCardParams())
 
-        val calendarCard = glassCard()
-        calendarCard.addView(sectionTitle("Корреляция Длинного счёта"))
-        correlationInput = EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
-            textSize = 18f
-            setTextColor(IVORY)
-            setHintTextColor(Color.argb(150, 255, 255, 255))
-            backgroundTintList = android.content.res.ColorStateList.valueOf(SAND)
-            setSingleLine(true)
-        }
-        calendarCard.addView(correlationInput, fieldParams())
-        calendarCard.addView(TextView(this).apply {
-            text = "По умолчанию GMT 584283."
-            textSize = 13f
-            setTextColor(SOFT_TEXT)
-            setPadding(0, dp(6), 0, 0)
-        })
-        mainRoot.addView(calendarCard, matchCardParams())
+        root.addView(glassCard().apply {
+            addView(sectionTitle("Корреляция Длинного счёта"))
+            correlationInput = EditText(this@MainActivity).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+                textSize = 18f
+                setTextColor(IVORY)
+                setHintTextColor(Color.argb(150, 255, 255, 255))
+                backgroundTintList = android.content.res.ColorStateList.valueOf(SAND)
+                setSingleLine(true)
+            }
+            addView(correlationInput, fieldParams())
+            addView(TextView(this@MainActivity).apply {
+                text = "По умолчанию GMT 584283."
+                textSize = 13f
+                setTextColor(SOFT_TEXT)
+                setPadding(0, dp(6), 0, 0)
+            })
+        }, matchCardParams())
 
-        val designCard = glassCard()
-        designCard.addView(sectionTitle("Дизайн"))
-        designCard.addView(TextView(this).apply {
-            text = "Оформление, декоративные PNG, цвета, подписи, размеры строк и нижняя полусфера."
-            textSize = 14f
-            setTextColor(SOFT_TEXT)
-            setPadding(0, 0, 0, dp(10))
-        })
-        designCard.addView(airButton("ОТКРЫТЬ ДИЗАЙН  →") {
-            mainRoot.visibility = View.INVISIBLE
-            startActivity(Intent(this, DesignActivity::class.java))
-        }, fieldParams())
-        mainRoot.addView(designCard, matchCardParams())
+        root.addView(glassCard().apply {
+            addView(sectionTitle("Дизайн"))
+            addView(TextView(this@MainActivity).apply {
+                text = "Оформление PNG, цвета, подписи, размеры строк и нижняя полуокружность."
+                textSize = 14f
+                setTextColor(SOFT_TEXT)
+                setPadding(0, 0, 0, dp(10))
+            })
+            addView(airButton("ОТКРЫТЬ ДИЗАЙН  →") {
+                if (persistMainSettings(false)) {
+                    startActivity(Intent(this@MainActivity, DesignActivity::class.java))
+                    finish()
+                }
+            }, fieldParams())
+        }, matchCardParams())
 
-        val locationCard = glassCard()
-        locationCard.addView(sectionTitle("Местоположение"))
-        locationText = TextView(this).apply {
-            textSize = 14f
-            setTextColor(IVORY)
-            setPadding(0, 0, 0, dp(10))
-        }
-        locationCard.addView(locationText)
-        locationCard.addView(airButton("ОБНОВИТЬ МЕСТОПОЛОЖЕНИЕ") {
-            ensureLocationPermissionAndRefresh()
-        }, fieldParams())
-        locationCard.addView(TextView(this).apply {
-            text = "Восходы и заходы сохраняются на телефоне и используются автономно до 72 часов."
-            textSize = 13f
-            setTextColor(SOFT_TEXT)
-            setPadding(0, dp(10), 0, 0)
-        })
-        mainRoot.addView(locationCard, matchCardParams())
+        root.addView(glassCard().apply {
+            addView(sectionTitle("Местоположение"))
+            locationText = TextView(this@MainActivity).apply {
+                textSize = 14f
+                setTextColor(IVORY)
+                setPadding(0, 0, 0, dp(10))
+            }
+            addView(locationText)
+            addView(airButton("ОБНОВИТЬ МЕСТОПОЛОЖЕНИЕ") {
+                ensureLocationPermissionAndRefresh()
+            }, fieldParams())
+            addView(TextView(this@MainActivity).apply {
+                text = "Восходы и заходы сохраняются на телефоне и используются автономно до 72 часов."
+                textSize = 13f
+                setTextColor(SOFT_TEXT)
+                setPadding(0, dp(10), 0, 0)
+            })
+        }, matchCardParams())
 
-        mainRoot.addView(airButton("СОХРАНИТЬ И ОБНОВИТЬ ВИДЖЕТ") {
-            saveDisplaySettings()
+        root.addView(airButton("СОХРАНИТЬ И ОБНОВИТЬ ВИДЖЕТ") {
+            persistMainSettings(true)
         }, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(54)
+            dp(56)
         ).apply { setMargins(0, dp(8), 0, 0) })
 
         return scroll
     }
 
     private fun loadIntoUi() {
-        if (!::modeSpinner.isInitialized) return
         val s = WidgetPrefs.load(this)
         modeSpinner.setSelection(modes.indexOfFirst { it.second == s.centerMode }.coerceAtLeast(0))
         correlationInput.setText(s.correlation.toString())
         renderLocation(s)
     }
 
-    private fun saveDisplaySettings() {
+    private fun persistMainSettings(showToast: Boolean): Boolean {
         val correlation = correlationInput.text.toString().trim().toIntOrNull()
         if (correlation == null) {
             Toast.makeText(this, "Введите целое число корреляции.", Toast.LENGTH_LONG).show()
-            return
+            return false
         }
         val current = WidgetPrefs.load(this)
         WidgetPrefs.saveDisplay(
@@ -204,7 +195,8 @@ class MainActivity : Activity() {
             showLocationName = current.showLocationName
         )
         MayaWidgetProvider.updateAll(this)
-        Toast.makeText(this, "Настройки сохранены.", Toast.LENGTH_SHORT).show()
+        if (showToast) Toast.makeText(this, "Настройки сохранены.", Toast.LENGTH_SHORT).show()
+        return true
     }
 
     private fun ensureLocationPermissionAndRefresh() {
@@ -331,13 +323,17 @@ class MainActivity : Activity() {
 
     private fun glassCard(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(16), dp(15), dp(16), dp(15))
-        background = colorDrawable(Color.argb(78, 20, 72, 62), dp(20).toFloat(), Color.argb(115, 209, 235, 205))
+        setPadding(dp(17), dp(16), dp(17), dp(16))
+        background = colorDrawable(
+            Color.argb(112, 12, 70, 60),
+            dp(22).toFloat(),
+            Color.argb(155, 194, 232, 205)
+        )
     }
 
     private fun sectionTitle(textValue: String) = TextView(this).apply {
         text = textValue
-        textSize = 18f
+        textSize = 19f
         setTextColor(IVORY)
         setPadding(0, 0, 0, dp(9))
         typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
@@ -345,10 +341,14 @@ class MainActivity : Activity() {
 
     private fun airButton(label: String, action: () -> Unit) = Button(this).apply {
         text = label
-        textSize = 13f
+        textSize = 14f
         setTextColor(IVORY)
         isAllCaps = false
-        background = colorDrawable(Color.argb(105, 27, 115, 98), dp(18).toFloat(), Color.argb(150, 233, 220, 165))
+        background = colorDrawable(
+            Color.argb(150, 25, 126, 103),
+            dp(20).toFloat(),
+            Color.argb(185, 232, 214, 161)
+        )
         setOnClickListener { action() }
     }
 
@@ -363,7 +363,7 @@ class MainActivity : Activity() {
                     setTextColor(IVORY)
                     textSize = 15f
                     setPadding(dp(10), dp(10), dp(10), dp(10))
-                    if (dropdown) setBackgroundColor(Color.rgb(18, 55, 48))
+                    if (dropdown) setBackgroundColor(Color.rgb(14, 55, 47))
                 }
                 return view
             }
@@ -382,7 +382,7 @@ class MainActivity : Activity() {
     private fun matchCardParams() = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.WRAP_CONTENT
-    ).apply { setMargins(0, 0, 0, dp(12)) }
+    ).apply { setMargins(0, 0, 0, dp(13)) }
 
     private fun fieldParams() = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -394,8 +394,8 @@ class MainActivity : Activity() {
     companion object {
         private const val REQUEST_LOCATION = 1207
         private val IVORY = Color.rgb(250, 247, 235)
-        private val MINT = Color.rgb(190, 232, 210)
+        private val MINT = Color.rgb(193, 238, 216)
         private val SAND = Color.rgb(232, 214, 161)
-        private val SOFT_TEXT = Color.rgb(216, 226, 219)
+        private val SOFT_TEXT = Color.rgb(220, 232, 225)
     }
 }
