@@ -43,9 +43,40 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Prepare original PNG decoration assets
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          drawable = Path('Maya-Sun-Moon-Widget/app/src/main/res/drawable')
+          for stem in ('design_maya_night_original', 'design_jungle_temple'):
+              src = drawable / f'{stem}.webp'
+              dst = drawable / f'{stem}.png'
+              if not src.exists():
+                  raise SystemExit(f'Missing source decoration: {src}')
+              with Image.open(src) as im:
+                  im.convert('RGBA').save(dst, format='PNG', optimize=True)
+                  print(f'{stem}: {im.size} -> {dst}')
+              src.unlink()
+          PY
+
       - name: Build debug APK
         working-directory: Maya-Sun-Moon-Widget
         run: gradle --no-daemon assembleDebug
+
+      - name: Verify decoration assets in APK
+        run: |
+          APK=Maya-Sun-Moon-Widget/app/build/outputs/apk/debug/app-debug.apk
+          unzip -l "$APK" | grep -E 'design_(golden_temple|maya_night_original|jungle_temple)\.(png|webp)' | tee /tmp/design-assets.txt
+          grep -q 'design_golden_temple.png' /tmp/design-assets.txt
+          grep -q 'design_maya_night_original.png' /tmp/design-assets.txt
+          grep -q 'design_jungle_temple.png' /tmp/design-assets.txt
+          if grep -qE 'design_(maya_night|maya_flight|palms)\.(png|webp)' /tmp/design-assets.txt; then
+            echo 'Unexpected obsolete decoration asset found'
+            exit 1
+          fi
 
       - name: Prepare APK
         run: |
