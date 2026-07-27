@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - fix/maya-widget-three-original-png-backgrounds
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.tmp_widget_assets/**'
+      - '.github/workflows/materialize-widget-original-pngs.yml'
+      - 'Maya-Sun-Moon-Widget/**'
 
 permissions:
   contents: write
@@ -13,7 +20,7 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout branch
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
           ref: fix/maya-widget-three-original-png-backgrounds
@@ -62,10 +69,6 @@ jobs:
           p = Path('Maya-Sun-Moon-Widget/app/src/main/java/com/ivanwitt/mayasunmoon/DesignActivity.kt')
           text = p.read_text()
           text = text.replace(
-              'GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night),',
-              'GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night),'
-          )
-          text = text.replace(
               'GalleryItem("Храм и самолёт", DecorationStyle.MAYA_FLIGHT, R.drawable.design_maya_flight),',
               'GalleryItem("Лагуна Майя", DecorationStyle.MAYA_FLIGHT, R.drawable.design_maya_flight),'
           )
@@ -86,7 +89,6 @@ jobs:
           rm -rf .tmp_widget_assets
           rm -f .github/workflows/materialize-widget-original-pngs.yml
 
-          # Verify the final source tree contains real PNGs and no replaced WebP resources.
           test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.png
           test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_flight.png
           test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.png
