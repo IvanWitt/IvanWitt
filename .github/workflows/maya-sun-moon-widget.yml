@@ -45,24 +45,17 @@ jobs:
 
       - name: Prepare original PNG decoration assets
         run: |
-          python3 -m venv /tmp/pngvenv
-          /tmp/pngvenv/bin/pip install --quiet pillow
-          /tmp/pngvenv/bin/python - <<'PY'
-          from pathlib import Path
-          from PIL import Image
-
-          drawable = Path('Maya-Sun-Moon-Widget/app/src/main/res/drawable')
-          for stem in ('design_maya_night_original', 'design_jungle_temple'):
-              src = drawable / f'{stem}.webp'
-              dst = drawable / f'{stem}.png'
-              if not src.exists():
-                  raise SystemExit(f'Missing source decoration: {src}')
-              with Image.open(src) as im:
-                  rgba = im.convert('RGBA')
-                  rgba.save(dst, format='PNG', optimize=True)
-                  print(f'{stem}: {rgba.size} -> {dst}')
-              src.unlink()
-          PY
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq webp
+          DIR=Maya-Sun-Moon-Widget/app/src/main/res/drawable
+          test -s "$DIR/design_maya_night_original.webp"
+          test -s "$DIR/design_jungle_temple.webp"
+          dwebp "$DIR/design_maya_night_original.webp" -o "$DIR/design_maya_night_original.png"
+          dwebp "$DIR/design_jungle_temple.webp" -o "$DIR/design_jungle_temple.png"
+          test -s "$DIR/design_maya_night_original.png"
+          test -s "$DIR/design_jungle_temple.png"
+          rm "$DIR/design_maya_night_original.webp" "$DIR/design_jungle_temple.webp"
+          file "$DIR/design_maya_night_original.png" "$DIR/design_jungle_temple.png"
 
       - name: Build debug APK
         working-directory: Maya-Sun-Moon-Widget
