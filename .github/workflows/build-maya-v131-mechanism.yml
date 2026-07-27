@@ -1,0 +1,128 @@
+name: Build Maya Calendar v1.3.1 Mechanism
+
+on:
+  pull_request:
+    branches:
+      - feature/moon-calendar-start-date
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/calendar-mechanism-v2
+
+      - name: Prepare v1.3.1 sources
+        run: python3 tools/prepare_v131.py
+
+      - name: Verify fixed-center mechanism requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          JS=app/src/main/assets/calendar-mechanism-v3.js
+          HTML=app/src/main/assets/index.html
+          node --check "$JS"
+          grep -q 'calendar-mechanism-v3.js' "$HTML"
+          grep -q "teeth:52,cycle:260,dir:-1,pitch:165.36" "$JS"
+          grep -q "teeth:73,cycle:365,dir:1,pitch:232.14" "$JS"
+          grep -q "teeth:73,cycle:365,dir:-1,pitch:232.14" "$JS"
+          grep -q "rotor:'tzRotor'" "$JS"
+          grep -q "rotor:'haabRotor'" "$JS"
+          grep -q "rotor:'moonRotor'" "$JS"
+          grep -q "outer.setAttribute('transform',`translate(" "$JS"
+          grep -q "setRotor(gears.tz,tzAngle)" "$JS"
+          grep -q "setRotor(gears.haab,haabAngle)" "$JS"
+          grep -q "setRotor(gears.moon,moonAngle)" "$JS"
+          grep -q 'id="longRackMover"' "$JS"
+          grep -q 'const rackShift=-mod(state.offset,365)\*4' "$JS"
+          grep -q 'sandstoneGear' "$JS"
+          grep -q 'id="gearStep"' "$JS"
+          grep -q 'id="gearMinus20"' "$JS"
+          grep -q 'id="gearMinus1"' "$JS"
+          grep -q 'id="gearPlay"' "$JS"
+          grep -q 'id="gearPlus1"' "$JS"
+          grep -q 'id="gearPlus20"' "$JS"
+          grep -q 'id="gearToday"' "$JS"
+          grep -q 'id="gearSlider"' "$JS"
+          grep -q 'mechanismTzolkin' "$JS"
+          grep -q 'mechanismHaab' "$JS"
+          grep -q 'mechanismMoon' "$JS"
+          grep -q 'mechanismLongCount' "$JS"
+          grep -q 'initGearControls=initMechanism' "$JS"
+          grep -q 'updateGearCalendar=renderMechanism' "$JS"
+          ! grep -q 'transform-box:view-box' "$JS"
+          ! grep -q "getElementById('gregorianDate')" "$JS"
+          ! grep -q "getElementById('correlation')" "$JS"
+          ! grep -q 'updateAll()' "$JS"
+          grep -q "versionName '1.3.1'" app/build.gradle
+          grep -q 'versionCode 11' app/build.gradle
+
+      - name: Verify meshing geometry and one-day coupling
+        run: |
+          python3 - <<'PY'
+          from math import hypot,isclose
+          tz=(235,548,165.36,52,260)
+          haab=(580,350,232.14,73,365)
+          moon=(945,638,232.14,73,365)
+          assert abs(hypot(tz[0]-haab[0],tz[1]-haab[1])-(tz[2]+haab[2])) < 1
+          assert abs(hypot(haab[0]-moon[0],haab[1]-moon[1])-(haab[2]+moon[2])) < 1
+          assert isclose((360/tz[4])/(360/haab[4]),73/52,rel_tol=1e-12)
+          assert 52*5==260 and 73*5==365
+          def mod(n,m): return ((n%m)+m)%m
+          def gregorian_to_jdn(y,m,d):
+              a=(14-m)//12;y2=y+4800-a;m2=m+12*a-3
+              return d+(153*m2+2)//5+365*y2+y2//4-y2//100+y2//400-32045
+          def cal(y,m,d,corr=584283):
+              days=gregorian_to_jdn(y,m,d)-corr
+              return (mod(days+3,13)+1,mod(days+19,20),mod(days+159,260)+1,mod(days+348,365)+1)
+          a=cal(2026,7,27); b=cal(2026,7,28)
+          assert a!=b
+          assert ((b[2]-a[2])%260)==1
+          assert ((b[3]-a[3])%365)==1
+          print('Meshing geometry and one-day calendar coupling verified')
+          PY
+
+      - name: Verify previous moon-day modal remains intact
+        run: |
+          set -euo pipefail
+          node --check app/src/main/assets/moon-calendar-v2.js
+          node --check app/src/main/assets/moon-calendar-modal-fix.js
+          grep -q 'moon-day-save' app/src/main/assets/moon-calendar-modal-fix.js
+          grep -q 'syncEventsPageImmediately' app/src/main/assets/moon-calendar-modal-fix.js
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build full debug APK
+        run: gradle --no-daemon assembleDebug --stacktrace
+
+      - name: Verify APK contents
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          unzip -p "$APK" assets/index.html | grep -q 'calendar-mechanism-v3.js'
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'tzRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'haabRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'moonRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q 'const rackShift=-mod(state.offset,365)\*4'
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.3.1-mechanism.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.3.1-mechanism
+          path: /tmp/apk/MayaCalendar-v1.3.1-mechanism.apk
+          if-no-files-found: error
