@@ -45,8 +45,9 @@ jobs:
 
       - name: Prepare original PNG decoration assets
         run: |
-          python3 -m pip install --quiet pillow
-          python3 - <<'PY'
+          python3 -m venv /tmp/pngvenv
+          /tmp/pngvenv/bin/pip install --quiet pillow
+          /tmp/pngvenv/bin/python - <<'PY'
           from pathlib import Path
           from PIL import Image
 
@@ -57,8 +58,9 @@ jobs:
               if not src.exists():
                   raise SystemExit(f'Missing source decoration: {src}')
               with Image.open(src) as im:
-                  im.convert('RGBA').save(dst, format='PNG', optimize=True)
-                  print(f'{stem}: {im.size} -> {dst}')
+                  rgba = im.convert('RGBA')
+                  rgba.save(dst, format='PNG', optimize=True)
+                  print(f'{stem}: {rgba.size} -> {dst}')
               src.unlink()
           PY
 
