@@ -17,12 +17,16 @@ object WidgetDecorationRenderer {
     private val cache = mutableMapOf<Int, Bitmap>()
     private val contentBoundsCache = mutableMapOf<Int, Rect>()
 
+    /**
+     * Draws the selected decoration as the background of the upper semicircle and then restores
+     * the already rendered widget frame above it. The original frame is mutated intentionally:
+     * MayaWidgetProvider invokes this method from also { ... } and keeps that exact Bitmap.
+     */
     fun apply(context: Context, frame: Bitmap, settings: WidgetSettings): Bitmap {
         val resId = resourceFor(settings.decorationStyle) ?: return frame
         val asset = synchronized(cache) {
             cache[resId] ?: BitmapFactory.decodeResource(context.resources, resId)?.also { cache[resId] = it }
         } ?: return frame
-        val src = contentBounds(resId, asset)
 
         val w = max(frame.width, 480)
         val h = max(frame.height, 300)
@@ -33,41 +37,38 @@ object WidgetDecorationRenderer {
         val cx = w / 2f
         val baselineY = h * 0.50f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
+        val src = contentBounds(resId, asset)
 
-        val targetWidth = radius * when (settings.decorationStyle) {
-            DecorationStyle.MAYA_NIGHT -> 1.84f
-            DecorationStyle.MAYA_FLIGHT -> 1.82f
-            DecorationStyle.PALMS -> 1.82f
-            DecorationStyle.GOLDEN_TEMPLE -> 1.78f
-            DecorationStyle.DEFAULT -> return frame
+        val dst = if (settings.decorationStyle == DecorationStyle.GOLDEN_TEMPLE) {
+            // Keep the already approved golden-temple composition unchanged: it remains a
+            // horizon decoration instead of being stretched into a photographic background.
+            var targetWidth = radius * 1.78f
+            var targetHeight = targetWidth * src.height().toFloat() / src.width().toFloat()
+            val maxHeight = radius * 0.66f
+            if (targetHeight > maxHeight && targetHeight > 0f) {
+                val scale = maxHeight / targetHeight
+                targetHeight = maxHeight
+                targetWidth *= scale
+            }
+            RectF(
+                cx - targetWidth / 2f,
+                baselineY - targetHeight,
+                cx + targetWidth / 2f,
+                baselineY + 2f
+            )
+        } else {
+            // The three supplied photographic PNGs are true backgrounds: use every pixel of the
+            // upper semicircle from its apex to the horizon and from the left arc to the right.
+            RectF(
+                cx - radius,
+                baselineY - radius,
+                cx + radius,
+                baselineY + 1f
+            )
         }
 
-        var targetHeight = targetWidth * src.height().toFloat() / src.width().toFloat()
-        val maxHeight = radius * when (settings.decorationStyle) {
-            DecorationStyle.MAYA_NIGHT -> 0.72f
-            DecorationStyle.MAYA_FLIGHT -> 0.58f
-            DecorationStyle.PALMS -> 0.38f
-            DecorationStyle.GOLDEN_TEMPLE -> 0.66f
-            DecorationStyle.DEFAULT -> 0f
-        }
-        var finalWidth = targetWidth
-        if (targetHeight > maxHeight && targetHeight > 0f) {
-            val scale = maxHeight / targetHeight
-            targetHeight = maxHeight
-            finalWidth *= scale
-        }
-
-        // The visible bottom row of every PNG is anchored exactly on the horizon.
-        // A tiny overlap is intentional: the upper-half clip removes anything below
-        // the horizon while preventing a sub-pixel transparent seam above the line.
-        val dst = RectF(
-            cx - finalWidth / 2f,
-            baselineY - targetHeight,
-            cx + finalWidth / 2f,
-            baselineY + 2f
-        )
-
-        val canvas = Canvas(frame)
+        val composed = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(composed)
         val save = canvas.save()
         val clip = Path().apply {
             moveTo(cx - radius, baselineY)
@@ -77,14 +78,23 @@ object WidgetDecorationRenderer {
         }
         canvas.clipPath(clip)
 
-        val p = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+        val imagePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
             isDither = true
             alpha = 255
-            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OVER)
         }
-        canvas.drawBitmap(asset, src, dst, p)
-        p.xfermode = null
+        canvas.drawBitmap(asset, src, dst, imagePaint)
         canvas.restoreToCount(save)
+
+        // Horizon, upper contour, Mayan digits, text and Sun/Moon remain in the foreground.
+        canvas.drawBitmap(frame, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+
+        val target = Canvas(frame)
+        val replacePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC)
+        }
+        target.drawBitmap(composed, 0f, 0f, replacePaint)
+        replacePaint.xfermode = null
+        composed.recycle()
         return frame
     }
 
@@ -105,9 +115,8 @@ object WidgetDecorationRenderer {
         for (y in 0 until height) {
             val row = y * width
             for (x in 0 until width) {
-                // Ignore almost-transparent export noise. It previously made the full
-                // 1536x1024 canvas look like content and shrank the real drawing until
-                // some designs were effectively invisible on the widget.
+                // Ignore transparent export margins so the visible supplied artwork itself fills
+                // the requested destination rather than being shrunk by invisible canvas space.
                 if ((pixels[row + x] ushr 24) >= 8) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
