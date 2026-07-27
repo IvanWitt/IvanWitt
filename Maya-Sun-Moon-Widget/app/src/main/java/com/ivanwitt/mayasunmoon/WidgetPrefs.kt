@@ -18,6 +18,14 @@ enum class SecondaryLineMode {
     TIME
 }
 
+enum class DecorationStyle {
+    DEFAULT,
+    MAYA_NIGHT,
+    MAYA_FLIGHT,
+    PALMS,
+    GOLDEN_TEMPLE
+}
+
 data class WidgetSettings(
     val centerMode: CenterMode,
     val correlation: Int,
@@ -31,6 +39,7 @@ data class WidgetSettings(
     val secondarySizeOffsetPercent: Int,
     val lowerPanelColor: Int,
     val lowerPanelTransparencyPercent: Int,
+    val decorationStyle: DecorationStyle,
     val latitude: Double,
     val longitude: Double,
     val elevationMeters: Double,
@@ -56,6 +65,7 @@ object WidgetPrefs {
     private const val KEY_SECONDARY_SIZE = "design_secondary_size_offset"
     private const val KEY_LOWER_PANEL_COLOR = "design_lower_panel_color"
     private const val KEY_LOWER_PANEL_TRANSPARENCY = "design_lower_panel_transparency"
+    private const val KEY_DECORATION_STYLE = "design_decoration_style"
 
     private const val KEY_LAT = "latitude"
     private const val KEY_LON = "longitude"
@@ -73,7 +83,7 @@ object WidgetPrefs {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val rawMode = p.getString(KEY_MODE, CenterMode.VISIBLE_HOURS.name)
         val mode = when (rawMode) {
-            "ARC_DEGREES", "MONTH_VISIBLE_HOURS" -> CenterMode.VISIBLE_HOURS
+            "ARC_DEGREES", "MONTH_VISIBLE_HOURS", "DAY_NIGHT_DURATION" -> CenterMode.VISIBLE_HOURS
             else -> runCatching { CenterMode.valueOf(rawMode ?: CenterMode.VISIBLE_HOURS.name) }
                 .getOrDefault(CenterMode.VISIBLE_HOURS)
         }
@@ -92,6 +102,13 @@ object WidgetPrefs {
             )
         }.getOrDefault(SecondaryLineMode.TZOLKIN_HAAB)
 
+        val decorationStyle = runCatching {
+            DecorationStyle.valueOf(
+                p.getString(KEY_DECORATION_STYLE, DecorationStyle.DEFAULT.name)
+                    ?: DecorationStyle.DEFAULT.name
+            )
+        }.getOrDefault(DecorationStyle.DEFAULT)
+
         return WidgetSettings(
             centerMode = mode,
             correlation = p.getInt(KEY_CORRELATION, 584283),
@@ -105,6 +122,7 @@ object WidgetPrefs {
             secondarySizeOffsetPercent = p.getInt(KEY_SECONDARY_SIZE, 0).coerceIn(-50, 50),
             lowerPanelColor = p.getInt(KEY_LOWER_PANEL_COLOR, Color.rgb(45, 45, 45)),
             lowerPanelTransparencyPercent = p.getInt(KEY_LOWER_PANEL_TRANSPARENCY, 50).coerceIn(0, 100),
+            decorationStyle = decorationStyle,
             latitude = Double.fromBits(p.getLong(KEY_LAT, DEFAULT_LAT.toBits())),
             longitude = Double.fromBits(p.getLong(KEY_LON, DEFAULT_LON.toBits())),
             elevationMeters = Double.fromBits(p.getLong(KEY_ELEV, 0.0.toBits())),
@@ -132,6 +150,13 @@ object WidgetPrefs {
             .apply()
     }
 
+    fun saveDecorationStyle(context: Context, decorationStyle: DecorationStyle) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DECORATION_STYLE, decorationStyle.name)
+            .apply()
+    }
+
     fun saveDesign(
         context: Context,
         titleText: String,
@@ -142,7 +167,8 @@ object WidgetPrefs {
         secondaryLineMode: SecondaryLineMode,
         secondarySizeOffsetPercent: Int,
         lowerPanelColor: Int,
-        lowerPanelTransparencyPercent: Int
+        lowerPanelTransparencyPercent: Int,
+        decorationStyle: DecorationStyle
     ) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -155,6 +181,7 @@ object WidgetPrefs {
             .putInt(KEY_SECONDARY_SIZE, secondarySizeOffsetPercent.coerceIn(-50, 50))
             .putInt(KEY_LOWER_PANEL_COLOR, lowerPanelColor)
             .putInt(KEY_LOWER_PANEL_TRANSPARENCY, lowerPanelTransparencyPercent.coerceIn(0, 100))
+            .putString(KEY_DECORATION_STYLE, decorationStyle.name)
             .apply()
     }
 
