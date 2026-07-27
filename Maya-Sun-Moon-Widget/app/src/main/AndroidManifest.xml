@@ -17,6 +17,8 @@
             android:name=".MainActivity"
             android:theme="@style/Theme.MayaSettings"
             android:launchMode="singleTask"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,6 +29,8 @@
         <activity
             android:name=".DesignActivity"
             android:theme="@style/Theme.MayaSettings"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
             android:exported="false" />
 
         <service
