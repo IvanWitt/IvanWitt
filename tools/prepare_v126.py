@@ -112,8 +112,8 @@ drawable.mkdir(parents=True,exist_ok=True)
 
 gradle=ROOT/'app/build.gradle'
 g=gradle.read_text('utf-8')
-g=re.sub(r'versionCode\s+\d+','versionCode 6',g)
-g=re.sub(r"versionName\s+'[^']+'","versionName '1.2.6'",g)
+g=re.sub(r'versionCode\s+\d+','versionCode 7',g)
+g=re.sub(r"versionName\s+'[^']+'","versionName '1.2.7'",g)
 gradle.write_text(g,'utf-8')
 
-print('Prepared v1.2.6: custom splash fully removed; 13-moon calendar enabled.')
+print('Prepared v1.2.7: custom splash fully removed; 13-moon day modal fixed.')
