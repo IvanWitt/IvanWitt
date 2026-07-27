@@ -1,17 +1,17 @@
 'use strict';
 
-/* v1.2.9 — robust fixed modal for Calendar 13 Moons + live event-table sync. */
+/* v1.2.9 — fixed centered modal + live events sync for Calendar 13 Moons. */
 let moonModalSavedBodyOverflow='';
 let moonModalSavedHtmlOverflow='';
 let moonModalActiveOrdinal=0;
 
 function applyMoonModalCriticalStyles(modal){
   if(!modal) return;
-  modal.style.cssText='position:fixed!important;inset:0!important;z-index:10000!important;display:none;align-items:center!important;justify-content:center!important;padding:14px!important;box-sizing:border-box!important;overflow:hidden!important;';
+  modal.style.cssText='position:fixed!important;inset:0!important;z-index:10000!important;align-items:center!important;justify-content:center!important;padding:14px!important;box-sizing:border-box!important;overflow:hidden!important;';
   const backdrop=modal.querySelector('.moon-day-backdrop');
   if(backdrop) backdrop.style.cssText='position:absolute!important;inset:0!important;background:rgba(14,19,16,.74)!important;backdrop-filter:blur(2px)!important;-webkit-backdrop-filter:blur(2px)!important;';
   const card=modal.querySelector('.moon-day-card');
-  if(card) card.style.cssText='position:relative!important;z-index:1!important;width:min(640px,calc(100vw - 24px))!important;max-height:calc(100vh - 110px)!important;overflow-y:auto!important;box-sizing:border-box!important;border:2px solid #a77b3f!important;border-radius:20px!important;padding:14px!important;background:linear-gradient(160deg,#fffaf0,#eadcc0)!important;box-shadow:0 18px 55px rgba(0,0,0,.38)!important;overscroll-behavior:contain!important;';
+  if(card) card.style.cssText='position:relative!important;z-index:1!important;width:min(640px,calc(100vw - 24px))!important;max-height:calc(100dvh - 28px)!important;overflow-y:auto!important;box-sizing:border-box!important;border:2px solid #a77b3f!important;border-radius:20px!important;padding:14px!important;background:linear-gradient(160deg,#fffaf0,#eadcc0)!important;box-shadow:0 18px 55px rgba(0,0,0,.38)!important;overscroll-behavior:contain!important;';
   const header=modal.querySelector('.moon-day-header');
   if(header) header.style.cssText='position:sticky!important;top:-14px!important;z-index:4!important;display:flex!important;align-items:center!important;gap:8px!important;margin:-14px -14px 12px!important;padding:10px 12px!important;background:rgba(250,241,220,.98)!important;border-bottom:1px solid #c9ab75!important;backdrop-filter:blur(6px)!important;';
   const title=modal.querySelector('.moon-day-title');
@@ -37,14 +37,13 @@ function applyMoonModalCriticalStyles(modal){
     if(dateGrid) dateGrid.style.gridTemplateColumns='1fr';
     if(editor) editor.style.gridTemplateColumns='1fr';
     if(day) day.style.textAlign='left';
-    if(card) card.style.maxHeight='calc(100dvh - 32px)';
   }
 }
 
 ensureMoonDayModal=function(){
-  let modal=document.getElementById('moonDayModal');
-  if(modal) modal.remove();
-  modal=document.createElement('div');
+  const previous=document.getElementById('moonDayModal');
+  if(previous) previous.remove();
+  const modal=document.createElement('div');
   modal.id='moonDayModal';
   modal.className='moon-day-modal moon-day-modal-fixed';
   modal.hidden=true;
@@ -71,20 +70,23 @@ ensureMoonDayModal=function(){
     </div>`;
   document.body.appendChild(modal);
   applyMoonModalCriticalStyles(modal);
+  modal.style.display='none';
   modal.querySelectorAll('[data-close-moon-day]').forEach(el=>el.addEventListener('click',closeMoonDayModal));
   modal.querySelector('#moonDaySave').addEventListener('click',()=>{
     saveMoonDayEventFromModal();
     closeMoonDayModal();
   });
-  window.addEventListener('resize',()=>applyMoonModalCriticalStyles(modal));
+  window.addEventListener('resize',()=>{
+    if(modal.hidden) return;
+    applyMoonModalCriticalStyles(modal);
+    modal.style.display='flex';
+  });
 };
 
 function syncEventsPageImmediately(){
   if(typeof buildEventsTable==='function') buildEventsTable();
   const eventsPage=document.getElementById('events');
-  if(eventsPage){
-    eventsPage.dataset.eventsRevision=String(Date.now());
-  }
+  if(eventsPage) eventsPage.dataset.eventsRevision=String(Date.now());
 }
 
 function saveMoonDayEventFromModal(){
@@ -164,7 +166,6 @@ closeEventModal=function(){
   const style=document.createElement('style');
   style.id='moonCalendarModalFixStyles';
   style.textContent=`
-    body.moon-modal-open{overflow:hidden!important}
     .moon-day-modal-fixed[hidden]{display:none!important}
     .moon-day-modal-fixed{position:fixed!important;inset:0!important;z-index:10000!important;align-items:center!important;justify-content:center!important}
     .moon-day-modal-fixed .moon-day-save{cursor:pointer}
