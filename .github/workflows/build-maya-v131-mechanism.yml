@@ -27,40 +27,40 @@ jobs:
           JS=app/src/main/assets/calendar-mechanism-v3.js
           HTML=app/src/main/assets/index.html
           node --check "$JS"
-          grep -q 'calendar-mechanism-v3.js' "$HTML"
-          grep -q "teeth:52,cycle:260,dir:-1,pitch:165.36" "$JS"
-          grep -q "teeth:73,cycle:365,dir:1,pitch:232.14" "$JS"
-          grep -q "teeth:73,cycle:365,dir:-1,pitch:232.14" "$JS"
-          grep -q "rotor:'tzRotor'" "$JS"
-          grep -q "rotor:'haabRotor'" "$JS"
-          grep -q "rotor:'moonRotor'" "$JS"
-          grep -q "outer.setAttribute('transform',`translate(" "$JS"
-          grep -q "setRotor(gears.tz,tzAngle)" "$JS"
-          grep -q "setRotor(gears.haab,haabAngle)" "$JS"
-          grep -q "setRotor(gears.moon,moonAngle)" "$JS"
-          grep -q 'id="longRackMover"' "$JS"
-          grep -q 'const rackShift=-mod(state.offset,365)\*4' "$JS"
-          grep -q 'sandstoneGear' "$JS"
-          grep -q 'id="gearStep"' "$JS"
-          grep -q 'id="gearMinus20"' "$JS"
-          grep -q 'id="gearMinus1"' "$JS"
-          grep -q 'id="gearPlay"' "$JS"
-          grep -q 'id="gearPlus1"' "$JS"
-          grep -q 'id="gearPlus20"' "$JS"
-          grep -q 'id="gearToday"' "$JS"
-          grep -q 'id="gearSlider"' "$JS"
-          grep -q 'mechanismTzolkin' "$JS"
-          grep -q 'mechanismHaab' "$JS"
-          grep -q 'mechanismMoon' "$JS"
-          grep -q 'mechanismLongCount' "$JS"
-          grep -q 'initGearControls=initMechanism' "$JS"
-          grep -q 'updateGearCalendar=renderMechanism' "$JS"
-          ! grep -q 'transform-box:view-box' "$JS"
-          ! grep -q "getElementById('gregorianDate')" "$JS"
-          ! grep -q "getElementById('correlation')" "$JS"
-          ! grep -q 'updateAll()' "$JS"
-          grep -q "versionName '1.3.1'" app/build.gradle
-          grep -q 'versionCode 11' app/build.gradle
+          grep -Fq 'calendar-mechanism-v3.js' "$HTML"
+          grep -Fq "teeth:52,cycle:260,dir:-1,pitch:165.36" "$JS"
+          grep -Fq "teeth:73,cycle:365,dir:1,pitch:232.14" "$JS"
+          grep -Fq "teeth:73,cycle:365,dir:-1,pitch:232.14" "$JS"
+          grep -Fq "rotor:'tzRotor'" "$JS"
+          grep -Fq "rotor:'haabRotor'" "$JS"
+          grep -Fq "rotor:'moonRotor'" "$JS"
+          grep -Fq "outer.setAttribute('transform'," "$JS"
+          grep -Fq "setRotor(gears.tz,tzAngle)" "$JS"
+          grep -Fq "setRotor(gears.haab,haabAngle)" "$JS"
+          grep -Fq "setRotor(gears.moon,moonAngle)" "$JS"
+          grep -Fq 'id="longRackMover"' "$JS"
+          grep -Fq 'const rackShift=-mod(state.offset,365)*4' "$JS"
+          grep -Fq 'sandstoneGear' "$JS"
+          grep -Fq 'id="gearStep"' "$JS"
+          grep -Fq 'id="gearMinus20"' "$JS"
+          grep -Fq 'id="gearMinus1"' "$JS"
+          grep -Fq 'id="gearPlay"' "$JS"
+          grep -Fq 'id="gearPlus1"' "$JS"
+          grep -Fq 'id="gearPlus20"' "$JS"
+          grep -Fq 'id="gearToday"' "$JS"
+          grep -Fq 'id="gearSlider"' "$JS"
+          grep -Fq 'mechanismTzolkin' "$JS"
+          grep -Fq 'mechanismHaab' "$JS"
+          grep -Fq 'mechanismMoon' "$JS"
+          grep -Fq 'mechanismLongCount' "$JS"
+          grep -Fq 'initGearControls=initMechanism' "$JS"
+          grep -Fq 'updateGearCalendar=renderMechanism' "$JS"
+          ! grep -Fq 'transform-box:view-box' "$JS"
+          ! grep -Fq "getElementById('gregorianDate')" "$JS"
+          ! grep -Fq "getElementById('correlation')" "$JS"
+          ! grep -Fq 'updateAll()' "$JS"
+          grep -Fq "versionName '1.3.1'" app/build.gradle
+          grep -Fq 'versionCode 11' app/build.gradle
 
       - name: Verify meshing geometry and one-day coupling
         run: |
@@ -113,11 +113,11 @@ jobs:
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          unzip -p "$APK" assets/index.html | grep -q 'calendar-mechanism-v3.js'
-          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'tzRotor'"
-          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'haabRotor'"
-          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q "rotor:'moonRotor'"
-          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -q 'const rackShift=-mod(state.offset,365)\*4'
+          unzip -p "$APK" assets/index.html | grep -Fq 'calendar-mechanism-v3.js'
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -Fq "rotor:'tzRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -Fq "rotor:'haabRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -Fq "rotor:'moonRotor'"
+          unzip -p "$APK" assets/calendar-mechanism-v3.js | grep -Fq 'const rackShift=-mod(state.offset,365)*4'
           mkdir -p /tmp/apk
           cp "$APK" /tmp/apk/MayaCalendar-v1.3.1-mechanism.apk
 
