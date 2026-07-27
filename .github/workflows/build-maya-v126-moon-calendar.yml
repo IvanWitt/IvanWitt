@@ -1,4 +1,4 @@
-name: Build Maya Calendar v1.2.7 Moon Calendar
+name: Build Maya Calendar v1.2.8 Moon Calendar
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ jobs:
         with:
           ref: feature/moon-calendar-start-date
 
-      - name: Prepare v1.2.7 sources
+      - name: Prepare v1.2.8 sources
         run: python3 tools/prepare_v126.py
 
       - name: Verify splash removal and moon-day modal integration
@@ -55,7 +55,8 @@ jobs:
           ! grep -q 'refreshEventsTable' "$MOON"
           ! grep -q 'saved.name' "$MOON"
           ! grep -q 'event.name' "$MOON"
-          grep -q "versionName '1.2.7'" app/build.gradle
+          grep -q "versionName '1.2.8'" app/build.gradle
+          grep -q 'versionCode 8' app/build.gradle
 
       - name: Verify 13-moon calendar arithmetic
         shell: bash
@@ -126,7 +127,7 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
+      - name: Build full debug APK
         run: gradle --no-daemon assembleDebug --stacktrace
 
       - name: Verify APK contents
@@ -149,10 +150,10 @@ jobs:
             exit 1
           fi
           mkdir -p /tmp/apk
-          cp "$APK" /tmp/apk/MayaCalendar-v1.2.7-moon-day-modal.apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.8-full.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MayaCalendar-v1.2.7-moon-day-modal
-          path: /tmp/apk/MayaCalendar-v1.2.7-moon-day-modal.apk
+          name: MayaCalendar-v1.2.8-full
+          path: /tmp/apk/MayaCalendar-v1.2.8-full.apk
           if-no-files-found: error
