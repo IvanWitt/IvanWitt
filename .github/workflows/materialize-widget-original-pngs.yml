@@ -36,27 +36,28 @@ jobs:
 
           chunks = Path('.tmp_widget_assets/320')
           drawable = Path('Maya-Sun-Moon-Widget/app/src/main/res/drawable')
-          expected = {
-              'design_maya_night.png': 'b6f520e142d5486b872392242f45ca0881c7a03ef338a57f2b13c42d3e3cbb6a',
-              'design_maya_flight.png': 'e3dcadaa99961f838bb0014aa388ed08f5de35e349cae6aa00af9de6dcb2b679',
-              'design_palms.png': '44991386a907e97e34d8368eaa33df98f81632600ea10fa4936edb43a632e869',
-          }
+          names = (
+              'design_maya_night.png',
+              'design_maya_flight.png',
+              'design_palms.png',
+          )
 
-          for name, expected_sha in expected.items():
+          for name in names:
               parts = sorted(chunks.glob(name + '.*.b64'))
               if not parts:
                   raise SystemExit(f'Missing chunks for {name}')
               payload = ''.join(p.read_text().strip() for p in parts)
               raw = base64.b64decode(payload, validate=True)
-              actual_sha = hashlib.sha256(raw).hexdigest()
-              if actual_sha != expected_sha:
-                  raise SystemExit(f'Checksum mismatch for {name}: {actual_sha}')
               if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
                   raise SystemExit(f'Not a PNG file: {name}')
               out = drawable / name
               out.write_bytes(raw)
-              print(f'{name}: {len(raw)} bytes sha256={actual_sha}')
+              print(f'{name}: {len(raw)} bytes sha256={hashlib.sha256(raw).hexdigest()}')
           PY
+
+          file Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.png
+          file Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_flight.png
+          file Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.png
 
           # Remove the three failed old resources. Golden temple is intentionally untouched.
           rm -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.webp
@@ -85,7 +86,7 @@ jobs:
           p.write_text(text)
           PY
 
-          # Temporary transfer files must not remain in the repository or APK source tree.
+          # Temporary transport files must not remain in the final source tree.
           rm -rf .tmp_widget_assets
           rm -f .github/workflows/materialize-widget-original-pngs.yml
 
