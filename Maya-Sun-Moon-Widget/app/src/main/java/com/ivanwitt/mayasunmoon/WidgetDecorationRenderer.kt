@@ -8,18 +8,21 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.graphics.RectF
 import kotlin.math.max
 import kotlin.math.min
 
 object WidgetDecorationRenderer {
     private val cache = mutableMapOf<Int, Bitmap>()
+    private val contentBoundsCache = mutableMapOf<Int, Rect>()
 
     fun apply(context: Context, frame: Bitmap, settings: WidgetSettings): Bitmap {
         val resId = resourceFor(settings.decorationStyle) ?: return frame
         val asset = synchronized(cache) {
             cache[resId] ?: BitmapFactory.decodeResource(context.resources, resId)?.also { cache[resId] = it }
         } ?: return frame
+        val src = contentBounds(resId, asset)
 
         val w = max(frame.width, 480)
         val h = max(frame.height, 300)
@@ -39,7 +42,7 @@ object WidgetDecorationRenderer {
             DecorationStyle.DEFAULT -> return frame
         }
 
-        var targetHeight = targetWidth * asset.height.toFloat() / asset.width.toFloat()
+        var targetHeight = targetWidth * src.height().toFloat() / src.width().toFloat()
         val maxHeight = radius * when (settings.decorationStyle) {
             DecorationStyle.MAYA_NIGHT -> 0.72f
             DecorationStyle.MAYA_FLIGHT -> 0.58f
@@ -54,11 +57,14 @@ object WidgetDecorationRenderer {
             finalWidth *= scale
         }
 
+        // The visible bottom row of every PNG is anchored exactly on the horizon.
+        // A tiny overlap is intentional: the upper-half clip removes anything below
+        // the horizon while preventing a sub-pixel transparent seam above the line.
         val dst = RectF(
             cx - finalWidth / 2f,
             baselineY - targetHeight,
             cx + finalWidth / 2f,
-            baselineY
+            baselineY + 2f
         )
 
         val canvas = Canvas(frame)
@@ -76,10 +82,45 @@ object WidgetDecorationRenderer {
             alpha = 255
             xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OVER)
         }
-        canvas.drawBitmap(asset, null, dst, p)
+        canvas.drawBitmap(asset, src, dst, p)
         p.xfermode = null
         canvas.restoreToCount(save)
         return frame
+    }
+
+    private fun contentBounds(resId: Int, bitmap: Bitmap): Rect = synchronized(contentBoundsCache) {
+        contentBoundsCache[resId] ?: findVisibleBounds(bitmap).also { contentBoundsCache[resId] = it }
+    }
+
+    private fun findVisibleBounds(bitmap: Bitmap): Rect {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var minX = width
+        var minY = height
+        var maxX = -1
+        var maxY = -1
+        for (y in 0 until height) {
+            val row = y * width
+            for (x in 0 until width) {
+                // Ignore almost-transparent export noise. It previously made the full
+                // 1536x1024 canvas look like content and shrank the real drawing until
+                // some designs were effectively invisible on the widget.
+                if ((pixels[row + x] ushr 24) >= 8) {
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                    if (y < minY) minY = y
+                    if (y > maxY) maxY = y
+                }
+            }
+        }
+        return if (maxX >= minX && maxY >= minY) {
+            Rect(minX, minY, maxX + 1, maxY + 1)
+        } else {
+            Rect(0, 0, width, height)
+        }
     }
 
     fun resourceFor(style: DecorationStyle): Int? = when (style) {
