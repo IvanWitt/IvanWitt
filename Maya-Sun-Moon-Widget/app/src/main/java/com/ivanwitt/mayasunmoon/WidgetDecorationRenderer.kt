@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 object WidgetDecorationRenderer {
     private val cache = mutableMapOf<Int, Bitmap>()
@@ -20,7 +21,7 @@ object WidgetDecorationRenderer {
     fun apply(context: Context, frame: Bitmap, settings: WidgetSettings): Bitmap {
         val resId = resourceFor(settings.decorationStyle) ?: return frame
         val asset = synchronized(cache) {
-            cache[resId] ?: BitmapFactory.decodeResource(context.resources, resId)?.also { cache[resId] = it }
+            cache[resId] ?: loadResourceBitmap(context, resId)?.also { cache[resId] = it }
         } ?: return frame
         val src = contentBounds(resId, asset)
 
@@ -57,9 +58,9 @@ object WidgetDecorationRenderer {
             finalWidth *= scale
         }
 
-        // The visible bottom row of every PNG is anchored exactly on the horizon.
-        // A tiny overlap is intentional: the upper-half clip removes anything below
-        // the horizon while preventing a sub-pixel transparent seam above the line.
+        // The visible bottom row of every decoration is anchored directly on the
+        // horizon. A tiny overlap is intentional: clipping removes everything below
+        // the horizon and prevents a transparent one-pixel seam above the line.
         val dst = RectF(
             cx - finalWidth / 2f,
             baselineY - targetHeight,
@@ -88,6 +89,34 @@ object WidgetDecorationRenderer {
         return frame
     }
 
+    /**
+     * BitmapFactory can decode the photographic golden-temple PNG, but Android vector
+     * drawables are not bitmap files. The previous implementation silently received
+     * null for the three broken resources, which made positions 2/5–4/5 look empty.
+     * We therefore support both resource types explicitly and rasterise vectors at a
+     * high working resolution before compositing them into the widget bitmap.
+     */
+    private fun loadResourceBitmap(context: Context, resId: Int): Bitmap? {
+        val bitmap = runCatching {
+            BitmapFactory.decodeResource(context.resources, resId)
+        }.getOrNull()
+        if (bitmap != null) return bitmap
+
+        val drawable = runCatching {
+            context.resources.getDrawable(resId, context.theme)
+        }.getOrNull() ?: return null
+
+        val intrinsicW = drawable.intrinsicWidth.takeIf { it > 0 } ?: 1000
+        val intrinsicH = drawable.intrinsicHeight.takeIf { it > 0 } ?: 400
+        val width = 1200
+        val height = max(1, (width * intrinsicH.toFloat() / intrinsicW.toFloat()).roundToInt())
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        drawable.setBounds(0, 0, width, height)
+        drawable.draw(canvas)
+        return result
+    }
+
     private fun contentBounds(resId: Int, bitmap: Bitmap): Rect = synchronized(contentBoundsCache) {
         contentBoundsCache[resId] ?: findVisibleBounds(bitmap).also { contentBoundsCache[resId] = it }
     }
@@ -105,9 +134,8 @@ object WidgetDecorationRenderer {
         for (y in 0 until height) {
             val row = y * width
             for (x in 0 until width) {
-                // Ignore almost-transparent export noise. It previously made the full
-                // 1536x1024 canvas look like content and shrank the real drawing until
-                // some designs were effectively invisible on the widget.
+                // Ignore almost-transparent export noise. This prevents a large empty
+                // source canvas from shrinking the actual decoration to invisibility.
                 if ((pixels[row + x] ushr 24) >= 8) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
@@ -125,9 +153,9 @@ object WidgetDecorationRenderer {
 
     fun resourceFor(style: DecorationStyle): Int? = when (style) {
         DecorationStyle.DEFAULT -> null
-        DecorationStyle.MAYA_NIGHT -> R.drawable.design_maya_night
-        DecorationStyle.MAYA_FLIGHT -> R.drawable.design_maya_flight
-        DecorationStyle.PALMS -> R.drawable.design_palms
+        DecorationStyle.MAYA_NIGHT -> R.drawable.design_maya_night_vector
+        DecorationStyle.MAYA_FLIGHT -> R.drawable.design_maya_flight_vector
+        DecorationStyle.PALMS -> R.drawable.design_palms_vector
         DecorationStyle.GOLDEN_TEMPLE -> R.drawable.design_golden_temple
     }
 }
