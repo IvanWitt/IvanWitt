@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1000dp"
+    android:height="400dp"
+    android:viewportWidth="1000"
+    android:viewportHeight="400">
+
+    <path android:pathData="M65,350 L935,350" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="6" android:strokeLineCap="round" />
+
+    <path android:pathData="M415,350 L438,332 L438,316 L457,316 L457,298 L475,298 L475,279 L492,279 L492,258 L508,258 L508,279 L525,279 L525,298 L543,298 L543,316 L562,316 L562,332 L585,350 Z" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="6" android:strokeLineJoin="round" />
+    <path android:pathData="M492,258 L508,258 L508,239 L492,239 Z" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="6" />
+    <path android:pathData="M496,239 L504,239 L504,350 L496,350 Z" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" />
+    <path android:pathData="M481,279 L519,279 M463,298 L537,298 M445,317 L555,317 M427,333 L573,333" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" android:strokeLineCap="round" />
+
+    <path android:pathData="M330,145 L353,138 L380,111 L394,115 L383,135 L430,123 L446,132 L432,142 L384,149 L394,171 L381,176 L356,153 L333,157 L344,148 Z" android:fillColor="#FFF9EE" />
+    <path android:pathData="M320,160 L312,166 M300,175 L292,181 M279,190 L271,196 M257,207 L249,213 M234,224 L226,230" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="5" android:strokeLineCap="round" />
+
+    <path android:pathData="M182,350 C185,314 188,282 193,250" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="6" android:strokeLineCap="round" />
+    <path android:pathData="M193,250 C169,242 151,247 138,260 C158,255 176,260 191,270 M193,250 C208,232 229,231 246,240 C226,240 211,250 196,267 M193,250 C182,228 165,218 146,221 C164,229 179,241 193,264 M193,250 C206,227 224,218 243,223 C225,231 211,243 196,264" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="5" android:strokeLineCap="round" />
+    <path android:pathData="M220,350 C222,328 225,309 228,290 M228,290 C214,285 203,289 195,298 M228,290 C238,278 252,278 263,285 M228,290 C220,276 209,269 196,272" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" android:strokeLineCap="round" />
+
+    <path android:pathData="M818,350 C815,314 812,282 807,250" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="6" android:strokeLineCap="round" />
+    <path android:pathData="M807,250 C831,242 849,247 862,260 C842,255 824,260 809,270 M807,250 C792,232 771,231 754,240 C774,240 789,250 804,267 M807,250 C818,228 835,218 854,221 C836,229 821,241 807,264 M807,250 C794,227 776,218 757,223 C775,231 789,243 804,264" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="5" android:strokeLineCap="round" />
+    <path android:pathData="M780,350 C778,328 775,309 772,290 M772,290 C786,285 797,289 805,298 M772,290 C762,278 748,278 737,285 M772,290 C780,276 791,269 804,272" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" android:strokeLineCap="round" />
+
+    <path android:pathData="M365,350 C367,333 369,318 372,305 M372,305 C360,301 351,305 344,312 M372,305 C381,295 392,295 401,301" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" android:strokeLineCap="round" />
+    <path android:pathData="M635,350 C633,333 631,318 628,305 M628,305 C640,301 649,305 656,312 M628,305 C619,295 608,295 599,301" android:fillColor="@android:color/transparent" android:strokeColor="#FFF9EE" android:strokeWidth="4" android:strokeLineCap="round" />
+</vector>
