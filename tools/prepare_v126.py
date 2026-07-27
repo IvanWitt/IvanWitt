@@ -55,8 +55,16 @@ if 'startupSplash' in s or 'initStartupSplash' in s:
     raise SystemExit('Startup splash residue remains in index.html')
 
 # Inject runtime fixes before DOMContentLoaded can fire.
-tags='    <script src="tzolkin-sequence-fix.js"></script>\n    <script src="moon-calendar-v2.js"></script>\n'
-for tag in ['<script src="tzolkin-sequence-fix.js"></script>','<script src="moon-calendar-v2.js"></script>']:
+tags=(
+    '    <script src="tzolkin-sequence-fix.js"></script>\n'
+    '    <script src="moon-calendar-v2.js"></script>\n'
+    '    <script src="moon-calendar-modal-fix.js"></script>\n'
+)
+for tag in [
+    '<script src="tzolkin-sequence-fix.js"></script>',
+    '<script src="moon-calendar-v2.js"></script>',
+    '<script src="moon-calendar-modal-fix.js"></script>',
+]:
     s=s.replace('    '+tag+'\n','').replace(tag+'\n','')
 if '</body>' not in s:
     raise SystemExit('Missing </body>')
@@ -112,8 +120,8 @@ drawable.mkdir(parents=True,exist_ok=True)
 
 gradle=ROOT/'app/build.gradle'
 g=gradle.read_text('utf-8')
-g=re.sub(r'versionCode\s+\d+','versionCode 8',g)
-g=re.sub(r"versionName\s+'[^']+'","versionName '1.2.8'",g)
+g=re.sub(r'versionCode\s+\d+','versionCode 9',g)
+g=re.sub(r"versionName\s+'[^']+'","versionName '1.2.9'",g)
 gradle.write_text(g,'utf-8')
 
-print('Prepared v1.2.8: moon-day modal fixed; stable-signing build candidate.')
+print('Prepared v1.2.9: fixed centered moon-day modal, save button, and live events-page sync.')
