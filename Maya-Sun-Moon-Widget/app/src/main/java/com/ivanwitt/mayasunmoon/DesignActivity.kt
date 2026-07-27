@@ -75,10 +75,9 @@ class DesignActivity : Activity() {
     private val galleryItems by lazy {
         listOf(
             GalleryItem("По умолчанию", DecorationStyle.DEFAULT, null),
-            GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night),
-            GalleryItem("Храм и самолёт", DecorationStyle.MAYA_FLIGHT, R.drawable.design_maya_flight),
-            GalleryItem("Пальмы", DecorationStyle.PALMS, R.drawable.design_palms),
-            GalleryItem("Золотой храм", DecorationStyle.GOLDEN_TEMPLE, R.drawable.design_golden_temple)
+            GalleryItem("Золотой храм", DecorationStyle.GOLDEN_TEMPLE, R.drawable.design_golden_temple),
+            GalleryItem("Храм в джунглях", DecorationStyle.MAYA_FLIGHT, R.drawable.design_jungle_temple),
+            GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night_original)
         )
     }
 

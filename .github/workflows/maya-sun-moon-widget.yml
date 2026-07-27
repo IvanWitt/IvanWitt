@@ -43,9 +43,35 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Prepare original PNG decoration assets
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq webp
+          DIR=Maya-Sun-Moon-Widget/app/src/main/res/drawable
+          test -s "$DIR/design_maya_night_original.webp"
+          test -s "$DIR/design_jungle_temple.webp"
+          dwebp "$DIR/design_maya_night_original.webp" -o "$DIR/design_maya_night_original.png"
+          dwebp "$DIR/design_jungle_temple.webp" -o "$DIR/design_jungle_temple.png"
+          test -s "$DIR/design_maya_night_original.png"
+          test -s "$DIR/design_jungle_temple.png"
+          rm "$DIR/design_maya_night_original.webp" "$DIR/design_jungle_temple.webp"
+          file "$DIR/design_maya_night_original.png" "$DIR/design_jungle_temple.png"
+
       - name: Build debug APK
         working-directory: Maya-Sun-Moon-Widget
         run: gradle --no-daemon assembleDebug
+
+      - name: Verify decoration assets in APK
+        run: |
+          APK=Maya-Sun-Moon-Widget/app/build/outputs/apk/debug/app-debug.apk
+          unzip -l "$APK" | grep -E 'design_(golden_temple|maya_night_original|jungle_temple)\.(png|webp)' | tee /tmp/design-assets.txt
+          grep -q 'design_golden_temple.png' /tmp/design-assets.txt
+          grep -q 'design_maya_night_original.png' /tmp/design-assets.txt
+          grep -q 'design_jungle_temple.png' /tmp/design-assets.txt
+          if grep -qE 'design_(maya_night|maya_flight|palms)\.(png|webp)' /tmp/design-assets.txt; then
+            echo 'Unexpected obsolete decoration asset found'
+            exit 1
+          fi
 
       - name: Prepare APK
         run: |
