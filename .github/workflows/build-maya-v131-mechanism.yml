@@ -38,7 +38,7 @@ jobs:
           grep -Fq "setRotor(gears.tz,tzAngle)" "$JS"
           grep -Fq "setRotor(gears.haab,haabAngle)" "$JS"
           grep -Fq "setRotor(gears.moon,moonAngle)" "$JS"
-          grep -Fq 'id="longRackMover"' "$JS"
+          grep -Fq "id:'longRackMover'" "$JS"
           grep -Fq 'const rackShift=-mod(state.offset,365)*4' "$JS"
           grep -Fq 'sandstoneGear' "$JS"
           grep -Fq 'id="gearStep"' "$JS"
