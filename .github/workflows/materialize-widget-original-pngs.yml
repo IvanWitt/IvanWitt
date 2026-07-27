@@ -1,0 +1,104 @@
+name: Materialize widget PNG backgrounds
+
+on:
+  push:
+    branches:
+      - fix/maya-widget-three-original-png-backgrounds
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/maya-widget-three-original-png-backgrounds
+          fetch-depth: 0
+
+      - name: Materialize supplied PNG resources
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+
+          chunks = Path('.tmp_widget_assets/320')
+          drawable = Path('Maya-Sun-Moon-Widget/app/src/main/res/drawable')
+          expected = {
+              'design_maya_night.png': 'b6f520e142d5486b872392242f45ca0881c7a03ef338a57f2b13c42d3e3cbb6a',
+              'design_maya_flight.png': 'e3dcadaa99961f838bb0014aa388ed08f5de35e349cae6aa00af9de6dcb2b679',
+              'design_palms.png': '44991386a907e97e34d8368eaa33df98f81632600ea10fa4936edb43a632e869',
+          }
+
+          for name, expected_sha in expected.items():
+              parts = sorted(chunks.glob(name + '.*.b64'))
+              if not parts:
+                  raise SystemExit(f'Missing chunks for {name}')
+              payload = ''.join(p.read_text().strip() for p in parts)
+              raw = base64.b64decode(payload, validate=True)
+              actual_sha = hashlib.sha256(raw).hexdigest()
+              if actual_sha != expected_sha:
+                  raise SystemExit(f'Checksum mismatch for {name}: {actual_sha}')
+              if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+                  raise SystemExit(f'Not a PNG file: {name}')
+              out = drawable / name
+              out.write_bytes(raw)
+              print(f'{name}: {len(raw)} bytes sha256={actual_sha}')
+          PY
+
+          # Remove the three failed old resources. Golden temple is intentionally untouched.
+          rm -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.webp
+          rm -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_flight.webp
+          rm -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.webp
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('Maya-Sun-Moon-Widget/app/src/main/java/com/ivanwitt/mayasunmoon/DesignActivity.kt')
+          text = p.read_text()
+          text = text.replace(
+              'GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night),',
+              'GalleryItem("Ночная Майя", DecorationStyle.MAYA_NIGHT, R.drawable.design_maya_night),'
+          )
+          text = text.replace(
+              'GalleryItem("Храм и самолёт", DecorationStyle.MAYA_FLIGHT, R.drawable.design_maya_flight),',
+              'GalleryItem("Лагуна Майя", DecorationStyle.MAYA_FLIGHT, R.drawable.design_maya_flight),'
+          )
+          text = text.replace(
+              'GalleryItem("Пальмы", DecorationStyle.PALMS, R.drawable.design_palms),',
+              'GalleryItem("Храм в джунглях", DecorationStyle.PALMS, R.drawable.design_palms),'
+          )
+          p.write_text(text)
+
+          p = Path('Maya-Sun-Moon-Widget/app/build.gradle.kts')
+          text = p.read_text()
+          text = text.replace('versionCode = 26', 'versionCode = 27')
+          text = text.replace('versionName = "0.3.12"', 'versionName = "0.3.14"')
+          p.write_text(text)
+          PY
+
+          # Temporary transfer files must not remain in the repository or APK source tree.
+          rm -rf .tmp_widget_assets
+          rm -f .github/workflows/materialize-widget-original-pngs.yml
+
+          # Verify the final source tree contains real PNGs and no replaced WebP resources.
+          test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.png
+          test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_flight.png
+          test -f Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.png
+          test ! -e Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_night.webp
+          test ! -e Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_maya_flight.webp
+          test ! -e Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.webp
+
+      - name: Commit actual PNG resources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Embed three supplied PNG backgrounds"
+          git push origin HEAD:fix/maya-widget-three-original-png-backgrounds
