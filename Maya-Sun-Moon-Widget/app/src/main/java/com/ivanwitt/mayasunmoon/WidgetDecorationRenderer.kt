@@ -35,18 +35,18 @@ object WidgetDecorationRenderer {
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
 
         val targetWidth = radius * when (settings.decorationStyle) {
-            DecorationStyle.MAYA_NIGHT -> 1.84f
-            DecorationStyle.MAYA_FLIGHT -> 1.82f
-            DecorationStyle.PALMS -> 1.82f
+            DecorationStyle.MAYA_NIGHT -> 1.92f
+            DecorationStyle.MAYA_FLIGHT -> 1.94f
+            DecorationStyle.PALMS -> return frame
             DecorationStyle.GOLDEN_TEMPLE -> 1.78f
             DecorationStyle.DEFAULT -> return frame
         }
 
         var targetHeight = targetWidth * src.height().toFloat() / src.width().toFloat()
         val maxHeight = radius * when (settings.decorationStyle) {
-            DecorationStyle.MAYA_NIGHT -> 0.72f
-            DecorationStyle.MAYA_FLIGHT -> 0.58f
-            DecorationStyle.PALMS -> 0.38f
+            DecorationStyle.MAYA_NIGHT -> 0.62f
+            DecorationStyle.MAYA_FLIGHT -> 0.98f
+            DecorationStyle.PALMS -> 0f
             DecorationStyle.GOLDEN_TEMPLE -> 0.66f
             DecorationStyle.DEFAULT -> 0f
         }
@@ -57,9 +57,8 @@ object WidgetDecorationRenderer {
             finalWidth *= scale
         }
 
-        // The visible bottom row of every PNG is anchored exactly on the horizon.
-        // A tiny overlap is intentional: the upper-half clip removes anything below
-        // the horizon while preventing a sub-pixel transparent seam above the line.
+        // Anchor the visible artwork directly to the horizon. The slight overlap is
+        // intentional so scaling cannot create a transparent seam above the line.
         val dst = RectF(
             cx - finalWidth / 2f,
             baselineY - targetHeight,
@@ -105,9 +104,6 @@ object WidgetDecorationRenderer {
         for (y in 0 until height) {
             val row = y * width
             for (x in 0 until width) {
-                // Ignore almost-transparent export noise. It previously made the full
-                // 1536x1024 canvas look like content and shrank the real drawing until
-                // some designs were effectively invisible on the widget.
                 if ((pixels[row + x] ushr 24) >= 8) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
@@ -125,9 +121,9 @@ object WidgetDecorationRenderer {
 
     fun resourceFor(style: DecorationStyle): Int? = when (style) {
         DecorationStyle.DEFAULT -> null
-        DecorationStyle.MAYA_NIGHT -> R.drawable.design_maya_night
-        DecorationStyle.MAYA_FLIGHT -> R.drawable.design_maya_flight
-        DecorationStyle.PALMS -> R.drawable.design_palms
+        DecorationStyle.MAYA_NIGHT -> R.drawable.design_maya_night_original
+        DecorationStyle.MAYA_FLIGHT -> R.drawable.design_jungle_temple
+        DecorationStyle.PALMS -> null
         DecorationStyle.GOLDEN_TEMPLE -> R.drawable.design_golden_temple
     }
 }
