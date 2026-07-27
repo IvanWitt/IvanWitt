@@ -32,7 +32,7 @@ import java.util.Locale
 
 class MainActivity : Activity() {
     private val modes = listOf(
-        "Продолжительность светового дня/ночи (ч.)" to CenterMode.DAY_NIGHT_DURATION,
+        "Продолжительность светового дня/ночи (ч.)" to CenterMode.VISIBLE_HOURS,
         "Современный час (1–12)" to CenterMode.CLOCK_12H
     )
 
@@ -147,8 +147,6 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, dp(10))
         })
         designCard.addView(airButton("ОТКРЫТЬ ДИЗАЙН  →") {
-            // Both activities are translucent. Hide this page before opening DesignActivity,
-            // so the previous settings page never shows through beneath it.
             mainRoot.visibility = View.INVISIBLE
             startActivity(Intent(this, DesignActivity::class.java))
         }, fieldParams())
