@@ -178,6 +178,12 @@ buildCustomCalendar=function(){
         td.dataset.moon=String(m+1);
         td.dataset.dayInMoon=String(dayInMonth);
         td.textContent=String(dayInMonth);
+        td.setAttribute('role','button');
+        td.tabIndex=0;
+        td.addEventListener('click',()=>openMoonDayModal(ordinal));
+        td.addEventListener('keydown',e=>{
+          if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openMoonDayModal(ordinal); }
+        });
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -190,7 +196,13 @@ buildCustomCalendar=function(){
   outside.className='outside-time';
   outside.dataset.day='365';
   outside.dataset.outside='true';
+  outside.setAttribute('role','button');
+  outside.tabIndex=0;
   outside.innerHTML='<div>День вне времени<small>365-й день года</small></div>';
+  outside.addEventListener('click',()=>openMoonDayModal(365));
+  outside.addEventListener('keydown',e=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openMoonDayModal(365); }
+  });
   grid.appendChild(outside);
   updateCustomCalendar();
 };
@@ -199,16 +211,16 @@ updateCustomCalendar=function(){
   const today=moonStateForDate(new Date());
   document.querySelectorAll('#customGrid [data-day]').forEach(cell=>{
     const ordinal=Number(cell.dataset.day);
-    const event=events[ordinal]||{name:'',color:''};
+    const event=eventForDay(ordinal);
     cell.style.background=event.color||'';
-    cell.classList.toggle('has-event',Boolean(event.name));
+    cell.classList.toggle('has-event',Boolean(event.text));
     cell.classList.toggle('current-day',!today.beforeStart && ordinal===today.ordinal);
     if(ordinal===365){
-      cell.title=event.name?`День вне времени: ${event.name}`:'День вне времени';
+      cell.title=event.text?`День вне времени: ${event.text}`:'День вне времени';
     } else {
       const dayInMoon=Number(cell.dataset.dayInMoon);
       const moon=Number(cell.dataset.moon);
-      cell.title=event.name?`${dayInMoon} Moon ${moon}: ${event.name}`:`${dayInMoon} Moon ${moon}`;
+      cell.title=event.text?`${dayInMoon} Moon ${moon}: ${event.text}`:`${dayInMoon} Moon ${moon}`;
     }
   });
   updateMoonTodayHeader();
@@ -239,7 +251,11 @@ function ensureMoonDayModal(){
   document.body.appendChild(modal);
   modal.querySelectorAll('[data-close-moon-day]').forEach(el=>el.addEventListener('click',closeMoonDayModal));
 }
-function closeMoonDayModal(){ const modal=document.getElementById('moonDayModal'); if(modal) modal.hidden=true; }
+function closeMoonDayModal(){
+  const modal=document.getElementById('moonDayModal');
+  if(modal) modal.hidden=true;
+  if(typeof buildEventsTable==='function') buildEventsTable();
+}
 closeEventModal=function(){
   closeMoonDayModal();
   const legacy=document.getElementById('eventModal'); if(legacy) legacy.hidden=true;
@@ -258,17 +274,18 @@ function openMoonDayModal(ordinal){
   const input=document.getElementById('moonEventName');
   const select=document.getElementById('moonEventColor');
   select.innerHTML=eventColors.map(([hex,name])=>`<option value="${hex}">${name}</option>`).join('');
-  const saved=events[ordinal]||{};
-  input.value=saved.name||'';
+  const saved=eventForDay(ordinal);
+  input.value=saved.text||'';
   select.value=saved.color||'';
   const editor=document.getElementById('moonEventEditor');
   function save(){
-    const clean=input.value.trim();
+    const clean=input.value;
     const color=select.value;
-    if(clean||color) events[ordinal]={name:clean,color}; else delete events[ordinal];
-    persistEvents();
+    const key=String(ordinal);
+    if(clean||color) events[key]={text:clean,color}; else delete events[key];
+    saveEvents();
     editor.style.background=color||'';
-    refreshEventsTable();
+    updateCustomCalendar();
   }
   input.oninput=save;
   select.onchange=save;
@@ -279,11 +296,6 @@ function openMoonDayModal(ordinal){
 
 initCustomEventPopups=function(){
   ensureMoonUi();
-  document.getElementById('customGrid').addEventListener('click',e=>{
-    const cell=e.target.closest('[data-day]');
-    if(!cell || !document.getElementById('customGrid').contains(cell)) return;
-    openMoonDayModal(Number(cell.dataset.day));
-  });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMoonDayModal(); });
 };
 
@@ -294,7 +306,7 @@ initCustomEventPopups=function(){
     .moon-calendar-controls{display:grid;grid-template-columns:minmax(210px,.85fr) minmax(220px,1.15fr);gap:12px;align-items:stretch;margin-bottom:14px;padding:12px;border:1px solid #c7ae7b;border-radius:14px;background:linear-gradient(145deg,#fffaf0,#e9ddc4);box-shadow:0 4px 12px rgba(73,51,24,.08)}
     .moon-start-field input{width:100%;background:#fffdf7;border-color:#b99a62;font-weight:800}.moon-start-field small{font-size:11px;color:#77664b;line-height:1.2}
     .moon-today-card{display:flex;flex-direction:column;justify-content:center;padding:10px 13px;border-radius:12px;background:linear-gradient(135deg,#315b52,#6e542e);color:#f7e8c2;border:1px solid #9f7a40}.moon-today-card span{font-size:11px;opacity:.82}.moon-today-card strong{font-size:19px;line-height:1.15;margin:3px 0}.moon-today-card small{font-size:12px;color:#f5ddb0}
-    #customGrid .custom-month h3{font-weight:900;color:#3b2b18;border-bottom:1px solid rgba(83,54,24,.18)}#customGrid .custom-day{cursor:pointer;font-size:15px}#customGrid .outside-time{cursor:pointer}#customGrid .outside-time small{display:block;margin-top:6px;font-size:12px;font-weight:700;opacity:.72}
+    #customGrid .custom-month h3{font-weight:900;color:#3b2b18;border-bottom:1px solid rgba(83,54,24,.18)}#customGrid .custom-day{cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(167,123,63,.22)}#customGrid .outside-time{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:rgba(167,123,63,.22)}#customGrid .outside-time small{display:block;margin-top:6px;font-size:12px;font-weight:700;opacity:.72}
     .moon-day-modal[hidden]{display:none}.moon-day-modal{position:fixed;inset:0;z-index:760;display:flex;align-items:center;justify-content:center;padding:14px}.moon-day-backdrop{position:absolute;inset:0;background:rgba(14,19,16,.70);backdrop-filter:blur(2px)}
     .moon-day-card{position:relative;z-index:1;width:min(620px,96vw);border:2px solid #a77b3f;border-radius:20px;padding:18px;background:linear-gradient(160deg,#fffaf0,#eadcc0);box-shadow:0 18px 55px rgba(0,0,0,.36)}.moon-day-close{position:absolute;right:10px;top:9px;width:42px;height:42px;border-radius:50%;border:1px solid #a77b3f;background:#f7edda;color:#5b3c1d;font-size:27px;line-height:1;z-index:2}
     .moon-day-dategrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-right:42px}.moon-day-dategrid>div{min-width:0;padding:9px 10px;border:1px solid #ceb98e;border-radius:11px;background:rgba(255,255,255,.62)}.moon-day-dategrid span{display:block;font-size:10px;font-weight:800;color:#806b4e}.moon-day-dategrid strong{display:block;margin-top:2px;font-size:14px;line-height:1.2;color:#2f3b34;overflow-wrap:anywhere}
