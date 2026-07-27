@@ -18,12 +18,9 @@ object WidgetDecorationRenderer {
     private val contentBoundsCache = mutableMapOf<Int, Rect>()
 
     /**
-     * Places the selected PNG over the whole upper semicircle as a true background layer.
-     * The existing widget frame (outline, Mayan number, calendar text, Sun and Moon) is then
-     * composited back on top, so none of the foreground elements are replaced by the artwork.
-     *
-     * This method intentionally mutates [frame]. MayaWidgetProvider currently invokes it from
-     * Kotlin's also { ... }, so returning a separate bitmap there would be discarded.
+     * Draws the selected decoration as the background of the upper semicircle and then restores
+     * the already rendered widget frame above it. The original frame is mutated intentionally:
+     * MayaWidgetProvider invokes this method from also { ... } and keeps that exact Bitmap.
      */
     fun apply(context: Context, frame: Bitmap, settings: WidgetSettings): Bitmap {
         val resId = resourceFor(settings.decorationStyle) ?: return frame
@@ -40,19 +37,36 @@ object WidgetDecorationRenderer {
         val cx = w / 2f
         val baselineY = h * 0.50f
         val arcRect = RectF(cx - radius, baselineY - radius, cx + radius, baselineY + radius)
-
-        // Ignore transparent export margins around the supplied artwork and map the visible
-        // picture exactly to the complete upper semicircle: full width, apex to horizon.
         val src = contentBounds(resId, asset)
-        val dst = RectF(
-            cx - radius,
-            baselineY - radius,
-            cx + radius,
-            baselineY + 1f
-        )
 
-        // Work in a temporary bitmap so the photo is guaranteed to stay behind every existing
-        // element, regardless of alpha already present in the rendered widget frame.
+        val dst = if (settings.decorationStyle == DecorationStyle.GOLDEN_TEMPLE) {
+            // Keep the already approved golden-temple composition unchanged: it remains a
+            // horizon decoration instead of being stretched into a photographic background.
+            var targetWidth = radius * 1.78f
+            var targetHeight = targetWidth * src.height().toFloat() / src.width().toFloat()
+            val maxHeight = radius * 0.66f
+            if (targetHeight > maxHeight && targetHeight > 0f) {
+                val scale = maxHeight / targetHeight
+                targetHeight = maxHeight
+                targetWidth *= scale
+            }
+            RectF(
+                cx - targetWidth / 2f,
+                baselineY - targetHeight,
+                cx + targetWidth / 2f,
+                baselineY + 2f
+            )
+        } else {
+            // The three supplied photographic PNGs are true backgrounds: use every pixel of the
+            // upper semicircle from its apex to the horizon and from the left arc to the right.
+            RectF(
+                cx - radius,
+                baselineY - radius,
+                cx + radius,
+                baselineY + 1f
+            )
+        }
+
         val composed = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(composed)
         val save = canvas.save()
@@ -71,11 +85,9 @@ object WidgetDecorationRenderer {
         canvas.drawBitmap(asset, src, dst, imagePaint)
         canvas.restoreToCount(save)
 
-        // Original widget content is the foreground layer.
+        // Horizon, upper contour, Mayan digits, text and Sun/Moon remain in the foreground.
         canvas.drawBitmap(frame, 0f, 0f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
 
-        // Copy the completed composition back into the original object because the caller uses
-        // also { ... } and therefore keeps this exact Bitmap instance.
         val target = Canvas(frame)
         val replacePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC)
@@ -103,8 +115,8 @@ object WidgetDecorationRenderer {
         for (y in 0 until height) {
             val row = y * width
             for (x in 0 until width) {
-                // Exported PNGs contain a little near-transparent noise outside the visible
-                // semicircle. It must not count as picture bounds or the real artwork shrinks.
+                // Ignore transparent export margins so the visible supplied artwork itself fills
+                // the requested destination rather than being shrunk by invisible canvas space.
                 if ((pixels[row + x] ushr 24) >= 8) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
@@ -122,8 +134,6 @@ object WidgetDecorationRenderer {
 
     fun resourceFor(style: DecorationStyle): Int? = when (style) {
         DecorationStyle.DEFAULT -> null
-        // These three resource names are deliberately retained for preference compatibility.
-        // Their files are replaced by the three new supplied PNG backgrounds.
         DecorationStyle.MAYA_NIGHT -> R.drawable.design_maya_night
         DecorationStyle.MAYA_FLIGHT -> R.drawable.design_maya_flight
         DecorationStyle.PALMS -> R.drawable.design_palms
