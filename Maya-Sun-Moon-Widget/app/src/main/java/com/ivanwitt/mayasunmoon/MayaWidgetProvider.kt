@@ -146,7 +146,9 @@ class MayaWidgetProvider : AppWidgetProvider() {
                         mayaDate = mayaDate,
                         nowMillis = now,
                         zone = zone
-                    )
+                    ).also { frame ->
+                        WidgetDecorationRenderer.apply(context, frame, settings)
+                    }
                 }
 
                 frameResult.onSuccess { frame ->
