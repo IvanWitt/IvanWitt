@@ -6,19 +6,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -30,157 +31,167 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : Activity() {
+    private val modes = listOf(
+        "Продолжительность светового дня/ночи (ч.)" to CenterMode.DAY_NIGHT_DURATION,
+        "Современный час (1–12)" to CenterMode.CLOCK_12H
+    )
+
+    private lateinit var mainRoot: LinearLayout
     private lateinit var modeSpinner: Spinner
     private lateinit var correlationInput: EditText
     private lateinit var locationText: TextView
-    private lateinit var dataText: TextView
-
-    private val modes = listOf(
-        "Продолжительность светового дня/ночи (ч.)" to CenterMode.VISIBLE_HOURS,
-        "Современный час 1–12" to CenterMode.CLOCK_12H
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        configureWindow()
-        setContentView(buildUi())
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        setContentView(buildContent())
         loadIntoUi()
-        AstroSyncJobService.scheduleIfNeeded(this)
     }
 
     override fun onResume() {
         super.onResume()
-        if (::locationText.isInitialized) {
-            val settings = WidgetPrefs.load(this)
-            renderLocation(settings)
-            renderDataStatus(settings)
+        if (::mainRoot.isInitialized) {
+            mainRoot.visibility = View.VISIBLE
+            loadIntoUi()
         }
     }
 
-    private fun configureWindow() {
-        window.statusBarColor = Color.argb(220, 0, 0, 0)
-        window.navigationBarColor = Color.argb(220, 0, 0, 0)
-        window.setBackgroundDrawableResource(android.R.color.transparent)
-    }
-
-    private fun buildUi(): ScrollView {
+    private fun buildContent(): ScrollView {
         val scroll = ScrollView(this).apply {
-            setBackgroundColor(Color.argb(218, 0, 0, 0))
-            setOnApplyWindowInsetsListener { view, insets ->
-                val top = if (Build.VERSION.SDK_INT >= 30) {
-                    insets.getInsets(WindowInsets.Type.statusBars()).top
-                } else {
-                    @Suppress("DEPRECATION")
-                    insets.systemWindowInsetTop
-                }
-                val bottom = if (Build.VERSION.SDK_INT >= 30) {
-                    insets.getInsets(WindowInsets.Type.navigationBars()).bottom
-                } else {
-                    @Suppress("DEPRECATION")
-                    insets.systemWindowInsetBottom
-                }
-                view.setPadding(0, top + dp(12), 0, bottom)
-                insets
-            }
+            isFillViewport = true
+            background = colorDrawable(Color.argb(77, 9, 28, 24), 0f, 0)
         }
-
-        val root = LinearLayout(this).apply {
+        mainRoot = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(22), dp(10), dp(22), dp(32))
+            setPadding(dp(18), dp(18), dp(18), dp(30))
         }
-        scroll.addView(root, ViewGroup.LayoutParams(
+        scroll.addView(mainRoot, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ))
-
-        root.addView(title("Maya Sun/Moon Widget", 26f))
-        root.addView(paragraph(
-            "Восходы и заходы Солнца и Луны загружаются из официального сервиса " +
-                "U.S. Naval Observatory (USNO), сохраняются на телефоне и используются автономно до 72 часов. " +
-                "Положение Солнца, Луны и майянское число обновляются каждую минуту."
-        ))
-
-        root.addView(section("Что показывает число в полукруге"))
-        modeSpinner = Spinner(this)
-        modeSpinner.adapter = darkAdapter(modes.map { it.first })
-        root.addView(modeSpinner, fullWidth())
-        root.addView(paragraph(
-            "В режиме «Продолжительность светового дня/ночи (ч.)» днём показывается интервал " +
-                "восход → заход Солнца, а после захода — интервал заход → следующий восход."
-        ))
-
-        root.addView(section("Корреляция Длинного счёта"))
-        correlationInput = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
-            hint = "584283"
-            setSingleLine(true)
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.argb(145, 255, 255, 255))
-        }
-        root.addView(correlationInput, fullWidth())
-        root.addView(paragraph("По умолчанию: GMT 584283. Можно ввести любое целое значение корреляции."))
-
-        root.addView(section("Дизайн"))
-        root.addView(paragraph("Все настройки внешнего вида вынесены на отдельную страницу."))
-        root.addView(Button(this).apply {
-            text = "Открыть настройки дизайна"
-            setTextColor(Color.WHITE)
-            setOnClickListener { startActivity(Intent(this@MainActivity, DesignActivity::class.java)) }
-        }, fullWidth())
-
-        root.addView(section("Местоположение"))
-        locationText = paragraph("")
-        root.addView(locationText)
-        root.addView(Button(this).apply {
-            text = "Обновить местоположение и данные"
-            setTextColor(Color.WHITE)
-            setOnClickListener { ensureLocationPermissionAndRefresh() }
-        }, fullWidth())
-
-        root.addView(section("Астрономические данные"))
-        dataText = paragraph("")
-        root.addView(dataText)
-        root.addView(Button(this).apply {
-            text = "Обновить данные сейчас"
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                val settings = WidgetPrefs.load(this@MainActivity)
-                if (!settings.hasLocationFix) {
-                    Toast.makeText(this@MainActivity, "Сначала обновите местоположение.", Toast.LENGTH_LONG).show()
-                } else {
-                    AstroSyncJobService.schedule(this@MainActivity)
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Обновление USNO запрошено. При наличии интернета данные загрузятся автоматически.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
+        scroll.setOnApplyWindowInsetsListener { _, insets ->
+            val top = if (Build.VERSION.SDK_INT >= 30) {
+                insets.getInsets(WindowInsets.Type.statusBars()).top
+            } else {
+                @Suppress("DEPRECATION") insets.systemWindowInsetTop
             }
-        }, fullWidth())
+            val bottom = if (Build.VERSION.SDK_INT >= 30) {
+                insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+            } else {
+                @Suppress("DEPRECATION") insets.systemWindowInsetBottom
+            }
+            mainRoot.setPadding(dp(18), top + dp(18), dp(18), bottom + dp(30))
+            insets
+        }
 
-        root.addView(Button(this).apply {
-            text = "Сохранить и обновить виджет"
-            setTextColor(Color.WHITE)
-            setOnClickListener { saveCoreSettings() }
-        }, fullWidth())
+        val header = glassCard().apply {
+            addView(TextView(this@MainActivity).apply {
+                text = "Maya Sun/Moon"
+                textSize = 29f
+                setTextColor(IVORY)
+                typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "☼   остров времени   ✦   календарь Майя   ☾"
+                textSize = 13f
+                setTextColor(MINT)
+                setPadding(0, dp(4), 0, 0)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "Солнце, Луна и календарные циклы работают автономно по сохранённым данным."
+                textSize = 14f
+                setTextColor(SOFT_TEXT)
+                setPadding(0, dp(10), 0, 0)
+            })
+        }
+        mainRoot.addView(header, matchCardParams())
 
-        root.addView(paragraph(
-            "После успешного обновления интернет для работы виджета не нужен. Через 72 часа система " +
-                "ставит обновление данных в очередь и выполнит его при первом доступном сетевом подключении."
-        ))
+        val displayCard = glassCard()
+        displayCard.addView(sectionTitle("Что показывает число в полукруге"))
+        modeSpinner = themedSpinner(modes.map { it.first })
+        displayCard.addView(modeSpinner, fieldParams())
+        displayCard.addView(TextView(this).apply {
+            text = "Днём — длительность от восхода до захода Солнца. После захода — длительность ночи от предыдущего захода до следующего восхода."
+            textSize = 13f
+            setTextColor(SOFT_TEXT)
+            setPadding(0, dp(8), 0, 0)
+        })
+        mainRoot.addView(displayCard, matchCardParams())
+
+        val calendarCard = glassCard()
+        calendarCard.addView(sectionTitle("Корреляция Длинного счёта"))
+        correlationInput = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+            textSize = 18f
+            setTextColor(IVORY)
+            setHintTextColor(Color.argb(150, 255, 255, 255))
+            backgroundTintList = android.content.res.ColorStateList.valueOf(SAND)
+            setSingleLine(true)
+        }
+        calendarCard.addView(correlationInput, fieldParams())
+        calendarCard.addView(TextView(this).apply {
+            text = "По умолчанию GMT 584283."
+            textSize = 13f
+            setTextColor(SOFT_TEXT)
+            setPadding(0, dp(6), 0, 0)
+        })
+        mainRoot.addView(calendarCard, matchCardParams())
+
+        val designCard = glassCard()
+        designCard.addView(sectionTitle("Дизайн"))
+        designCard.addView(TextView(this).apply {
+            text = "Оформление, декоративные PNG, цвета, подписи, размеры строк и нижняя полусфера."
+            textSize = 14f
+            setTextColor(SOFT_TEXT)
+            setPadding(0, 0, 0, dp(10))
+        })
+        designCard.addView(airButton("ОТКРЫТЬ ДИЗАЙН  →") {
+            // Both activities are translucent. Hide this page before opening DesignActivity,
+            // so the previous settings page never shows through beneath it.
+            mainRoot.visibility = View.INVISIBLE
+            startActivity(Intent(this, DesignActivity::class.java))
+        }, fieldParams())
+        mainRoot.addView(designCard, matchCardParams())
+
+        val locationCard = glassCard()
+        locationCard.addView(sectionTitle("Местоположение"))
+        locationText = TextView(this).apply {
+            textSize = 14f
+            setTextColor(IVORY)
+            setPadding(0, 0, 0, dp(10))
+        }
+        locationCard.addView(locationText)
+        locationCard.addView(airButton("ОБНОВИТЬ МЕСТОПОЛОЖЕНИЕ") {
+            ensureLocationPermissionAndRefresh()
+        }, fieldParams())
+        locationCard.addView(TextView(this).apply {
+            text = "Восходы и заходы сохраняются на телефоне и используются автономно до 72 часов."
+            textSize = 13f
+            setTextColor(SOFT_TEXT)
+            setPadding(0, dp(10), 0, 0)
+        })
+        mainRoot.addView(locationCard, matchCardParams())
+
+        mainRoot.addView(airButton("СОХРАНИТЬ И ОБНОВИТЬ ВИДЖЕТ") {
+            saveDisplaySettings()
+        }, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(54)
+        ).apply { setMargins(0, dp(8), 0, 0) })
+
         return scroll
     }
 
     private fun loadIntoUi() {
+        if (!::modeSpinner.isInitialized) return
         val s = WidgetPrefs.load(this)
         modeSpinner.setSelection(modes.indexOfFirst { it.second == s.centerMode }.coerceAtLeast(0))
         correlationInput.setText(s.correlation.toString())
         renderLocation(s)
-        renderDataStatus(s)
     }
 
-    private fun saveCoreSettings() {
+    private fun saveDisplaySettings() {
         val correlation = correlationInput.text.toString().trim().toIntOrNull()
         if (correlation == null) {
             Toast.makeText(this, "Введите целое число корреляции.", Toast.LENGTH_LONG).show()
@@ -202,10 +213,10 @@ class MainActivity : Activity() {
         val fine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (fine != PackageManager.PERMISSION_GRANTED && coarse != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                REQUEST_LOCATION
-            )
+            requestPermissions(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ), REQUEST_LOCATION)
             return
         }
         refreshLocation()
@@ -234,16 +245,16 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Включите геолокацию на телефоне.", Toast.LENGTH_LONG).show()
             return
         }
-
         locationText.text = "Получаю актуальные координаты…"
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 manager.getCurrentLocation(provider, null, mainExecutor) { location ->
-                    if (location != null) saveLocation(location) else useLastKnownOrReport(manager, provider)
+                    if (location != null) saveLocation(location)
+                    else useLastKnownOrReport(manager, provider)
                 }
             } else {
                 val listener = object : LocationListener {
-                    override fun onLocationChanged(location: Location) { saveLocation(location) }
+                    override fun onLocationChanged(location: Location) = saveLocation(location)
                     override fun onProviderEnabled(provider: String) = Unit
                     override fun onProviderDisabled(provider: String) = Unit
                     @Deprecated("Deprecated in Android")
@@ -259,9 +270,10 @@ class MainActivity : Activity() {
     private fun useLastKnownOrReport(manager: LocationManager, provider: String) {
         try {
             val last = manager.getLastKnownLocation(provider)
-            if (last != null) saveLocation(last) else {
+            if (last != null) saveLocation(last)
+            else {
                 locationText.text = "Координаты пока не получены."
-                Toast.makeText(this, "Не удалось получить координаты. Попробуйте ещё раз на открытом месте.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Не удалось получить координаты. Попробуйте ещё раз.", Toast.LENGTH_LONG).show()
             }
         } catch (_: SecurityException) {
             locationText.text = "Нет доступа к местоположению."
@@ -278,11 +290,9 @@ class MainActivity : Activity() {
         SkyScheduleStore.clear(this)
         resolveEnglishPlaceName(location)
         AstroSyncJobService.schedule(this)
-        val s = WidgetPrefs.load(this)
-        renderLocation(s)
-        renderDataStatus(s)
+        renderLocation(WidgetPrefs.load(this))
         MayaWidgetProvider.updateAll(this)
-        Toast.makeText(this, "Местоположение сохранено. Данные USNO обновятся при доступном интернете.", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Местоположение сохранено.", Toast.LENGTH_SHORT).show()
     }
 
     @Suppress("DEPRECATION")
@@ -299,8 +309,7 @@ class MainActivity : Activity() {
             if (city.isNotBlank() || country.isNotBlank()) {
                 WidgetPrefs.saveLocationNames(this, city, country)
                 runOnUiThread {
-                    val s = WidgetPrefs.load(this)
-                    renderLocation(s)
+                    renderLocation(WidgetPrefs.load(this))
                     MayaWidgetProvider.updateAll(this)
                 }
             }
@@ -315,68 +324,69 @@ class MainActivity : Activity() {
             val place = listOf(s.cityName, s.countryName).filter { it.isNotBlank() }.joinToString(", ")
             buildString {
                 if (place.isNotBlank()) append("$place\n")
-                append("Сохранённые координаты: $base\nОбновлено: $stamp")
+                append("$base  •  обновлено $stamp")
             }
         } else {
-            "Координаты ещё не обновлялись. Временный стартовый ориентир: Москва ($base)."
+            "Координаты ещё не обновлялись. Временный ориентир: Москва ($base)."
         }
     }
 
-    private fun renderDataStatus(s: WidgetSettings) {
-        val cache = SkyScheduleStore.load(this)
-        val zone = java.time.ZoneId.systemDefault()
-        dataText.text = if (cache != null && cache.matches(s, zone)) {
-            val fetched = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                .format(Date(cache.fetchedAtMillis))
-            val valid = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                .format(Date(cache.validUntilMillis))
-            "Источник: U.S. Naval Observatory (USNO)\nПолучено: $fetched\nАвтономно действительно до: $valid"
-        } else {
-            "Источник: U.S. Naval Observatory (USNO)\nДанные для текущих координат ещё не загружены."
-        }
+    private fun glassCard(): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(16), dp(15), dp(16), dp(15))
+        background = colorDrawable(Color.argb(78, 20, 72, 62), dp(20).toFloat(), Color.argb(115, 209, 235, 205))
     }
 
-    private fun title(text: String, sp: Float): TextView = TextView(this).apply {
-        this.text = text
-        textSize = sp
-        setTextColor(Color.WHITE)
-        setPadding(0, 0, 0, dp(12))
-    }
-
-    private fun section(text: String): TextView = TextView(this).apply {
-        this.text = text
+    private fun sectionTitle(textValue: String) = TextView(this).apply {
+        text = textValue
         textSize = 18f
-        setTextColor(Color.rgb(210, 210, 210))
-        setPadding(0, dp(20), 0, dp(6))
+        setTextColor(IVORY)
+        setPadding(0, 0, 0, dp(9))
+        typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
     }
 
-    private fun paragraph(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 15f
-        setTextColor(Color.rgb(190, 190, 190))
-        setLineSpacing(0f, 1.15f)
-        setPadding(0, dp(4), 0, dp(8))
+    private fun airButton(label: String, action: () -> Unit) = Button(this).apply {
+        text = label
+        textSize = 13f
+        setTextColor(IVORY)
+        isAllCaps = false
+        background = colorDrawable(Color.argb(105, 27, 115, 98), dp(18).toFloat(), Color.argb(150, 233, 220, 165))
+        setOnClickListener { action() }
     }
 
-    private fun darkAdapter(items: List<String>): ArrayAdapter<String> =
-        object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val v = super.getView(position, convertView, parent)
-                (v as? TextView)?.setTextColor(Color.WHITE)
-                return v
-            }
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val v = super.getDropDownView(position, convertView, parent)
-                (v as? TextView)?.apply {
-                    setTextColor(Color.WHITE)
-                    setBackgroundColor(Color.rgb(28, 28, 28))
-                    setPadding(dp(12), dp(10), dp(12), dp(10))
+    private fun themedSpinner(values: List<String>): Spinner = Spinner(this).apply {
+        adapter = object : ArrayAdapter<String>(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, values) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+                styled(super.getView(position, convertView, parent), false)
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
+                styled(super.getDropDownView(position, convertView, parent), true)
+            private fun styled(view: View, dropdown: Boolean): View {
+                (view as? TextView)?.apply {
+                    setTextColor(IVORY)
+                    textSize = 15f
+                    setPadding(dp(10), dp(10), dp(10), dp(10))
+                    if (dropdown) setBackgroundColor(Color.rgb(18, 55, 48))
                 }
-                return v
+                return view
             }
-        }.apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+        backgroundTintList = android.content.res.ColorStateList.valueOf(SAND)
+    }
 
-    private fun fullWidth() = LinearLayout.LayoutParams(
+    private fun colorDrawable(color: Int, radius: Float, strokeColor: Int): GradientDrawable =
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius
+            setColor(color)
+            if (strokeColor != 0) setStroke(dp(1), strokeColor)
+        }
+
+    private fun matchCardParams() = LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT
+    ).apply { setMargins(0, 0, 0, dp(12)) }
+
+    private fun fieldParams() = LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.WRAP_CONTENT
     )
@@ -384,6 +394,10 @@ class MainActivity : Activity() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
-        private const val REQUEST_LOCATION = 3201
+        private const val REQUEST_LOCATION = 1207
+        private val IVORY = Color.rgb(250, 247, 235)
+        private val MINT = Color.rgb(190, 232, 210)
+        private val SAND = Color.rgb(232, 214, 161)
+        private val SOFT_TEXT = Color.rgb(216, 226, 219)
     }
 }
