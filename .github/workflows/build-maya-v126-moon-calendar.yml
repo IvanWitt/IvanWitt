@@ -1,0 +1,167 @@
+name: Build Maya Calendar v1.2.9 Moon Calendar
+
+on:
+  pull_request:
+    branches:
+      - fix/tzolkin-kin-sequence
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/moon-calendar-start-date
+
+      - name: Prepare v1.2.9 sources
+        run: python3 tools/prepare_v126.py
+
+      - name: Verify fixed moon-day modal integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML=app/src/main/assets/index.html
+          JAVA=app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+          MOON=app/src/main/assets/moon-calendar-v2.js
+          FIX=app/src/main/assets/moon-calendar-modal-fix.js
+          node --check "$MOON"
+          node --check "$FIX"
+          node --check app/src/main/assets/tzolkin-sequence-fix.js
+          grep -q 'moon-calendar-v2.js' "$HTML"
+          grep -q 'moon-calendar-modal-fix.js' "$HTML"
+          grep -q 'tzolkin-sequence-fix.js' "$HTML"
+          ! grep -q 'startupSplash' "$HTML"
+          ! grep -q 'initStartupSplash' "$HTML"
+          ! grep -q 'splashView' "$JAVA"
+          ! grep -q 'splashLayer' "$JAVA"
+          ! grep -q 'R.drawable.splash_maya' "$JAVA"
+          grep -q 'addJavascriptInterface' "$JAVA"
+          grep -q 'moonStartDate' "$MOON"
+          grep -q 'Moon ${m+1}' "$MOON"
+          grep -q "td.addEventListener('click',()=>openMoonDayModal(ordinal))" "$MOON"
+          grep -q "outside.addEventListener('click',()=>openMoonDayModal(365))" "$MOON"
+          grep -q 'moonDaySave' "$FIX"
+          grep -q 'Сохранить' "$FIX"
+          grep -q 'position:fixed!important' "$FIX"
+          grep -q "modal.style.display='flex'" "$FIX"
+          grep -q "document.body.style.overflow='hidden'" "$FIX"
+          grep -q 'syncEventsPageImmediately' "$FIX"
+          grep -q "typeof buildEventsTable==='function'" "$FIX"
+          grep -q 'saveEvents();' "$FIX"
+          grep -q 'updateCustomCalendar();' "$FIX"
+          ! grep -q 'setTimeout(()=>input.focus' "$FIX"
+          grep -q "versionName '1.2.9'" app/build.gradle
+          grep -q 'versionCode 9' app/build.gradle
+
+      - name: Verify 13-moon calendar arithmetic
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          def state(elapsed):
+              assert elapsed >= 0
+              year = elapsed // 365 + 1
+              ordinal = elapsed % 365 + 1
+              outside = ordinal == 365
+              month = None if outside else (ordinal - 1) // 28 + 1
+              day = None if outside else (ordinal - 1) % 28 + 1
+              return year, ordinal, month, day, outside
+          assert state(0) == (1,1,1,1,False)
+          assert state(27) == (1,28,1,28,False)
+          assert state(28) == (1,29,2,1,False)
+          assert state(55) == (1,56,2,28,False)
+          assert state(56) == (1,57,3,1,False)
+          assert state(363) == (1,364,13,28,False)
+          assert state(364) == (1,365,None,None,True)
+          assert state(365) == (2,1,1,1,False)
+          assert state(729) == (2,365,None,None,True)
+          assert state(730) == (3,1,1,1,False)
+          print('13-moon arithmetic verified')
+          PY
+
+      - name: Verify live event synchronization
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base=Path('app/src/main/assets/moon-calendar-v2.js').read_text('utf-8')
+          fix=Path('app/src/main/assets/moon-calendar-modal-fix.js').read_text('utf-8')
+          for item in [
+              "td.addEventListener('click',()=>openMoonDayModal(ordinal))",
+              "outside.addEventListener('click',()=>openMoonDayModal(365))",
+          ]:
+              assert item in base, item
+          required=[
+              "events[key]={text:clean,color}",
+              "saveEvents();",
+              "updateCustomCalendar();",
+              "syncEventsPageImmediately();",
+              "if(typeof buildEventsTable==='function') buildEventsTable();",
+              "id=\"moonDaySave\"",
+              "Сохранить",
+              "position:fixed!important",
+              "modal.style.display='flex'",
+          ]
+          for item in required:
+              assert item in fix, item
+          assert 'setTimeout(()=>input.focus' not in fix
+          print('Centered modal + live events-page sync verified')
+          PY
+
+      - name: Verify chronological Tzolkin control points
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          names=['Imix’','Ik’','Ak’b’al','K’an','Chikchan','Kimi','Manik’','Lamat','Muluk','Ok','Chuwen','Eb’','B’en','Ix','Men','K’ib’','Kab’an','Etz’nab’','Kawak','Ajaw']
+          expected={1:(1,'Imix’'),55:(3,'Men'),184:(2,'K’an'),185:(3,'Chikchan'),260:(13,'Ajaw')}
+          for kin,(tone,name) in expected.items():
+              actual=((kin-1)%13+1,names[(kin-1)%20])
+              assert actual==(tone,name),(kin,actual,(tone,name))
+          print('Tzolkin control points verified')
+          PY
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Build full debug APK
+        run: gradle --no-daemon assembleDebug --stacktrace
+
+      - name: Verify APK contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          unzip -p "$APK" assets/index.html | grep -q 'moon-calendar-v2.js'
+          unzip -p "$APK" assets/index.html | grep -q 'moon-calendar-modal-fix.js'
+          unzip -p "$APK" assets/index.html | grep -q 'tzolkin-sequence-fix.js'
+          ! unzip -p "$APK" assets/index.html | grep -q 'startupSplash'
+          unzip -p "$APK" assets/moon-calendar-v2.js | grep -q "td.addEventListener('click',()=>openMoonDayModal(ordinal))"
+          unzip -p "$APK" assets/moon-calendar-modal-fix.js | grep -q 'moonDaySave'
+          unzip -p "$APK" assets/moon-calendar-modal-fix.js | grep -q 'position:fixed!important'
+          unzip -p "$APK" assets/moon-calendar-modal-fix.js | grep -q 'syncEventsPageImmediately'
+          unzip -l "$APK" | grep -q 'assets/moon-calendar-v2.js'
+          unzip -l "$APK" | grep -q 'assets/moon-calendar-modal-fix.js'
+          unzip -l "$APK" | grep -q 'assets/tzolkin-sequence-fix.js'
+          if unzip -l "$APK" | grep -q 'splash_maya'; then
+            echo 'Obsolete custom splash resource still packaged' >&2
+            exit 1
+          fi
+          mkdir -p /tmp/apk
+          cp "$APK" /tmp/apk/MayaCalendar-v1.2.9-full.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MayaCalendar-v1.2.9-full
+          path: /tmp/apk/MayaCalendar-v1.2.9-full.apk
+          if-no-files-found: error
