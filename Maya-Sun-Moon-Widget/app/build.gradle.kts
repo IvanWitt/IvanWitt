@@ -11,8 +11,8 @@ android {
         applicationId = "com.ivanwitt.mayasunmoon"
         minSdk = 26
         targetSdk = 35
-        versionCode = 26
-        versionName = "0.3.12"
+        versionCode = 27
+        versionName = "0.3.13"
     }
 
     compileOptions {
