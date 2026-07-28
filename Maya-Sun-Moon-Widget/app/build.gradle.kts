@@ -15,6 +15,12 @@ android {
         versionName = "0.3.14"
     }
 
+    // The supplied widget designs are final PNG artwork. Do not run AAPT's PNG cruncher over
+    // them: it changed the image streams in previous builds and made the gallery artwork invalid.
+    aaptOptions {
+        cruncherEnabled = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
