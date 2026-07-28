@@ -4,16 +4,19 @@ on:
   push:
     branches:
       - fix/maya-widget-v0314-jungle-png
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   materialize:
-    if: ${{ github.actor != 'github-actions[bot]' }}
+    if: ${{ github.actor != 'github-actions[bot]' && github.head_ref == 'fix/maya-widget-v0314-jungle-png' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
           ref: fix/maya-widget-v0314-jungle-png
