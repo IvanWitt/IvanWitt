@@ -15,10 +15,15 @@ android {
         versionName = "0.3.14"
     }
 
-    // The supplied widget designs are final PNG artwork. Do not run AAPT's PNG cruncher over
-    // them: it changed the image streams in previous builds and made the gallery artwork invalid.
-    aaptOptions {
-        cruncherEnabled = false
+    // Preserve the supplied PNG artwork in debug and release builds without using the removed
+    // legacy aaptOptions.cruncherEnabled API.
+    buildTypes {
+        debug {
+            isCrunchPngs = false
+        }
+        release {
+            isCrunchPngs = false
+        }
     }
 
     compileOptions {
