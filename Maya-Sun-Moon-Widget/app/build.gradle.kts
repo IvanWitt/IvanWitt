@@ -15,6 +15,17 @@ android {
         versionName = "0.3.14"
     }
 
+    // Preserve the supplied PNG artwork in debug and release builds without using the removed
+    // legacy aaptOptions.cruncherEnabled API.
+    buildTypes {
+        debug {
+            isCrunchPngs = false
+        }
+        release {
+            isCrunchPngs = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
