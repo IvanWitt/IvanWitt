@@ -1,0 +1,52 @@
+name: Fix jungle PNG resource
+
+on:
+  push:
+    branches:
+      - fix/maya-widget-v0314-jungle-png
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/maya-widget-v0314-jungle-png
+          fetch-depth: 0
+
+      - name: Rebuild verified jungle PNG
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+          parts = [Path('.tmp_jungle/design_palms.png.00.b64'), Path('.tmp_jungle/design_palms.png.01.b64')]
+          payload = ''.join(p.read_text().strip() for p in parts)
+          raw = base64.b64decode(payload, validate=True)
+          expected = '44991386a907e97e34d8368eaa33df98f81632600ea10fa4936edb43a632e869'
+          actual = hashlib.sha256(raw).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'checksum mismatch: {actual}')
+          if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+              raise SystemExit('not a PNG')
+          out = Path('Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.png')
+          out.write_bytes(raw)
+          print(f'wrote {len(raw)} bytes sha256={actual}')
+          PY
+          file Maya-Sun-Moon-Widget/app/src/main/res/drawable/design_palms.png
+          rm -rf .tmp_jungle
+          rm -f .github/workflows/fix-jungle-png.yml
+
+      - name: Commit verified PNG
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix verified jungle PNG resource"
+          git push origin HEAD:fix/maya-widget-v0314-jungle-png
