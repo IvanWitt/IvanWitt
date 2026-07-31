@@ -1,0 +1,193 @@
+;
++      const normalized=normalizeImportedEvents(incoming);
++      events=normalized;
++      persistEvents();
++      refreshEventsTable();
++      updateCustomCalendar();
++      setEventsFileStatus(`События успешно загружены: ${Object.keys(events).length}.`);
++      return Object.keys(events).length;
++    }
++    window.applyImportedEventsJson=function(text){
++      try {
++        const count=applyImportedEventsJson(text);
++        alert(`События загружены: ${count}.`);
++        return true;
++      } catch(err){
++        setEventsFileStatus(`Ошибка загрузки: ${err.message}`,true);
++        alert(`Не удалось загрузить файл: ${err.message}`);
++        return false;
++      }
++    };
+     async function importEvents(file){
+-      const text=await file.text(); const parsed=JSON.parse(text);
+-      const incoming=parsed.events || parsed;
+-      if(!incoming || typeof incoming!=='object') throw new Error('Файл не содержит события');
+-      events=incoming; persistEvents(); refreshEventsTable();
++      const text=await file.text();
++      applyImportedEventsJson(text);
+     }
+ 
+     document.addEventListener('DOMContentLoaded',()=>{
+@@ -1312,6 +1403,13 @@
+         document.getElementById('gregorianDate').value=inputDateString(new Date()); updateAll();
+       });
+       document.getElementById('exportEvents').addEventListener('click',exportEvents);
++      document.getElementById('importEventsButton').addEventListener('click',()=>{
++        if(window.AndroidBridge && typeof window.AndroidBridge.importJson==='function'){
++          window.AndroidBridge.importJson();
++        } else {
++          document.getElementById('importEvents').click();
++        }
++      });
+       document.getElementById('importEvents').addEventListener('change',async e=>{
+         if(!e.target.files[0]) return;
+         try { await importEvents(e.target.files[0]); setEventsFileStatus('События успешно загружены из JSON.'); alert('События загружены.'); }
+--- maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
++++ maya-calendar-android/project/app/src/main/java/ru/ivwitt/mayacalendar/MainActivity.java
+@@ -11,9 +11,10 @@
+ import android.os.Build;
+ import android.os.Bundle;
+ import android.os.Environment;
++import android.provider.MediaStore;
+ import android.print.PrintAttributes;
+ import android.print.PrintManager;
+-import android.provider.MediaStore;
++import android.view.ViewGroup;
+ import android.view.WindowInsets;
+ import android.webkit.JavascriptInterface;
+ import android.webkit.ValueCallback;
+@@ -21,45 +22,65 @@
+ import android.webkit.WebSettings;
+ import android.webkit.WebView;
+ import android.webkit.WebViewClient;
++import android.widget.FrameLayout;
++import android.widget.ImageView;
+ import android.widget.Toast;
+ 
++import org.json.JSONObject;
++
++import java.io.ByteArrayOutputStream;
++import java.io.InputStream;
+ import java.io.OutputStream;
+ import java.nio.charset.StandardCharsets;
+ 
+ public class MainActivity extends Activity {
+     private static final int FILE_CHOOSER_REQUEST = 1001;
+     private static final int CREATE_JSON_REQUEST = 1002;
++    private static final int OPEN_JSON_REQUEST = 1003;
+ 
+     private WebView webView;
++    private ImageView splashView;
++    private FrameLayout rootView;
++    private boolean splashDismissed = false;
+     private ValueCallback<Uri[]> fileChooserCallback;
+     private String pendingJson;
+-    private String pendingJsonFilename = "праздники_календаря.json";
++    private String pendingJsonFilename = "maya_calendar_events.json";
+ 
+-    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
++    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface", "ObsoleteSdkInt"})
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+ 
+-        getWindow().setStatusBarColor(Color.rgb(23, 54, 93));
+-        getWindow().setNavigationBarColor(Color.rgb(23, 54, 93));
++        getWindow().setStatusBarColor(Color.rgb(35, 68, 63));
++        getWindow().setNavigationBarColor(Color.rgb(35, 68, 63));
+ 
++        rootView = new FrameLayout(this);
+         webView = new WebView(this);
+-        setContentView(webView);
+-
+-        // Android 15 enforces edge-to-edge for newer targets. Keep the sticky
+-        // calendar navigation below the status bar and above the navigation bar.
+-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+-            webView.setOnApplyWindowInsetsListener((view, insets) -> {
+-                view.setPadding(
+-                        0,
+-                        insets.getSystemWindowInsetTop(),
+-                        0,
+-                        insets.getSystemWindowInsetBottom()
+-                );
+-                return insets;
+-            });
+-            webView.requestApplyInsets();
+-        }
++        webView.setBackgroundColor(Color.rgb(243, 239, 230));
++        rootView.addView(webView, new FrameLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT,
++                ViewGroup.LayoutParams.MATCH_PARENT
++        ));
++
++        splashView = new ImageView(this);
++        splashView.setScaleType(ImageView.ScaleType.CENTER_CROP);
++        splashView.setImageResource(R.drawable.splash_maya);
++        splashView.setBackgroundColor(Color.rgb(31, 45, 38));
++        rootView.addView(splashView, new FrameLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT,
++                ViewGroup.LayoutParams.MATCH_PARENT
++        ));
++        setContentView(rootView);
++
++        // Android 15 enforces edge-to-edge for targetSdk 35.
++        // Insets are applied to the WebView so the app bar stays below the phone status area.
++        webView.setOnApplyWindowInsetsListener((view, insets) -> {
++            int top = insets.getSystemWindowInsetTop();
++            int bottom = insets.getSystemWindowInsetBottom();
++            view.setPadding(0, top, 0, bottom);
++            return insets;
++        });
++        webView.requestApplyInsets();
+ 
+         WebSettings settings = webView.getSettings();
+         settings.setJavaScriptEnabled(true);
+@@ -74,9 +95,16 @@
+ 
+         webView.setVerticalScrollBarEnabled(true);
+         webView.setHorizontalScrollBarEnabled(false);
+-        webView.setWebViewClient(new WebViewClient());
+         webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
+ 
++        webView.setWebViewClient(new WebViewClient() {
++            @Override
++            public void onPageFinished(WebView view, String url) {
++                super.onPageFinished(view, url);
++                dismissSplashWhenReady();
++            }
++        });
++
+         webView.setWebChromeClient(new WebChromeClient() {
+             @Override
+             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+@@ -100,9 +128,24 @@
+             webView.loadUrl("file:///android_asset/index.html");
+         } else {
+             webView.restoreState(savedInstanceState);
++            dismissSplashWhenReady();
+         }
+     }
+ 
++    private void dismissSplashWhenReady() {
++        if (splashDismissed || splashView == null) return;
++        splashDismissed = true;
++        splashView.postDelayed(() -> splashView.animate()
++                .alpha(0f)
++                .setDuration(350)
++                .withEndAction(() -> {
++                    if (splashView != null && splashView.getParent() == rootView) {
++                        rootView.removeView(splashView);
++                    }
++                    splashView = null;
++                }).start(), 900);
++    }
++
+     @Override
+     protected void onSaveInstanceState(Bundle outState) {
+         webView.saveState(outState);
+@@ -131,6 +174,13 @@
+             return;
+         }
+ 
++        if (requestCode == OPEN_JSON_REQUEST) {
++
